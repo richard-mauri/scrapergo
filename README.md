@@ -156,3 +156,62 @@ Reload or replace the temporary Safari extension after installing. The reader or
 This development version sets ordinary browser-navigation request headers and uses a per-request cookie jar. It preserves the existing DNS/private-network checks, redirects limit, Readability extraction, and Safari extension. HTTP retrieval logs contain request host, status, final host, content-type and elapsed time (not article bodies or cookie values). These changes are experimental: they do **not** guarantee AP News or other blocking publishers will accept a Go HTTP request. If a publisher still returns 403, use the existing Safari-assisted extraction method. No browser fingerprint spoofing, paywall bypass, or proxy service has been added.
 
 Run `go mod tidy && go test ./... && go run . --port 8083` from the project folder. Test the AP News article against Readeck, and inspect terminal logs for `fetch host=apnews.com`.
+
+
+## v0.2.10 image experiment
+
+This development version preserves the v0.2.9 HTTP retrieval implementation. For Go Readability extraction, it selects a hero image from Readability metadata, falling back to `og:image` / `twitter:image`. It also attempts to collect inline images and figure captions from Readability-cleaned HTML, displayed after the article paragraphs in this initial implementation. Images are linked directly from publisher servers; publishers may restrict hotlinking. Raw publisher HTML is never injected into the application. The standalone Safari fallback remains unchanged.
+
+After extracting the files, run `go mod tidy`, `go test ./...`, and `go run . --port 8083`. This version has not been compiled in the packaging environment due to unavailable Go module download access.
+
+
+## v0.2.11 image CSP fix
+
+The browser Content Security Policy now includes `img-src 'self' https: data:;`
+so Safari may load article photographs served from HTTPS publisher image hosts
+such as `dims.apnews.com`. Script restrictions and HTTP retrieval behavior are
+unchanged. Third-party image hotlink restrictions may still prevent some images
+from loading. Reload the ScraperGo page after restarting the server.
+
+
+## v0.2.12: Direct-open Safari extension
+
+The Safari right-click action now opens ScraperGo immediately, passing the clicked
+URL as `?url=`. It does not navigate a temporary Safari tab to the original
+publisher, avoiding the ad-filled page flash. ScraperGo's existing Go backend
+resolves Google News URLs when possible and extracts public publisher HTML.
+
+**Tradeoff:** the previous automatic Safari DOM-capture path is no longer
+initiated by the context-menu action. Articles that only succeeded via browser-
+assisted capture may fail until a separate, nonintrusive fallback is designed.
+The previous content script is retained for compatibility but is not called by
+the direct-open action. No Go retrieval/image code was changed.
+
+**Activation:** after replacing `safari-extension/background.js` and
+`manifest.json`, reload/reinstall the Safari temporary extension from its
+actual source folder so the new background worker is active. Merely rebuilding
+the Go server does not update the Safari extension. For the page's version
+label, rebuild/restart the Go server from v0.2.12 source on port 8083.
+
+Commands: `go test ./...`, then `go build -o scrapergo .`, then
+`./scrapergo --port 8083`. The Go Readability dependency must be present
+(or downloadable) for tests and builds.
+
+## v0.2.13 access classification
+
+The API now distinguishes free registration, an explicitly paid subscription, and an otherwise restricted article. HTTP retrieval failures are not considered proof of a paywall. The Safari extension and article extraction/retrieval paths remain unchanged.
+
+
+## v0.2.14 restriction diagnostics
+
+This development version preserves direct Safari extension navigation, article extraction,
+images, and existing classification logic. When a publisher page contains restriction
+markers, the reader now displays the **resolved publisher hostname** and the **matched
+detection marker** (for example `structured-paywall-metadata` or `free-reading-phrase`).
+Terminal logs record the same fields and the received HTML byte count, without logging
+article text or cookies. This can reveal why an Axios free-registration prompt was
+classified as a generic access restriction.
+
+Test using the same Axios Google News link. If the result remains `Access Restricted`,
+report the `Publisher` and `Detection` fields. This build intentionally does not infer
+a free registration wall merely from the Axios domain.

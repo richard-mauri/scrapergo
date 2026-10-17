@@ -22,13 +22,14 @@ import (
 	"time"
 )
 
-// ScraperGo v0.2.9 — browser-style retrieval and diagnostics.
+// ScraperGo v0.2.14 — browser-style retrieval and diagnostics.
 const sampleURL = "https://247wallst.com/investing/2026/10/16/taiwan-is-planning-4-billion-industrial-parks-in-texas-for-nvidias-suppliers/"
 const maxHTML = 5 << 20
 
 type Block struct {
 	Kind string `json:"kind"`
 	Text string `json:"text"`
+	URL  string `json:"url,omitempty"`
 }
 type Article struct {
 	Title     string  `json:"title"`
@@ -190,7 +191,7 @@ func extractBlocks(root *Node) []Block {
 			s := textOf(n)
 			kind := n.Tag
 			if len(s) > 0 && !sentenceAdRE.MatchString(s) && !(n.Tag == "p" && len(s) < 25) {
-				blocks = append(blocks, Block{kind, s})
+				blocks = append(blocks, Block{Kind: kind, Text: s})
 			}
 			return
 		}
@@ -475,6 +476,7 @@ func api(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
 		return
 	}
+	log.Printf("resolve publisher=%s google_news=%t", mustHostname(address), strings.Contains(in.URL, "news.google.com/"))
 	raw, finalURL, err := download(r.Context(), address)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")
@@ -483,9 +485,18 @@ func api(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error(), "kind": "access_error"})
 		return
 	}
-	if paywallEvidence(raw) {
+	if kind := accessRestriction(raw); kind != "" {
+		// Log only diagnostic markers, never full article HTML, cookies, or URL query strings.
+		log.Printf("restriction publisher=%s kind=%s evidence=%s html_bytes=%d", mustHostname(finalURL), kind, restrictionEvidence(raw), len(raw))
 		w.WriteHeader(422)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": "This publisher requires a paid subscription to read the full article. ScraperGo recommends skipping this pay site.", "kind": "paywall", "publisher": mustHostname(finalURL)})
+		message := "This article requires a subscription or other access permission."
+		if kind == "registration" {
+			message = "This publisher requires free registration to continue reading."
+		}
+		if kind == "paywall" {
+			message = "This publisher requires a paid subscription to read the full article."
+		}
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": message, "kind": kind, "publisher": mustHostname(finalURL), "evidence": restrictionEvidence(raw)})
 		return
 	}
 	article, err := extractWithReadability(raw, finalURL)
@@ -497,21 +508,74 @@ func api(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(article)
 }
 
-// paywallEvidence requires explicit subscription language, not merely HTTP 403.
-func paywallEvidence(raw string) bool {
+// accessRestriction classifies explicit restriction evidence, never HTTP status alone.
+// Free registration wins over generic subscription metadata, as in Axios newsletters.
+func accessRestriction(raw string) string {
 	lower := strings.ToLower(raw)
-	for _, marker := range []string{`"isaccessibleforfree":false`, `"isaccessibleforfree": false`, `"paywall":true`, `"paywall": true`} {
+	for _, marker := range []string{
+		"sign up for", "register for free to continue reading", "create a free account to continue reading",
+	} {
+		if marker == "sign up for" {
+			// Avoid calling unrelated newsletter advertisements an article registration wall.
+			if strings.Contains(lower, "to continue reading for free") || strings.Contains(lower, "to read the rest for free") {
+				return "registration"
+			}
+			continue
+		}
 		if strings.Contains(lower, marker) {
-			return true
+			return "registration"
 		}
 	}
-	for _, marker := range []string{"subscribe to continue reading", "subscribe to read the full article", "this article is for subscribers only", "subscriber-only article", "subscription required to read"} {
+	for _, marker := range []string{"paid subscription required", "subscribe for $", "become a paying subscriber"} {
 		if strings.Contains(lower, marker) {
-			return true
+			return "paywall"
 		}
 	}
-	return false
+	for _, marker := range []string{
+		"subscribe to continue reading", "subscribe to read the full article",
+		"this article is for subscribers only", "subscriber-only article",
+		"subscription required to read", `"isaccessibleforfree":false`,
+		`"isaccessibleforfree": false`, `"paywall":true`, `"paywall": true`,
+	} {
+		if strings.Contains(lower, marker) {
+			// A generic metadata or subscribe marker does not establish that payment is required.
+			return "restricted"
+		}
+	}
+	return ""
 }
+
+// restrictionEvidence explains which predefined phrase caused a restriction decision.
+// It returns marker names, not article text, to keep server logs predictable.
+func restrictionEvidence(raw string) string {
+	lower := strings.ToLower(raw)
+	for _, rule := range []struct{ phrase, label string }{
+		{"to continue reading for free", "free-reading-phrase"},
+		{"to read the rest for free", "free-reading-phrase"},
+		{"register for free to continue reading", "free-registration"},
+		{"create a free account to continue reading", "free-account"},
+		{"paid subscription required", "explicit-paid-subscription"},
+		{"subscribe for $", "explicit-price"},
+		{"become a paying subscriber", "explicit-paid-subscriber"},
+		{"subscribe to continue reading", "subscription-prompt"},
+		{"subscribe to read the full article", "subscription-prompt"},
+		{"this article is for subscribers only", "subscriber-only"},
+		{"subscriber-only article", "subscriber-only"},
+		{"subscription required to read", "subscription-required"},
+		{`"isaccessibleforfree":false`, "structured-paywall-metadata"},
+		{`"isaccessibleforfree": false`, "structured-paywall-metadata"},
+		{`"paywall":true`, "paywall-metadata"},
+		{`"paywall": true`, "paywall-metadata"},
+	} {
+		if strings.Contains(lower, rule.phrase) {
+			return rule.label
+		}
+	}
+	return "unidentified"
+}
+
+// Backward compatibility for tests and callers expecting a boolean restriction signal.
+func paywallEvidence(raw string) bool { return accessRestriction(raw) != "" }
 func mustHostname(address string) string {
 	u, err := url.Parse(address)
 	if err != nil {
@@ -573,11 +637,11 @@ func main() {
 			return
 		}
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		w.Header().Set("Content-Security-Policy", "default-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; base-uri 'none'; object-src 'none'")
+		w.Header().Set("Content-Security-Policy", "default-src 'self'; img-src 'self' https: data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; base-uri 'none'; object-src 'none'")
 		fmt.Fprint(w, indexHTML)
 	})
 	server := &http.Server{Addr: ":" + port, Handler: mux, ReadHeaderTimeout: 5 * time.Second}
-	log.Printf("ScraperGo v0.2.9 listening on http://localhost:%s", port)
+	log.Printf("ScraperGo v0.2.14 listening on http://localhost:%s", port)
 	if err := server.ListenAndServe(); err != nil {
 		if errors.Is(err, syscall.EADDRINUSE) {
 			log.Printf("Port %s is already in use. Try a different port:\n  go run . --port 8081\n  ./dist/scrapergo-darwin-amd64 --port 8081\nOr set PORT=8081 before launching.", port)

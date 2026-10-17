@@ -37,10 +37,31 @@ func extractWithReadability(raw, source string) (Article, error) {
 				if title == "" {
 					title = "Untitled article"
 				}
-				img := parsed.ImageURL()
-				if imageURL, e := url.Parse(img); e != nil || (imageURL.Scheme != "https" && imageURL.Scheme != "http") {
-					img = ""
+				img := resolveImageURL(parsed.ImageURL(), u)
+				// Some publishers only advertise the lead photograph through Open Graph.
+				if img == "" {
+					img = resolveImageURL(meta(parseHTML(raw), "og:image", "twitter:image"), u)
 				}
+				// Extract only images in the Readability-cleaned article, never in site chrome.
+				var cleanHTML bytes.Buffer
+				if parsed.RenderHTML(&cleanHTML) == nil {
+					images := articleImages(cleanHTML.String(), u)
+					for _, photo := range images {
+						if photo.URL == img {
+							continue
+						} // avoid duplicating the hero
+						blocks = append(blocks, photo)
+					}
+				}
+				if img == "" {
+					for _, photo := range blocks {
+						if photo.Kind == "img" {
+							img = photo.URL
+							break
+						}
+					}
+				}
+
 				return Article{Title: title, Byline: parsed.Byline(), Site: parsed.SiteName(), URL: source, Blocks: blocks, WordCount: count, ImageURL: img, Method: "Go Readability v2"}, nil
 			}
 		}
@@ -54,4 +75,67 @@ func extractWithReadability(raw, source string) (Article, error) {
 		return fallback, fmt.Errorf("Readability: %v; legacy extractor: %w", parseErr, fallbackErr)
 	}
 	return fallback, fallbackErr
+}
+
+// resolveImageURL accepts only http(s) URLs, including relative references.
+func resolveImageURL(raw string, base *url.URL) string {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return ""
+	}
+	u, err := url.Parse(raw)
+	if err != nil {
+		return ""
+	}
+	resolved := base.ResolveReference(u)
+	if resolved.Scheme != "http" && resolved.Scheme != "https" {
+		return ""
+	}
+	if resolved.Hostname() == "" || resolved.User != nil {
+		return ""
+	}
+	return resolved.String()
+}
+
+// articleImages reads imagery from the already cleaned Readability output.
+// Captions are kept as plain text; publisher HTML is never injected into the UI.
+func articleImages(cleaned string, base *url.URL) []Block {
+	root := parseHTML(cleaned)
+	images := []Block{}
+	seen := map[string]bool{}
+	for _, n := range find(root, func(n *Node) bool { return n.Tag == "img" }) {
+		src := n.Attr["src"]
+		if src == "" {
+			src = n.Attr["data-src"]
+		}
+		if src == "" {
+			src = n.Attr["data-original"]
+		}
+		link := resolveImageURL(src, base)
+		if link == "" || seen[link] {
+			continue
+		}
+		seen[link] = true
+		caption := ""
+		for ancestor := n.Parent; ancestor != nil; ancestor = ancestor.Parent {
+			if ancestor.Tag == "figure" {
+				for _, c := range find(ancestor, func(x *Node) bool { return x.Tag == "figcaption" }) {
+					caption = textOf(c)
+					break
+				}
+				break
+			}
+			if ancestor.Tag == "body" {
+				break
+			}
+		}
+		if caption == "" {
+			caption = normalize(n.Attr["alt"])
+		}
+		images = append(images, Block{Kind: "img", Text: caption, URL: link})
+		if len(images) >= 12 {
+			break
+		}
+	}
+	return images
 }

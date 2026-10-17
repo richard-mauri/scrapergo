@@ -12,3 +12,18 @@ func TestPaywallEvidence(t *testing.T) {
 		}
 	}
 }
+
+func TestAccessRestriction(t *testing.T) {
+	for _, tc := range []struct{ input, want string }{
+		{`Sign up for Axios Hill Leaders to continue reading for free.`, "registration"},
+		{`Register for free to continue reading`, "registration"},
+		{`This article is for subscribers only`, "restricted"},
+		{`Paid subscription required`, "paywall"},
+		{`HTTP 403 Forbidden`, ""},
+		{`Subscribe to our newsletter`, ""},
+	} {
+		if got := accessRestriction(tc.input); got != tc.want {
+			t.Errorf("%q: got %q, want %q", tc.input, got, tc.want)
+		}
+	}
+}
