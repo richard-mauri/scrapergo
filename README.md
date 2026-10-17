@@ -215,3 +215,24 @@ classified as a generic access restriction.
 Test using the same Axios Google News link. If the result remains `Access Restricted`,
 report the `Publisher` and `Detection` fields. This build intentionally does not infer
 a free registration wall merely from the Axios domain.
+
+
+## v0.2.15 — Axios HTTP 403 comparison
+
+The initial HTTP request remains unchanged. On HTTP 403 only, ScraperGo
+makes one additional request with an independently implemented, internally
+consistent Chromium/Windows-style HTTP header profile inspired by inspection
+of Readeck's open-source HTTP client. The retry uses a fresh cookie jar and
+does not invoke Safari or create intermediate publisher tabs. The application's
+DNS safety checks, redirect limits, image handling, Google News resolution,
+and Readability extraction are unchanged.
+
+The terminal now logs `profile=existing` or `profile=readeck-like` with the HTTP
+response status, so a successful second attempt can be identified. This does
+**not** duplicate Readeck's custom TLS behavior and might not resolve Axios.
+Run tests before `./devbuild.sh` and evaluate the same Axios URL as well as AP News.
+
+
+## v0.2.17 — single reusable ScraperGo tab
+
+The Safari extension now searches all browser tabs for an existing tab on the configured ScraperGo origin. When found, it navigates that tab to the selected article, activates it, and attempts to focus its window. Otherwise, it creates one new ScraperGo tab. Overlapping clicks are serialized. The Google News resolver and all Go retrieval, Readability, and image logic remain unchanged. Reload the Safari extension for the new background script to take effect.

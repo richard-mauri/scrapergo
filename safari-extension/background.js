@@ -13,9 +13,32 @@ async function readerOrigin() {
     return u.origin + '/';
   } catch { return DEFAULT_READER; }
 }
+// Serialize overlapping context-menu clicks so they cannot create two reader tabs.
+let pendingOpen = Promise.resolve();
 async function openReader(articleURL) {
   const base = await readerOrigin();
-  await browser.tabs.create({url: base + '?url=' + encodeURIComponent(articleURL)});
+  const destination = base + '?url=' + encodeURIComponent(articleURL);
+  // Query all tabs rather than a single window; a reader may be open elsewhere.
+  const tabs = await browser.tabs.query({});
+  const reader = tabs.find(tab => {
+    try { return new URL(tab.url).origin === new URL(base).origin; }
+    catch { return false; }
+  });
+  if (reader) {
+    try {
+      await browser.tabs.update(reader.id, {url: destination, active: true});
+      // Bring the reader window forward where Safari permits this API.
+      if (typeof reader.windowId === 'number' && browser.windows?.update) {
+        try { await browser.windows.update(reader.windowId, {focused: true}); }
+        catch (err) { console.debug('ScraperGo could not focus reader window:', err); }
+      }
+      return;
+    } catch (err) {
+      // The reader might have closed between query and update.
+      console.debug('ScraperGo reader tab no longer available:', err);
+    }
+  }
+  await browser.tabs.create({url: destination, active: true});
 }
 function installMenu() {
   browser.contextMenus.removeAll()
@@ -27,6 +50,7 @@ browser.runtime.onStartup.addListener(installMenu);
 installMenu();
 browser.contextMenus.onClicked.addListener(async info => {
   if (info.menuItemId !== MENU_ID || !validURL(info.linkUrl)) return;
-  try { await openReader(info.linkUrl); }
+  pendingOpen = pendingOpen.catch(() => {}).then(() => openReader(info.linkUrl));
+  try { await pendingOpen; }
   catch (err) { console.error('ScraperGo could not open reader:', err); }
 });

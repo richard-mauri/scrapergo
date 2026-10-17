@@ -22,7 +22,7 @@ import (
 	"time"
 )
 
-// ScraperGo v0.2.14 — browser-style retrieval and diagnostics.
+// ScraperGo v0.2.17 — browser-style retrieval and diagnostics.
 const sampleURL = "https://247wallst.com/investing/2026/10/16/taiwan-is-planning-4-billion-industrial-parks-in-texas-for-nvidias-suppliers/"
 const maxHTML = 5 << 20
 
@@ -32,15 +32,17 @@ type Block struct {
 	URL  string `json:"url,omitempty"`
 }
 type Article struct {
-	Title     string  `json:"title"`
-	Byline    string  `json:"byline,omitempty"`
-	Published string  `json:"published,omitempty"`
-	Site      string  `json:"site,omitempty"`
-	URL       string  `json:"url"`
-	Blocks    []Block `json:"blocks"`
-	WordCount int     `json:"wordCount"`
-	ImageURL  string  `json:"imageUrl,omitempty"`
-	Method    string  `json:"method,omitempty"`
+	Title      string  `json:"title"`
+	Byline     string  `json:"byline,omitempty"`
+	Published  string  `json:"published,omitempty"`
+	Site       string  `json:"site,omitempty"`
+	URL        string  `json:"url"`
+	Blocks     []Block `json:"blocks"`
+	WordCount  int     `json:"wordCount"`
+	ImageURL   string  `json:"imageUrl,omitempty"`
+	Method     string  `json:"method,omitempty"`
+	AccessNote string  `json:"accessNote,omitempty"`
+	AccessType string  `json:"accessType,omitempty"`
 }
 type Node struct {
 	Tag    string
@@ -400,6 +402,26 @@ func setBrowserHeaders(req *http.Request) {
 	req.Header.Set("Sec-Fetch-User", "?1")
 }
 
+// setReadeckLikeHeaders provides a second, internally consistent Chromium
+// request profile. This is an independently implemented approximation, not
+// Readeck code, and does not reproduce its TLS fingerprint.
+func setReadeckLikeHeaders(req *http.Request) {
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36")
+	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/jpeg,image/png,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7")
+	req.Header.Set("Accept-Language", "en-US,en;q=0.8")
+	req.Header.Set("Cache-Control", "max-age=0")
+	req.Header.Set("Upgrade-Insecure-Requests", "1")
+	req.Header.Set("Sec-CH-UA", `"Google Chrome";v="144", "Chromium";v="144"`)
+	req.Header.Set("Sec-CH-UA-Mobile", "?0")
+	req.Header.Set("Sec-CH-UA-Platform", `"Windows"`)
+	req.Header.Set("Sec-Fetch-Site", "none")
+	req.Header.Set("Sec-Fetch-Mode", "navigate")
+}
+
+// alternateHeaderRetry applies only to a publisher's explicit refusal.
+// A second 403 is returned normally rather than classified as a paywall.
+func alternateHeaderRetry(status int) bool { return status == http.StatusForbidden }
+
 func download(ctx context.Context, address string) (string, string, error) {
 	u, err := validatedURL(ctx, address)
 	if err != nil {
@@ -425,22 +447,40 @@ func download(ctx context.Context, address string) (string, string, error) {
 		_, err := validatedURL(req.Context(), req.URL.String())
 		return err
 	}}
-	req, err := http.NewRequestWithContext(ctx, "GET", u.String(), nil)
-	if err != nil {
-		return "", "", err
-	}
-	setBrowserHeaders(req)
+	// The initial attempt preserves v0.2.14 behavior. Only a 403 triggers
+	// one alternative request, with a fresh cookie jar and no publisher tab.
 	started := time.Now()
-	res, err := client.Do(req)
-	if err != nil {
-		log.Printf("fetch host=%s error=%v elapsed=%s", u.Hostname(), err, time.Since(started))
-	}
-	if err != nil {
-		return "", "", err
+	var res *http.Response
+	for attempt := 0; attempt < 2; attempt++ {
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+		if err != nil {
+			return "", "", err
+		}
+		profile := "existing"
+		if attempt == 0 {
+			setBrowserHeaders(req)
+		} else {
+			profile = "readeck-like"
+			setReadeckLikeHeaders(req)
+		}
+		res, err = client.Do(req)
+		if err != nil {
+			log.Printf("fetch host=%s profile=%s error=%v elapsed=%s", u.Hostname(), profile, err, time.Since(started))
+			return "", "", err
+		}
+		log.Printf("fetch host=%s profile=%s status=%d redirect_host=%s content_type=%q elapsed=%s",
+			u.Hostname(), profile, res.StatusCode, res.Request.URL.Hostname(), res.Header.Get("Content-Type"), time.Since(started))
+		if attempt == 0 && alternateHeaderRetry(res.StatusCode) {
+			_ = res.Body.Close()
+			// A retry should not carry over cookies from the rejected response.
+			freshJar, _ := cookiejar.New(nil)
+			client.Jar = freshJar
+			continue
+		}
+		break
 	}
 	defer res.Body.Close()
-	log.Printf("fetch host=%s status=%d redirect_host=%s content_type=%q elapsed=%s", u.Hostname(), res.StatusCode, res.Request.URL.Hostname(), res.Header.Get("Content-Type"), time.Since(started))
-	if res.StatusCode != 200 {
+	if res.StatusCode != http.StatusOK {
 		return "", "", fmt.Errorf("article request to %s returned HTTP %d (%s)", res.Request.URL.Hostname(), res.StatusCode, http.StatusText(res.StatusCode))
 	}
 	if c := res.Header.Get("Content-Type"); c != "" && !strings.Contains(strings.ToLower(c), "html") {
@@ -485,27 +525,40 @@ func api(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error(), "kind": "access_error"})
 		return
 	}
-	if kind := accessRestriction(raw); kind != "" {
-		// Log only diagnostic markers, never full article HTML, cookies, or URL query strings.
-		log.Printf("restriction publisher=%s kind=%s evidence=%s html_bytes=%d", mustHostname(finalURL), kind, restrictionEvidence(raw), len(raw))
+	// Extract before deciding whether restricted pages offer readable public text.
+	// Restriction metadata alone does not establish that no usable preview exists.
+	kind := accessRestriction(raw)
+	article, extractionErr := extractWithReadability(raw, finalURL)
+	if kind != "" {
+		log.Printf("restriction publisher=%s kind=%s evidence=%s html_bytes=%d public_words=%d", mustHostname(finalURL), kind, restrictionEvidence(raw), len(raw), article.WordCount)
+		if extractionErr == nil && article.WordCount >= 80 {
+			article.AccessType = kind
+			article.AccessNote = accessNotice(kind)
+			_ = json.NewEncoder(w).Encode(article)
+			return
+		}
 		w.WriteHeader(422)
-		message := "This article requires a subscription or other access permission."
-		if kind == "registration" {
-			message = "This publisher requires free registration to continue reading."
-		}
-		if kind == "paywall" {
-			message = "This publisher requires a paid subscription to read the full article."
-		}
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": message, "kind": kind, "publisher": mustHostname(finalURL), "evidence": restrictionEvidence(raw)})
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": accessNotice(kind), "kind": kind, "publisher": mustHostname(finalURL), "evidence": restrictionEvidence(raw)})
 		return
 	}
-	article, err := extractWithReadability(raw, finalURL)
-	if err != nil {
+	if extractionErr != nil {
 		w.WriteHeader(422)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error(), "kind": "extraction_error"})
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": extractionErr.Error(), "kind": "extraction_error"})
 		return
 	}
 	_ = json.NewEncoder(w).Encode(article)
+}
+
+// accessNotice deliberately avoids claiming that a displayed preview is complete.
+func accessNotice(kind string) string {
+	switch kind {
+	case "registration":
+		return "Free registration may be required to continue reading. The text below may be only a preview."
+	case "paywall":
+		return "A paid subscription may be required for the full article. The text below may be only a preview."
+	default:
+		return "The publisher marks this article as access-restricted. The text below may be incomplete."
+	}
 }
 
 // accessRestriction classifies explicit restriction evidence, never HTTP status alone.
@@ -641,7 +694,7 @@ func main() {
 		fmt.Fprint(w, indexHTML)
 	})
 	server := &http.Server{Addr: ":" + port, Handler: mux, ReadHeaderTimeout: 5 * time.Second}
-	log.Printf("ScraperGo v0.2.14 listening on http://localhost:%s", port)
+	log.Printf("ScraperGo v0.2.17 listening on http://localhost:%s", port)
 	if err := server.ListenAndServe(); err != nil {
 		if errors.Is(err, syscall.EADDRINUSE) {
 			log.Printf("Port %s is already in use. Try a different port:\n  go run . --port 8081\n  ./dist/scrapergo-darwin-amd64 --port 8081\nOr set PORT=8081 before launching.", port)
