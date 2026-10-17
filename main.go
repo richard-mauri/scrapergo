@@ -11,6 +11,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/http/cookiejar"
 	"net/url"
 	"os"
 	"regexp"
@@ -21,7 +22,7 @@ import (
 	"time"
 )
 
-// ScraperGo v0.2.2 — no external Go dependencies.
+// ScraperGo v0.2.9 — browser-style retrieval and diagnostics.
 const sampleURL = "https://247wallst.com/investing/2026/10/16/taiwan-is-planning-4-billion-industrial-parks-in-texas-for-nvidias-suppliers/"
 const maxHTML = 5 << 20
 
@@ -37,6 +38,8 @@ type Article struct {
 	URL       string  `json:"url"`
 	Blocks    []Block `json:"blocks"`
 	WordCount int     `json:"wordCount"`
+	ImageURL  string  `json:"imageUrl,omitempty"`
+	Method    string  `json:"method,omitempty"`
 }
 type Node struct {
 	Tag    string
@@ -382,6 +385,20 @@ func validatedURL(ctx context.Context, s string) (*url.URL, error) {
 	}
 	return u, nil
 }
+
+// setBrowserHeaders uses ordinary Chrome-style navigation headers. These can
+// improve compatibility, but cannot reproduce Safari's TLS fingerprint or cookies.
+func setBrowserHeaders(req *http.Request) {
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36")
+	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8")
+	req.Header.Set("Accept-Language", "en-US,en;q=0.8")
+	req.Header.Set("Upgrade-Insecure-Requests", "1")
+	req.Header.Set("Sec-Fetch-Dest", "document")
+	req.Header.Set("Sec-Fetch-Mode", "navigate")
+	req.Header.Set("Sec-Fetch-Site", "none")
+	req.Header.Set("Sec-Fetch-User", "?1")
+}
+
 func download(ctx context.Context, address string) (string, string, error) {
 	u, err := validatedURL(ctx, address)
 	if err != nil {
@@ -399,7 +416,8 @@ func download(ctx context.Context, address string) (string, string, error) {
 		}
 		return (&net.Dialer{Timeout: 8 * time.Second}).DialContext(ctx, network, net.JoinHostPort(host, port))
 	}
-	client := &http.Client{Timeout: 18 * time.Second, Transport: transport, CheckRedirect: func(req *http.Request, via []*http.Request) error {
+	jar, _ := cookiejar.New(nil)
+	client := &http.Client{Timeout: 18 * time.Second, Transport: transport, Jar: jar, CheckRedirect: func(req *http.Request, via []*http.Request) error {
 		if len(via) >= 5 {
 			return errors.New("too many redirects")
 		}
@@ -410,15 +428,19 @@ func download(ctx context.Context, address string) (string, string, error) {
 	if err != nil {
 		return "", "", err
 	}
-	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; CleanArticleReader/0.2; personal reading)")
-	req.Header.Set("Accept", "text/html,application/xhtml+xml")
+	setBrowserHeaders(req)
+	started := time.Now()
 	res, err := client.Do(req)
+	if err != nil {
+		log.Printf("fetch host=%s error=%v elapsed=%s", u.Hostname(), err, time.Since(started))
+	}
 	if err != nil {
 		return "", "", err
 	}
 	defer res.Body.Close()
+	log.Printf("fetch host=%s status=%d redirect_host=%s content_type=%q elapsed=%s", u.Hostname(), res.StatusCode, res.Request.URL.Hostname(), res.Header.Get("Content-Type"), time.Since(started))
 	if res.StatusCode != 200 {
-		return "", "", fmt.Errorf("website returned HTTP %d", res.StatusCode)
+		return "", "", fmt.Errorf("article request to %s returned HTTP %d (%s)", res.Request.URL.Hostname(), res.StatusCode, http.StatusText(res.StatusCode))
 	}
 	if c := res.Header.Get("Content-Type"); c != "" && !strings.Contains(strings.ToLower(c), "html") {
 		return "", "", errors.New("URL did not return an HTML page")
@@ -445,21 +467,57 @@ func api(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid request JSON", 400)
 		return
 	}
-	raw, finalURL, err := download(r.Context(), in.URL)
+	address, err := resolveGoogleNewsURL(r.Context(), in.URL)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		w.Header().Set("Cache-Control", "no-store")
+		w.WriteHeader(422)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		return
+	}
+	raw, finalURL, err := download(r.Context(), address)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")
 	if err != nil {
 		w.WriteHeader(422)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error(), "kind": "access_error"})
 		return
 	}
-	article, err := extract(raw, finalURL)
+	if paywallEvidence(raw) {
+		w.WriteHeader(422)
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "This publisher requires a paid subscription to read the full article. ScraperGo recommends skipping this pay site.", "kind": "paywall", "publisher": mustHostname(finalURL)})
+		return
+	}
+	article, err := extractWithReadability(raw, finalURL)
 	if err != nil {
 		w.WriteHeader(422)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error(), "kind": "extraction_error"})
 		return
 	}
 	_ = json.NewEncoder(w).Encode(article)
+}
+
+// paywallEvidence requires explicit subscription language, not merely HTTP 403.
+func paywallEvidence(raw string) bool {
+	lower := strings.ToLower(raw)
+	for _, marker := range []string{`"isaccessibleforfree":false`, `"isaccessibleforfree": false`, `"paywall":true`, `"paywall": true`} {
+		if strings.Contains(lower, marker) {
+			return true
+		}
+	}
+	for _, marker := range []string{"subscribe to continue reading", "subscribe to read the full article", "this article is for subscribers only", "subscriber-only article", "subscription required to read"} {
+		if strings.Contains(lower, marker) {
+			return true
+		}
+	}
+	return false
+}
+func mustHostname(address string) string {
+	u, err := url.Parse(address)
+	if err != nil {
+		return "publisher"
+	}
+	return u.Hostname()
 }
 
 // resolvePort selects --port / -port over PORT, with 8080 as the default.
@@ -519,7 +577,7 @@ func main() {
 		fmt.Fprint(w, indexHTML)
 	})
 	server := &http.Server{Addr: ":" + port, Handler: mux, ReadHeaderTimeout: 5 * time.Second}
-	log.Printf("ScraperGo v0.2.2 listening on http://localhost:%s", port)
+	log.Printf("ScraperGo v0.2.9 listening on http://localhost:%s", port)
 	if err := server.ListenAndServe(); err != nil {
 		if errors.Is(err, syscall.EADDRINUSE) {
 			log.Printf("Port %s is already in use. Try a different port:\n  go run . --port 8081\n  ./dist/scrapergo-darwin-amd64 --port 8081\nOr set PORT=8081 before launching.", port)

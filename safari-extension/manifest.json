@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "Open Link in ScraperGo",
+  "version": "0.3.0",
+  "description": "Open links in ScraperGo; use visible Safari article content when available.",
+  "permissions": [
+    "contextMenus",
+    "tabs",
+    "storage"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "options_page": "options.html",
+  "content_scripts": [
+    {
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}
