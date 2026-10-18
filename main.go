@@ -537,6 +537,17 @@ func api(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error(), "kind": "access_error"})
 		return
 	}
+	// A navigation index is not a single article. Classify conservatively before
+	// Readability can flatten its menu and story cards into a false article.
+	if pageIsIndex(raw) {
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		_ = json.NewEncoder(w).Encode(map[string]string{
+			"kind":  "page_index",
+			"error": "This appears to be a homepage or index, not a single article. Open the original website to browse its links.",
+			"url":   finalURL,
+		})
+		return
+	}
 	// Extract before deciding whether restricted pages offer readable public text.
 	// Restriction metadata alone does not establish that no usable preview exists.
 	kind := accessRestriction(raw)
