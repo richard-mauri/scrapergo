@@ -32,6 +32,14 @@ func extractWithReadability(raw, source string) (Article, error) {
 				blocks = append(blocks, Block{Kind: "p", Text: line})
 				count += len(strings.Fields(line))
 			}
+			// Recover structurally complete articles as one ordered tree, rather
+			// than appending competing extractors and duplicating text.
+			structuredRecovered := false
+			if complete, ok := recoverStructuredDocument(raw, blocks, u); ok {
+				blocks = complete
+				count = countWords(blocks)
+				structuredRecovered = true
+			}
 			if count >= 60 {
 				title := parsed.Title()
 				if title == "" {
@@ -45,7 +53,7 @@ func extractWithReadability(raw, source string) (Article, error) {
 				// Keep figures near their original paragraphs instead of appending
 				// every image to the end of the article.
 				var cleanHTML bytes.Buffer
-				if parsed.RenderHTML(&cleanHTML) == nil {
+				if parsed.RenderHTML(&cleanHTML) == nil && !structuredRecovered {
 					cleaned := cleanHTML.String()
 					attachInlineLinks(blocks, cleaned, u)
 					ordered := positionArticleFigures(blocks, cleaned, u)
