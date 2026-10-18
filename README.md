@@ -1,6 +1,8 @@
 # ScraperGo v0.2.17
 
-ScraperGo is a Go-based, ad-free article reader. It resolves many Google News links to publisher URLs, retrieves publicly available article HTML, and uses Go Readability to display clean text and photographs. It does not bypass subscriptions or registration requirements.
+ScraperGo is a lightweight, Go-based **clean web reader**. It accepts HTTP(S) links from **any website**, retrieves accessible HTML, and uses Go Readability to identify the main content and present text and images without the surrounding page clutter. You can read blog posts, essays, tutorials, reference articles, recipes, travel writing, reviews, and news. Google News link resolution is an additional feature, **not a requirement**.
+
+ScraperGo is designed for **reading now**, not for bookmarking or archiving. It works best with text-oriented web pages; interactive applications, catalogs, dashboards, login-only pages, and heavily scripted sites may not extract cleanly. It does not bypass subscriptions, registration requirements, or access controls.
 
 **Choose the setup that describes your machine:**
 
@@ -78,9 +80,9 @@ This is separate from the Cloudflare-hosted configuration.
 
 ## Using the Safari extension
 
-In Google News or on any page with a news link, right-click the link and choose **Open Link in ScraperGo**. The extension navigates directly to ScraperGo without first opening the publisher page. It reuses an existing ScraperGo tab, bringing it forward; when none exists, it opens one. Google News URL resolution and article extraction happen on the server.
+On **any website**, right-click a link to a page you want to read (for example a blog post, tutorial, review, recipe, essay, or news article) and choose **Open Link in ScraperGo**. The extension navigates directly to ScraperGo without first opening the linked website in a visible intermediate tab. It reuses an existing ScraperGo tab, bringing it forward; when none exists, it opens one. Extraction happens on the ScraperGo server. For Google News links, the server also attempts to resolve the encoded news URL to its source website.
 
-If the publisher refuses HTTP retrieval, the reader may report an HTTP status; an HTTP 403 is not proof of a paywall. Some publishers provide only previews, require registration, or block embedded images. ScraperGo does not bypass access restrictions.
+If a website refuses HTTP retrieval, the reader may report an HTTP status; an HTTP 403 does not necessarily mean a paywall. Some sites provide only previews, require registration, depend on JavaScript, or block externally loaded images. ScraperGo does not bypass access restrictions. Complex, non-article layouts may yield incomplete or unsuitable reading views.
 
 ## Source development and publishing
 
