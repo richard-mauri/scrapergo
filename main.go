@@ -90,7 +90,11 @@ func parseHTML(raw string) *Node {
 		}
 		if strings.HasPrefix(tok, "</") {
 			tag := strings.ToLower(strings.TrimSpace(strings.TrimSuffix(strings.TrimPrefix(tok, "</"), ">")))
-			tag = strings.Fields(tag)[0]
+			fields := strings.Fields(tag)
+			if len(fields) == 0 {
+				continue
+			}
+			tag = fields[0]
 			for j := len(stack) - 1; j > 0; j-- {
 				if stack[j].Tag == tag {
 					stack = stack[:j]
