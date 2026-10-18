@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	_ "embed"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -22,8 +23,12 @@ import (
 	"time"
 )
 
-// ScraperGo v0.2.22 — browser-style retrieval and diagnostics.
+// ScraperGo v0.2.42 — browser-style retrieval and diagnostics.
 const sampleURL = "https://247wallst.com/investing/2026/10/16/taiwan-is-planning-4-billion-industrial-parks-in-texas-for-nvidias-suppliers/"
+
+//go:embed tanner.jpg
+var tannerJPG []byte
+
 const maxHTML = 5 << 20
 
 type InlineLink struct {
@@ -778,6 +783,16 @@ func main() {
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/read", api)
+	mux.HandleFunc("/tanner.jpg", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet && r.Method != http.MethodHead {
+			w.Header().Set("Allow", "GET, HEAD")
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		w.Header().Set("Content-Type", "image/jpeg")
+		w.Header().Set("Cache-Control", "public, max-age=86400")
+		w.Write(tannerJPG)
+	})
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
 			http.NotFound(w, r)
@@ -788,7 +803,7 @@ func main() {
 		fmt.Fprint(w, indexHTML)
 	})
 	server := &http.Server{Addr: ":" + port, Handler: mux, ReadHeaderTimeout: 5 * time.Second}
-	log.Printf("ScraperGo v0.2.22 listening on http://localhost:%s", port)
+	log.Printf("ScraperGo v0.2.42 listening on http://localhost:%s", port)
 	if err := server.ListenAndServe(); err != nil {
 		if errors.Is(err, syscall.EADDRINUSE) {
 			log.Printf("Port %s is already in use. Try a different port:\n  go run . --port 8081\n  ./dist/scrapergo-darwin-amd64 --port 8081\nOr set PORT=8081 before launching.", port)
