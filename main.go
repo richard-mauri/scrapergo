@@ -493,7 +493,7 @@ func download(ctx context.Context, address string) (string, string, error) {
 	}
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
-		return "", "", fmt.Errorf("article request to %s returned HTTP %d (%s)", res.Request.URL.Hostname(), res.StatusCode, http.StatusText(res.StatusCode))
+		return "", "", &publisherHTTPError{Host: res.Request.URL.Hostname(), StatusCode: res.StatusCode}
 	}
 	if c := res.Header.Get("Content-Type"); c != "" && !strings.Contains(strings.ToLower(c), "html") {
 		return "", "", errors.New("URL did not return an HTML page")
@@ -507,6 +507,26 @@ func download(ctx context.Context, address string) (string, string, error) {
 	}
 	return string(data), res.Request.URL.String(), nil
 }
+
+// publisherHTTPError preserves the HTTP status without assuming why access was denied.
+type publisherHTTPError struct {
+	Host       string
+	StatusCode int
+}
+
+func (e *publisherHTTPError) Error() string {
+	return fmt.Sprintf("article request to %s returned HTTP %d (%s)", e.Host, e.StatusCode, http.StatusText(e.StatusCode))
+}
+
+// A 401 or 403 is an access denial, not proof of a subscription requirement.
+func publisherAccessMessage(err error) (string, bool) {
+	var denied *publisherHTTPError
+	if errors.As(err, &denied) && (denied.StatusCode == http.StatusUnauthorized || denied.StatusCode == http.StatusForbidden) {
+		return "Publisher access restricted. The publisher declined ScraperGo's request. Open the original website to view any available preview, sign-in, or subscription options.", true
+	}
+	return "", false
+}
+
 func api(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		http.Error(w, "POST required", 405)
@@ -533,13 +553,18 @@ func api(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")
 	if err != nil {
-		w.WriteHeader(422)
+		if message, denied := publisherAccessMessage(err); denied {
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			_ = json.NewEncoder(w).Encode(map[string]string{"error": message, "kind": "publisher_access_denied", "url": address})
+			return
+		}
+		w.WriteHeader(http.StatusUnprocessableEntity)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error(), "kind": "access_error"})
 		return
 	}
 	// A navigation index is not a single article. Classify conservatively before
 	// Readability can flatten its menu and story cards into a false article.
-	if pageIsIndex(raw) {
+	if pageIsIndex(raw) || pageIsLanding(raw) {
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		_ = json.NewEncoder(w).Encode(map[string]string{
 			"kind":  "page_index",
@@ -564,9 +589,18 @@ func api(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": accessNotice(kind), "kind": kind, "publisher": mustHostname(finalURL), "evidence": restrictionEvidence(raw)})
 		return
 	}
+	if extractionErr == nil && (pageIsThinPortal(raw, article.WordCount) || pageIsSparseRootLanding(raw, finalURL, article.WordCount)) || extractionErr != nil && pageIsSearchPortal(raw) {
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		_ = json.NewEncoder(w).Encode(map[string]string{
+			"kind":  "page_index",
+			"error": "This appears to be a homepage or index, not a single article. Open the original website to browse its links.",
+			"url":   finalURL,
+		})
+		return
+	}
 	if extractionErr != nil {
 		w.WriteHeader(422)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": extractionErr.Error(), "kind": "extraction_error"})
+		_ = json.NewEncoder(w).Encode(map[string]string{"error": "ScraperGo could not identify a readable article on this page. Open the original website to continue.", "kind": "extraction_error", "url": finalURL})
 		return
 	}
 	_ = json.NewEncoder(w).Encode(article)
@@ -584,10 +618,43 @@ func accessNotice(kind string) string {
 	}
 }
 
+// restrictionSource removes executable JavaScript and CSS before inspecting
+// human-facing access requirements. UI code can contain paywall phrases as
+// messages or examples without the requested page actually being restricted.
+// JSON-LD is retained because isAccessibleForFree is legitimate access metadata.
+var scriptBlockRE = regexp.MustCompile(`(?is)<script\b([^>]*)>(.*?)</script\s*>`)
+var styleBlockRE = regexp.MustCompile(`(?is)<style\b[^>]*>.*?</style\s*>`)
+var htmlCommentRE = regexp.MustCompile(`(?s)<!--.*?-->`)
+
+func restrictionSource(raw string) string {
+	kept := make([]string, 0, 2)
+	cleaned := scriptBlockRE.ReplaceAllStringFunc(raw, func(block string) string {
+		prefixEnd := strings.IndexByte(block, '>')
+		if prefixEnd >= 0 {
+			startTag := strings.ToLower(block[:prefixEnd+1])
+			body := strings.TrimSpace(strings.TrimSuffix(block[prefixEnd+1:], "</script>"))
+			// Some publishers emit a bare JSON object in a script element
+			// without a type attribute. Only accept syntactically valid JSON
+			// containing access-control properties; never scan JS source text.
+			var metadata map[string]json.RawMessage
+			bareAccessJSON := !strings.Contains(startTag, "type=") &&
+				json.Unmarshal([]byte(body), &metadata) == nil &&
+				(metadata["isAccessibleForFree"] != nil || metadata["isaccessibleforfree"] != nil || metadata["paywall"] != nil)
+			if strings.Contains(startTag, "application/ld+json") || bareAccessJSON {
+				kept = append(kept, body)
+			}
+		}
+		return " "
+	})
+	cleaned = styleBlockRE.ReplaceAllString(cleaned, " ")
+	cleaned = htmlCommentRE.ReplaceAllString(cleaned, " ")
+	return strings.ToLower(cleaned + " " + strings.Join(kept, " "))
+}
+
 // accessRestriction classifies explicit restriction evidence, never HTTP status alone.
 // Free registration wins over generic subscription metadata, as in Axios newsletters.
 func accessRestriction(raw string) string {
-	lower := strings.ToLower(raw)
+	lower := restrictionSource(raw)
 	for _, marker := range []string{
 		"sign up for", "register for free to continue reading", "create a free account to continue reading",
 	} {
@@ -624,7 +691,7 @@ func accessRestriction(raw string) string {
 // restrictionEvidence explains which predefined phrase caused a restriction decision.
 // It returns marker names, not article text, to keep server logs predictable.
 func restrictionEvidence(raw string) string {
-	lower := strings.ToLower(raw)
+	lower := restrictionSource(raw)
 	for _, rule := range []struct{ phrase, label string }{
 		{"to continue reading for free", "free-reading-phrase"},
 		{"to read the rest for free", "free-reading-phrase"},

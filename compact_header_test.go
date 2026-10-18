@@ -6,7 +6,7 @@ import (
 )
 
 func TestCompactHeaderRenderer(t *testing.T) {
-	for _, needle := range []string{"ScraperGo · v0.2.35", "identifyingImage", "const first=b.kind==='img'?b:data.blocks[bi+1]", "const head=b.kind==='img'?data.blocks[bi+1]:b", "metadata.length>=1", "className='compact-entry'", "className='compact-info'", "bi+=1+metadata.length"} {
+	for _, needle := range []string{"ScraperGo · v0.2.40", "identifyingImage", "const first=b.kind==='img'?b:data.blocks[bi+1]", "const head=b.kind==='img'?data.blocks[bi+1]:b", "metadata.length>=1", "className='compact-entry'", "className='compact-info'", "bi+=1+metadata.length"} {
 		if !strings.Contains(indexHTML, needle) {
 			t.Fatalf("missing compact-header behavior: %s", needle)
 		}
