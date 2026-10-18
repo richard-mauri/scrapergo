@@ -3,3 +3,4 @@
 
 # Local Cloudflare configuration
 .cloudflared/
+scrapergo.log
