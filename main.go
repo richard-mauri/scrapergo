@@ -22,14 +22,19 @@ import (
 	"time"
 )
 
-// ScraperGo v0.2.17 — browser-style retrieval and diagnostics.
+// ScraperGo v0.2.21 — browser-style retrieval and diagnostics.
 const sampleURL = "https://247wallst.com/investing/2026/10/16/taiwan-is-planning-4-billion-industrial-parks-in-texas-for-nvidias-suppliers/"
 const maxHTML = 5 << 20
 
-type Block struct {
-	Kind string `json:"kind"`
+type InlineLink struct {
 	Text string `json:"text"`
-	URL  string `json:"url,omitempty"`
+	URL  string `json:"url"`
+}
+type Block struct {
+	Kind  string       `json:"kind"`
+	Links []InlineLink `json:"links,omitempty"`
+	Text  string       `json:"text"`
+	URL   string       `json:"url,omitempty"`
 }
 type Article struct {
 	Title      string  `json:"title"`
@@ -694,7 +699,7 @@ func main() {
 		fmt.Fprint(w, indexHTML)
 	})
 	server := &http.Server{Addr: ":" + port, Handler: mux, ReadHeaderTimeout: 5 * time.Second}
-	log.Printf("ScraperGo v0.2.17 listening on http://localhost:%s", port)
+	log.Printf("ScraperGo v0.2.21 listening on http://localhost:%s", port)
 	if err := server.ListenAndServe(); err != nil {
 		if errors.Is(err, syscall.EADDRINUSE) {
 			log.Printf("Port %s is already in use. Try a different port:\n  go run . --port 8081\n  ./dist/scrapergo-darwin-amd64 --port 8081\nOr set PORT=8081 before launching.", port)

@@ -42,16 +42,20 @@ func extractWithReadability(raw, source string) (Article, error) {
 				if img == "" {
 					img = resolveImageURL(meta(parseHTML(raw), "og:image", "twitter:image"), u)
 				}
-				// Extract only images in the Readability-cleaned article, never in site chrome.
+				// Keep figures near their original paragraphs instead of appending
+				// every image to the end of the article.
 				var cleanHTML bytes.Buffer
 				if parsed.RenderHTML(&cleanHTML) == nil {
-					images := articleImages(cleanHTML.String(), u)
-					for _, photo := range images {
-						if photo.URL == img {
-							continue
-						} // avoid duplicating the hero
-						blocks = append(blocks, photo)
+					cleaned := cleanHTML.String()
+					attachInlineLinks(blocks, cleaned, u)
+					ordered := positionArticleFigures(blocks, cleaned, u)
+					// Gallery pages frequently place figure captions outside a
+					// conventional article body. Recover only article/gallery
+					// figures, never unrelated site-wide images.
+					if strings.Contains(u.Path, "/gallery/") {
+						ordered = supplementGalleryFigures(ordered, raw, u)
 					}
+					blocks = ordered
 				}
 				if img == "" {
 					for _, photo := range blocks {
@@ -59,6 +63,14 @@ func extractWithReadability(raw, source string) (Article, error) {
 							img = photo.URL
 							break
 						}
+					}
+				}
+				// The lead photograph should appear only once. A figure in
+				// article content carries the better caption and placement.
+				for _, photo := range blocks {
+					if photo.Kind == "img" && photo.URL == img {
+						img = ""
+						break
 					}
 				}
 
@@ -138,4 +150,176 @@ func articleImages(cleaned string, base *url.URL) []Block {
 		}
 	}
 	return images
+}
+
+// attachInlineLinks associates allowed hyperlinks from Readability's cleaned
+// article DOM with text blocks. The UI builds DOM nodes with textContent,
+// never inserts arbitrary publisher HTML.
+func attachInlineLinks(blocks []Block, cleaned string, base *url.URL) {
+	root := parseHTML(cleaned)
+	for _, anchor := range find(root, func(n *Node) bool { return n.Tag == "a" }) {
+		label := normalize(textOf(anchor))
+		if label == "" {
+			continue
+		}
+		destination := resolveImageURL(anchor.Attr["href"], base)
+		if destination == "" {
+			continue
+		}
+		if !linkableDocument(destination) {
+			continue
+		}
+		for i := range blocks {
+			if blocks[i].Kind == "img" || !strings.Contains(blocks[i].Text, label) {
+				continue
+			}
+			blocks[i].Links = append(blocks[i].Links, InlineLink{Text: label, URL: destination})
+			break
+		}
+	}
+}
+
+// Non-HTML resources retain their original destinations instead of being
+// sent to the article parser.
+func linkableDocument(destination string) bool {
+	u, err := url.Parse(destination)
+	if err != nil || (u.Scheme != "https" && u.Scheme != "http") || u.Hostname() == "" || u.User != nil {
+		return false
+	}
+	switch strings.ToLower(strings.TrimSpace(u.Path[strings.LastIndex(u.Path, "/")+1:])) {
+	case "":
+		return true
+	}
+	name := strings.ToLower(u.Path)
+	for _, suffix := range []string{".pdf", ".zip", ".gz", ".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".mp4", ".mp3", ".mov", ".avi", ".doc", ".docx", ".xls", ".xlsx"} {
+		if strings.HasSuffix(name, suffix) {
+			return false
+		}
+	}
+	return true
+}
+
+// positionArticleFigures uses paragraph boundaries in Readability's cleaned
+// DOM as anchors for image placement, retaining the original text blocks and
+// hyperlink annotations rather than reparsing body text.
+func positionArticleFigures(blocks []Block, cleaned string, base *url.URL) []Block {
+	root := parseHTML(cleaned)
+	figures := articleImages(cleaned, base)
+	if len(figures) == 0 {
+		return blocks
+	}
+	placed := map[string]bool{}
+	at := make(map[int][]Block)
+	paragraph := 0
+	for _, n := range find(root, func(n *Node) bool {
+		return n.Tag == "p" || n.Tag == "h2" || n.Tag == "h3" || n.Tag == "h4" || n.Tag == "img"
+	}) {
+		if n.Tag != "img" {
+			txt := normalize(textOf(n))
+			if txt == "" {
+				continue
+			}
+			// Do not count figure captions as ordinary article paragraphs.
+			inFigure := false
+			for x := n.Parent; x != nil; x = x.Parent {
+				if x.Tag == "figure" || x.Tag == "figcaption" {
+					inFigure = true
+					break
+				}
+			}
+			if inFigure {
+				continue
+			}
+			for paragraph < len(blocks) && !strings.Contains(blocks[paragraph].Text, txt) && !strings.Contains(txt, blocks[paragraph].Text) {
+				paragraph++
+			}
+			if paragraph < len(blocks) {
+				paragraph++
+			}
+			continue
+		}
+		link := imageFromNode(n, base)
+		if link == "" || placed[link] {
+			continue
+		}
+		for _, f := range figures {
+			if f.URL == link {
+				at[paragraph] = append(at[paragraph], f)
+				placed[link] = true
+				break
+			}
+		}
+	}
+	out := make([]Block, 0, len(blocks)+len(figures))
+	for i := 0; i <= len(blocks); i++ {
+		out = append(out, at[i]...)
+		if i < len(blocks) {
+			out = append(out, blocks[i])
+		}
+	}
+	for _, f := range figures {
+		if !placed[f.URL] {
+			out = append(out, f)
+		}
+	}
+	return out
+}
+
+func imageFromNode(n *Node, base *url.URL) string {
+	for _, attr := range []string{"src", "data-src", "data-original"} {
+		if link := resolveImageURL(n.Attr[attr], base); link != "" {
+			return link
+		}
+	}
+	return ""
+}
+
+// supplementGalleryFigures recovers figures that Readability dropped from a
+// photo essay. Only scoped article/main/gallery figure elements qualify.
+func supplementGalleryFigures(blocks []Block, raw string, base *url.URL) []Block {
+	root := parseHTML(raw)
+	seen := map[string]bool{}
+	for _, b := range blocks {
+		if b.Kind == "img" {
+			seen[b.URL] = true
+		}
+	}
+	extra := []Block{}
+	for _, fig := range find(root, func(n *Node) bool { return n.Tag == "figure" }) {
+		allowed := false
+		for p := fig.Parent; p != nil; p = p.Parent {
+			if p.Tag == "article" || p.Tag == "main" || strings.Contains(strings.ToLower(p.Attr["class"]), "gallery") {
+				allowed = true
+				break
+			}
+		}
+		if !allowed {
+			continue
+		}
+		imgNodes := find(fig, func(n *Node) bool { return n.Tag == "img" })
+		if len(imgNodes) == 0 {
+			continue
+		}
+		link := imageFromNode(imgNodes[0], base)
+		if link == "" || seen[link] {
+			continue
+		}
+		caption := ""
+		for _, c := range find(fig, func(n *Node) bool { return n.Tag == "figcaption" }) {
+			caption = normalize(textOf(c))
+			break
+		}
+		if caption == "" {
+			caption = normalize(imgNodes[0].Attr["alt"])
+		}
+		if caption == "" || len(caption) < 25 {
+			continue
+		}
+		extra = append(extra, Block{Kind: "img", URL: link, Text: caption})
+		seen[link] = true
+		if len(extra) >= 25 {
+			break
+		}
+	}
+	return append(blocks, extra...)
 }
