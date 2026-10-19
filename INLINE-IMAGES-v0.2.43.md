@@ -1,0 +1,1 @@
+ScraperGo v0.2.43: image blocks from img/picture/figure in article DOM, including lazy-loaded URLs and srcset; preserved alongside surrounding text. Server-side HTML fetch may still omit images inserted only by JavaScript; FOX Sports not verified live.

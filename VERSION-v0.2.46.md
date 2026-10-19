@@ -1,0 +1,1 @@
+ScraperGo v0.2.46: remove repeat article images using one image identity for the hero and inline blocks. Preserves text and distinct photos. Single appVersion source. Patch does not alter launch scripts or credentials.

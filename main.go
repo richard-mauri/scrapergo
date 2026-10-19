@@ -23,7 +23,8 @@ import (
 	"time"
 )
 
-// ScraperGo v0.2.42 — browser-style retrieval and diagnostics.
+// ScraperGo application version is defined once and shared by all presentation paths.
+const appVersion = "0.2.46"
 const sampleURL = "https://247wallst.com/investing/2026/10/16/taiwan-is-planning-4-billion-industrial-parks-in-texas-for-nvidias-suppliers/"
 
 //go:embed tanner.jpg
@@ -203,31 +204,87 @@ func inNoisy(n, stop *Node) bool {
 	}
 	return false
 }
-func extractBlocks(root *Node) []Block {
+func articleImageURL(n *Node, baseURL string) string {
+	if n.Tag != "img" {
+		return ""
+	}
+	// Prefer actual lazy-loaded URLs over transparent placeholder src values.
+	candidates := []string{n.Attr["data-src"], n.Attr["data-original"], n.Attr["data-lazy-src"], n.Attr["src"]}
+	for _, ss := range []string{n.Attr["data-srcset"], n.Attr["srcset"]} {
+		if ss != "" {
+			fields := strings.Fields(strings.TrimSpace(strings.Split(ss, ",")[0]))
+			if len(fields) > 0 {
+				candidates = append(candidates, fields[0])
+			}
+		}
+	}
+	base, err := url.Parse(baseURL)
+	if err != nil {
+		return ""
+	}
+	for _, raw := range candidates {
+		u, err := url.Parse(strings.TrimSpace(raw))
+		if err != nil || u.String() == "" {
+			continue
+		}
+		dest := base.ResolveReference(u)
+		if (dest.Scheme == "https" || dest.Scheme == "http") && dest.Host != "" && dest.User == nil && !strings.HasSuffix(strings.ToLower(dest.Path), ".svg") {
+			return dest.String()
+		}
+	}
+	return ""
+}
+func extractBlocks(root *Node, bases ...string) []Block {
+	baseURL := ""
+	if len(bases) > 0 {
+		baseURL = bases[0]
+	}
 	var blocks []Block
 	var walk func(*Node)
 	walk = func(n *Node) {
 		if noisy(n) {
 			return
 		}
-		if n.Tag == "p" || n.Tag == "h2" || n.Tag == "h3" || n.Tag == "h4" || n.Tag == "li" || n.Tag == "blockquote" {
-			s := textOf(n)
-			kind := n.Tag
-			if len(s) > 0 && !sentenceAdRE.MatchString(s) && !(n.Tag == "p" && len(s) < 25) {
-				blocks = append(blocks, Block{Kind: kind, Text: s})
+		if n.Tag == "img" {
+			if src := articleImageURL(n, baseURL); src != "" {
+				alt := normalize(n.Attr["alt"])
+				if len(alt) > 180 {
+					alt = alt[:180]
+				}
+				blocks = append(blocks, Block{Kind: "img", URL: src, Text: alt})
 			}
 			return
 		}
-		for _, k := range n.Kids {
-			walk(k)
+		if n.Tag == "p" || n.Tag == "h2" || n.Tag == "h3" || n.Tag == "h4" || n.Tag == "li" || n.Tag == "blockquote" {
+			// Recurse through paragraphs containing photographs, preserving their order.
+			hasImage := false
+			for _, kid := range n.Kids {
+				if kid.Tag == "img" || kid.Tag == "picture" || kid.Tag == "figure" {
+					hasImage = true
+					break
+				}
+			}
+			if hasImage {
+				for _, kid := range n.Kids {
+					walk(kid)
+				}
+				return
+			}
+			txt := textOf(n)
+			if len(txt) > 0 && !sentenceAdRE.MatchString(txt) && !(n.Tag == "p" && len(txt) < 25) {
+				blocks = append(blocks, Block{Kind: n.Tag, Text: txt})
+			}
+			return
+		}
+		for _, kid := range n.Kids {
+			walk(kid)
 		}
 	}
 	walk(root)
-	// Deduplicate common mirrored intro and marketing blocks.
 	seen := map[string]bool{}
 	out := []Block{}
 	for _, b := range blocks {
-		key := strings.ToLower(b.Text)
+		key := strings.ToLower(b.Kind + "|" + b.URL + "|" + b.Text)
 		if seen[key] {
 			continue
 		}
@@ -236,6 +293,7 @@ func extractBlocks(root *Node) []Block {
 	}
 	return out
 }
+
 func chooseArticle(root *Node) *Node {
 	candidates := find(root, func(n *Node) bool {
 		return n.Tag == "article" || n.Tag == "main" || n.Tag == "div" || n.Tag == "section"
@@ -280,6 +338,111 @@ func chooseArticle(root *Node) *Node {
 	}
 	sort.SliceStable(ranked, func(i, j int) bool { return ranked[i].s > ranked[j].s })
 	return ranked[0].n
+}
+
+// recoverArticlePhotographs adds photographs from article-associated image wrappers
+// that a text-oriented article selector may have excluded. Only images in
+// explicit editorial wrappers are eligible: navigation and reaction icons are
+// intentionally not treated as article photographs.
+func recoverArticlePhotographs(a *Article, raw, baseURL string) {
+	root := parseHTML(raw)
+	existing := map[string]bool{}
+	for _, b := range a.Blocks {
+		if b.Kind == "img" {
+			existing[b.URL] = true
+		}
+	}
+	type candidate struct{ url, alt, near string }
+	var found []candidate
+	for _, n := range find(root, func(n *Node) bool { return n.Tag == "img" }) {
+		if inNoisy(n, nil) {
+			continue
+		}
+		editorial := false
+		for p := n.Parent; p != nil; p = p.Parent {
+			cls := strings.ToLower(p.Attr["class"] + " " + p.Attr["id"])
+			if p.Tag == "figure" || strings.Contains(cls, "full-width-image") || strings.Contains(cls, "article-content") || strings.Contains(cls, "article-body") {
+				editorial = true
+				break
+			}
+		}
+		if !editorial {
+			continue
+		}
+		u := articleImageURL(n, baseURL)
+		if u == "" || existing[u] {
+			continue
+		}
+		alt := normalize(n.Attr["alt"])
+		if len(alt) > 180 {
+			alt = alt[:180]
+		}
+		// Find the next nearby text paragraph in document order to anchor the
+		// picture, while keeping the original article's paragraphs unchanged.
+		near := ""
+		for p := n.Parent; p != nil && near == ""; p = p.Parent {
+			if p.Parent == nil {
+				break
+			}
+			following := false
+			for _, sib := range p.Parent.Kids {
+				if sib == p {
+					following = true
+					continue
+				}
+				if !following {
+					continue
+				}
+				for _, para := range find(sib, func(x *Node) bool { return x.Tag == "p" }) {
+					t := textOf(para)
+					if len(t) >= 35 {
+						near = t
+						break
+					}
+				}
+				if near != "" {
+					break
+				}
+			}
+		}
+		found = append(found, candidate{u, alt, near})
+		existing[u] = true
+	}
+	if len(found) == 0 {
+		return
+	}
+	original := a.Blocks
+	before := make(map[int][]Block)
+	tail := []Block{}
+	lastAnchor := -1
+	for _, f := range found {
+		img := Block{Kind: "img", URL: f.url, Text: f.alt}
+		anchor := -1
+		if f.near != "" {
+			for i, b := range original {
+				if b.Kind == "p" && (strings.Contains(b.Text, f.near) || strings.Contains(f.near, b.Text)) {
+					anchor = i
+					break
+				}
+			}
+		}
+		if anchor < 0 && lastAnchor >= 0 {
+			anchor = lastAnchor + 1
+		}
+		if anchor >= 0 && anchor <= len(original) {
+			before[anchor] = append(before[anchor], img)
+			lastAnchor = anchor
+		} else {
+			tail = append(tail, img)
+		}
+	}
+	merged := make([]Block, 0, len(original)+len(found))
+	for i, b := range original {
+		merged = append(merged, before[i]...)
+		merged = append(merged, b)
+	}
+	merged = append(merged, before[len(original)]...)
+	a.Blocks = append(merged, tail...)
 }
 
 // JSON-LD often contains a clean articleBody even if visible markup is wrapped
@@ -353,7 +516,7 @@ func extract(raw, src string) (Article, error) {
 		a.Title = "Untitled article"
 	}
 	target := chooseArticle(root)
-	a.Blocks = extractBlocks(target)
+	a.Blocks = extractBlocks(target, src)
 	if len(a.Blocks) < 3 {
 		if ld := jsonLDArticle(raw); len(ld) > 0 {
 			a.Blocks = ld
@@ -586,6 +749,10 @@ func api(w http.ResponseWriter, r *http.Request) {
 	// Restriction metadata alone does not establish that no usable preview exists.
 	kind := accessRestriction(raw)
 	article, extractionErr := extractWithReadability(raw, finalURL)
+	if extractionErr == nil {
+		recoverArticlePhotographs(&article, raw, finalURL)
+		deduplicateArticleImages(&article)
+	}
 	if kind != "" {
 		log.Printf("restriction publisher=%s kind=%s evidence=%s html_bytes=%d public_words=%d", mustHostname(finalURL), kind, restrictionEvidence(raw), len(raw), article.WordCount)
 		if extractionErr == nil && article.WordCount >= 80 {
@@ -800,10 +967,10 @@ func main() {
 		}
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Header().Set("Content-Security-Policy", "default-src 'self'; img-src 'self' https: data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; base-uri 'none'; object-src 'none'")
-		fmt.Fprint(w, indexHTML)
+		fmt.Fprint(w, renderedIndexHTML())
 	})
 	server := &http.Server{Addr: ":" + port, Handler: mux, ReadHeaderTimeout: 5 * time.Second}
-	log.Printf("ScraperGo v0.2.42 listening on http://localhost:%s", port)
+	log.Printf("ScraperGo v%s listening on http://localhost:%s", appVersion, port)
 	if err := server.ListenAndServe(); err != nil {
 		if errors.Is(err, syscall.EADDRINUSE) {
 			log.Printf("Port %s is already in use. Try a different port:\n  go run . --port 8081\n  ./dist/scrapergo-darwin-amd64 --port 8081\nOr set PORT=8081 before launching.", port)
