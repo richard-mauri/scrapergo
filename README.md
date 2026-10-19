@@ -1,111 +1,110 @@
-# ScraperGo v0.2.17
+# ScraperGo — Clean Web Reader
 
-ScraperGo is a lightweight, Go-based **clean web reader**. It accepts HTTP(S) links from **any website**, retrieves accessible HTML, and uses Go Readability to identify the main content and present text and images without the surrounding page clutter. You can read blog posts, essays, tutorials, reference articles, recipes, travel writing, reviews, and news. Google News link resolution is an additional feature, **not a requirement**.
+**Current source version:** v0.2.49 (confirmed in `main.go` on GitHub `main`, October 19, 2026).
+**Latest verified GitHub commit:** `c24347c574ff638f29acc261f5ee46a459ea2363` — Release ScraperGo v0.2.49, preserve article hyperlinks.
+**Repository:** https://github.com/richard-mauri/scrapergo
+**Public reader:** https://scrapergo.themauris.org/
+**Server port:** 8083
+**Local project:** `~/projects/scrapergo`
 
-ScraperGo is designed for **reading now**, not for bookmarking or archiving. It works best with text-oriented web pages; interactive applications, catalogs, dashboards, login-only pages, and heavily scripted sites may not extract cleanly. It does not bypass subscriptions, registration requirements, or access controls.
+## Purpose and capabilities
 
-**Choose the setup that describes your machine:**
+ScraperGo is a self-hosted Go clean-reading service for HTTP(S) articles from many websites, not just news. It retrieves accessible HTML, identifies the article content, and presents a simplified reading view with text, images, and hyperlinks. Google News link resolution is an additional capability, not a prerequisite.
 
-- **Server host (Cloudflare Tunnel):** A Mac runs ScraperGo on `localhost:8083`, with an existing `cloudflared` tunnel and hostname route exposing it as `https://scrapergo.themauris.org/`.
-- **Remote Safari client:** Another Mac runs **only** Safari and the temporary ScraperGo Web Extension. It connects to `https://scrapergo.themauris.org/`. It does not need Go, the ScraperGo executable, or `cloudflared`.
-- **Local-only Safari client (optional):** Safari and ScraperGo run on the same Mac, and the extension points to `http://localhost:8083/`. No tunnel required.
+ScraperGo is intended for reading, not for archiving or bookmarking. It cannot bypass paywalls, authentication requirements, publisher access restrictions, or content only rendered client-side with JavaScript. Non-article pages, interactive sites, and catalogs may be unsuitable for extraction.
 
-## A. Server host: ScraperGo + Cloudflare Tunnel
+ScraperGo also serves as the article reader for the companion RSS aggregation app, [NewsGo](https://github.com/richard-mauri/newsgo). The two repositories, local services, and Cloudflare Tunnel routes are independent; do not modify NewsGo when making a ScraperGo-only change unless an integration change is explicitly required.
 
-### 1. Download and start the server
+## Deployment configurations
 
-Download the appropriate binary from the [v0.2.17 release](https://github.com/richard-mauri/scrapergo/releases/tag/v0.2.17): `scrapergo-darwin-amd64` for Intel Macs or `scrapergo-darwin-arm64` for Apple Silicon. The release includes `SHA256SUMS` for verification.
+**Server Mac with Cloudflare Tunnel:** ScraperGo listens locally at `http://localhost:8083/`. An existing `cloudflared` tunnel exposes the reader at `https://scrapergo.themauris.org/`. HTTPS terminates at Cloudflare; the local ScraperGo endpoint uses HTTP.
 
-On an Intel Mac, from the directory containing the executable:
+**Remote Safari client:** Safari and the temporary Safari extension run on another Mac, with the extension's Reader URL set to `https://scrapergo.themauris.org/`. The remote Mac does not need Go, ScraperGo binaries, or a local tunnel.
 
-```bash
-chmod +x scrapergo-darwin-amd64
-./scrapergo-darwin-amd64 -port 8083
-```
+**Local-only Safari:** Safari, extension, and ScraperGo share one Mac; the extension's Reader URL is `http://localhost:8083/`.
 
-On Apple Silicon, substitute `scrapergo-darwin-arm64`. An unsigned downloaded binary may require approval through macOS Privacy & Security before it can run.
+A Cloudflare Tunnel is not, by itself, an authentication system. Public access to the reader's URL-fetch endpoint creates an exposure; use appropriate Cloudflare Access policies and rate limits where necessary. Never include tunnel tokens, private configuration, or credentials in patches or releases.
 
-Verify the **local** reader first by opening `http://localhost:8083/` in Safari. Keep the server process running.
+## Running and building
 
-### 2. Configure the existing Cloudflare Tunnel
-
-Configure your existing **Cloudflare Tunnel public hostname route** as follows:
-
-| Setting | Value |
-|---|---|
-| Public hostname | `scrapergo.themauris.org` |
-| Service type | `HTTP` |
-| Service URL | `http://localhost:8083` |
-
-These settings belong to the Cloudflare Tunnel whose `cloudflared` connector runs on the **server Mac**. If you configure the tunnel through Cloudflare's dashboard, use its published-application/public-hostname route settings. If you manage ingress through a local configuration file instead, ensure the corresponding hostname routes to `http://localhost:8083`; don't mix two conflicting configuration methods.
-
-Keep both ScraperGo and that tunnel connector running. From a different device, open `https://scrapergo.themauris.org/` and confirm the ScraperGo page appears. HTTPS terminates at Cloudflare; the local service still uses HTTP on port 8083.
-
-**Security:** Exposing the reader publicly allows outsiders to reach its URL-fetch endpoint unless you protect it. Use appropriate Cloudflare Access/authentication and rate controls before offering the service beyond trusted clients. A Cloudflare Tunnel alone is not authentication. Any access policy must also work for Safari's navigation to the reader.
-
-### 3. Optional: build from source on the host
-
-With Go installed and the repository checked out:
+From `~/projects/scrapergo`:
 
 ```bash
-go mod tidy
-go test ./...
-./devbuild.sh
-./dist/scrapergo-darwin-amd64 -port 8083
-```
-
-On Apple Silicon, run the `arm64` binary. `./devbuild.sh` builds both macOS architectures and `dist/SHA256SUMS`. You do **not** need to build from source to use the release binaries.
-
-## B. Remote Safari client (no local ScraperGo server)
-
-On each client Mac, download the [repository source ZIP](https://github.com/richard-mauri/scrapergo/archive/refs/tags/v0.2.17.zip) and extract it. The required files are in `safari-extension/`. **The three release assets contain only the server binaries and checksums; they do not currently bundle the extension.**
-
-Follow [Safari extension installation](safari-extension/README.md), and set its **Reader URL** to:
-
-```text
-https://scrapergo.themauris.org/
-```
-
-No Go toolchain, server binary, tunnel configuration, or local port 8083 service is required on a remote client.
-
-## C. Optional local-only Safari client
-
-Run the server on the same Mac at `http://localhost:8083/` and follow the same [Safari extension installation](safari-extension/README.md), but set **Reader URL** to:
-
-```text
-http://localhost:8083/
-```
-
-This is separate from the Cloudflare-hosted configuration.
-
-## Using the Safari extension
-
-On **any website**, right-click a link to a page you want to read (for example a blog post, tutorial, review, recipe, essay, or news article) and choose **Open Link in ScraperGo**. The extension navigates directly to ScraperGo without first opening the linked website in a visible intermediate tab. It reuses an existing ScraperGo tab, bringing it forward; when none exists, it opens one. Extraction happens on the ScraperGo server. For Google News links, the server also attempts to resolve the encoded news URL to its source website.
-
-If a website refuses HTTP retrieval, the reader may report an HTTP status; an HTTP 403 does not necessarily mean a paywall. Some sites provide only previews, require registration, depend on JavaScript, or block externally loaded images. ScraperGo does not bypass access restrictions. Complex, non-article layouts may yield incomplete or unsuitable reading views.
-
-## Source development and publishing
-
-From the repository:
-
-```bash
-go mod tidy
 go test ./...
 ./devbuild.sh
 ```
 
-To launch an Intel development binary:
+`devbuild.sh` runs the tests, builds standalone Intel (`darwin/amd64`) and Apple Silicon (`darwin/arm64`) executables into `dist/`, and produces `dist/SHA256SUMS`. The Go module currently declares Go 1.23.2. Use an appropriate installed Go toolchain.
+
+To start the built Intel reader directly:
 
 ```bash
 ./dist/scrapergo-darwin-amd64 -port 8083
 ```
 
-After committing and pushing changes to `main`, `./devbuild.sh --release vX.Y.Z` can publish both macOS binaries and checksums using an authenticated GitHub CLI. It requires a clean working tree and will reject an existing tag. **Do not reuse the already published v0.2.17 tag for documentation changes.**
+On an Apple Silicon machine substitute `scrapergo-darwin-arm64`. Check the local service at `http://localhost:8083/` before troubleshooting the tunnel.
 
-The temporary Safari extension has its own lifecycle: reload it after JavaScript or manifest changes, independently of rebuilding the Go server.
+On the established Intel host, `./scrapergo.sh` is the existing application-and-tunnel startup script. It uses local paths and secrets to launch only ScraperGo's executable and tunnel; preserve it and do not overwrite it in unrelated source patches. The startup script expects the Intel executable in `dist/` and existing local tunnel credentials.
 
-## Files and local configuration
+After tests pass and changes have been committed and pushed to GitHub `main`, the existing script can publish release binaries with:
 
-`main.go` handles HTTP retrieval, Google News resolution, and the API; `readability.go` integrates Go Readability; `ui.go` implements the reader page; `safari-extension/` contains the Safari Web Extension; `devbuild.sh` builds and publishes macOS binaries.
+```bash
+./devbuild.sh --release vX.Y.Z
+```
 
-Do not package or publish `.cloudflared/`, tunnel credentials, local secrets, or a developer's existing `.gitignore`. These README files are documentation-only replacements.
+Publishing requires an authenticated GitHub CLI (`gh`), a clean tracked working tree, a pushed branch tip, and a version/tag that does not already exist. Do not reuse published release tags. Source-only README changes should not automatically trigger a new executable release.
+
+## Safari extension
+
+The source tree includes `safari-extension/`; follow its [installation instructions](safari-extension/README.md). Right-click a website link and choose **Open Link in ScraperGo**. The extension navigates to the reader without opening an intermediate website tab, and reuses an existing ScraperGo tab when possible.
+
+For a remote client, set Reader URL to `https://scrapergo.themauris.org/`; for local-only operation, use `http://localhost:8083/`. Reload the temporary extension after changing its JavaScript or manifest. Go server rebuilds do not automatically reload the extension.
+
+The GitHub release binaries and checksums do not include the extension source; obtain `safari-extension/` from the repository.
+
+## Technical architecture
+
+- `main.go`: application version, HTTP handling and retrieval, Google News link resolution, HTML parsing and extraction fallback, text/image/link block models, access diagnostics, and input/host safety checks.
+- `readability.go`: integration with Go Readability to recover article content.
+- `ui.go`: browser reading interface and article block rendering.
+- `safari-extension/`: Safari browser integration; separate reload lifecycle.
+- `devbuild.sh`: tests, architecture-specific macOS builds, checksums, and optional GitHub release publishing.
+- `scrapergo.sh`: deployment-specific local startup and tunnel handling; do not casually replace.
+
+The article representation includes metadata (title, byline, publication information, source URL, word count and access notes) and ordered content blocks. Current text parts retain inline anchor targets, emphasis, and reading position. Images are represented as content blocks; source-relative URLs are resolved against the article URL.
+
+HTML extraction uses general-purpose heuristics for removing advertising/navigation clutter and identifying article containers, with alternative content recovery where appropriate. Implement fixes at the generic extraction layer where possible; avoid publisher-specific exceptions that disrupt other sites.
+
+## Development history and verified milestones
+
+This section is cumulative. Dates and titles below are grounded in GitHub commits; detailed behavior must be confirmed from source and regression tests before changing it.
+
+| Version | Development milestone |
+| --- | --- |
+| v0.2.9 | Go Readability integration and improved HTTP retrieval. |
+| v0.2.14 | Image support, direct Safari reading, and access diagnostics. |
+| v0.2.17 | Safari reader tab reuse; original setup README baseline. |
+| v0.2.21 | Preserve hyperlinks, gallery images, and captions. |
+| v0.2.33 | Generic HTML recovery and cleanup. |
+| v0.2.35 | General-purpose homepage detection. |
+| v0.2.40 | Improved publisher access handling. |
+| v0.2.41 | Malformed HTML parser panic correction. |
+| v0.2.42 | Tanner added to header. |
+| v0.2.46 | Inline images and deduplication. |
+| v0.2.49 | Preserve article hyperlinks in the extracted reading view. |
+
+Important current behaviors: inline hyperlinks remain clickable and occur in their original reading positions; inline photographs are preserved where possible, with image deduplication; malformed HTML must not crash the application; inaccessible sources should produce meaningful access diagnostics rather than pretend a full article was retrieved.
+
+## Testing and regression precautions
+
+Before changing or packaging source, inspect the current local files: the GitHub `main` branch may be behind uncommitted local development. Run `go test ./...` and `./devbuild.sh` where the required Go toolchain and dependencies are available. Also check the browser UI and Safari extension separately for changes affecting display or navigation. Clearly distinguish automated tests that actually ran from source inspection or manual tests not performed.
+
+Protect the following in every update: inline links and their targets, image ordering/deduplication, access diagnostics, normal extraction from many publishers, Safari tab reuse, independent tunnel operation, and handling of malformed HTML. Don't overwrite startup scripts, Cloudflare configuration, secrets, or unrelated project files in a narrow patch.
+
+## Project handoff and regeneration convention
+
+This README is the **single cumulative development record and chat-handoff document**, following the NewsGo, sailing, and stocks project workflow. Update it **every time source code is regenerated**. Deliver a ZIP patch containing only changed source/test files and the complete revised root `README.md` (do not create version-specific `SCRAPERGO-v*.md` notes). A documentation-only regeneration should contain `README.md` alone.
+
+On a new ChatGPT conversation, supply this README and, when local changes exist, the current source archive or affected files. Treat local verified code as authoritative over older GitHub commits. Establish the version, tests, live behavior, unresolved issues, and next action before generating patches. Keep semantic version changes tied to deliberate release preparation rather than every minor iteration.
+
+**Handoff state (October 19, 2026):** The user reports that local `main` is up to date with `origin/main` and the working tree is clean. GitHub `main.go` declares `appVersion = "0.2.49"`, and its latest verified commit is the v0.2.49 hyperlink-preservation release. This documentation update is prepared locally for the next commit; it has not been pushed or tested on the user's Mac. No pending feature request or known new regression was supplied at this handoff.
