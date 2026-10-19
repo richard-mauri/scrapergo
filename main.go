@@ -24,7 +24,7 @@ import (
 )
 
 // ScraperGo application version is defined once and shared by all presentation paths.
-const appVersion = "0.2.46"
+const appVersion = "0.2.49"
 const sampleURL = "https://247wallst.com/investing/2026/10/16/taiwan-is-planning-4-billion-industrial-parks-in-texas-for-nvidias-suppliers/"
 
 //go:embed tanner.jpg
@@ -234,6 +234,51 @@ func articleImageURL(n *Node, baseURL string) string {
 	}
 	return ""
 }
+
+// inlineTextParts preserves anchor targets in their exact reading position.
+// The browser renderer creates safe clickable links from these parts.
+func inlineTextParts(n *Node, baseURL string) []TextPart {
+	base, _ := url.Parse(baseURL)
+	var parts []TextPart
+	var walk func(*Node, bool, bool, string)
+	walk = func(node *Node, bold, italic bool, href string) {
+		if blockedTags[node.Tag] {
+			return
+		}
+		if node.Tag == "#text" {
+			t := wsRE.ReplaceAllString(html.UnescapeString(node.Text), " ")
+			if t != "" {
+				parts = append(parts, TextPart{Text: t, Bold: bold, Italic: italic, URL: href})
+			}
+			return
+		}
+		if node.Tag == "strong" || node.Tag == "b" {
+			bold = true
+		}
+		if node.Tag == "em" || node.Tag == "i" {
+			italic = true
+		}
+		if node.Tag == "a" && base != nil {
+			if target, err := url.Parse(strings.TrimSpace(node.Attr["href"])); err == nil && target.String() != "" {
+				resolved := base.ResolveReference(target)
+				if (resolved.Scheme == "https" || resolved.Scheme == "http") && resolved.Host != "" && resolved.User == nil {
+					href = resolved.String()
+				}
+			}
+		}
+		for _, child := range node.Kids {
+			walk(child, bold, italic, href)
+		}
+	}
+	walk(n, false, false, "")
+	// Preserve the source punctuation and whitespace around links.
+	if len(parts) > 0 {
+		parts[0].Text = strings.TrimLeft(parts[0].Text, " ")
+		parts[len(parts)-1].Text = strings.TrimRight(parts[len(parts)-1].Text, " ")
+	}
+	return parts
+}
+
 func extractBlocks(root *Node, bases ...string) []Block {
 	baseURL := ""
 	if len(bases) > 0 {
@@ -271,8 +316,8 @@ func extractBlocks(root *Node, bases ...string) []Block {
 				return
 			}
 			txt := textOf(n)
-			if len(txt) > 0 && !sentenceAdRE.MatchString(txt) && !(n.Tag == "p" && len(txt) < 25) {
-				blocks = append(blocks, Block{Kind: n.Tag, Text: txt})
+			if len(txt) > 0 && !sentenceAdRE.MatchString(txt) && !(n.Tag == "p" && len(txt) < 25 && len(find(n, func(child *Node) bool { return child.Tag == "a" })) == 0) {
+				blocks = append(blocks, Block{Kind: n.Tag, Text: txt, Parts: inlineTextParts(n, baseURL)})
 			}
 			return
 		}
@@ -752,6 +797,7 @@ func api(w http.ResponseWriter, r *http.Request) {
 	if extractionErr == nil {
 		recoverArticlePhotographs(&article, raw, finalURL)
 		deduplicateArticleImages(&article)
+		recoverMissingArticleLinks(&article, raw, finalURL)
 	}
 	if kind != "" {
 		log.Printf("restriction publisher=%s kind=%s evidence=%s html_bytes=%d public_words=%d", mustHostname(finalURL), kind, restrictionEvidence(raw), len(raw), article.WordCount)

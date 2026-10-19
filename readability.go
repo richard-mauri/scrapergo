@@ -53,17 +53,19 @@ func extractWithReadability(raw, source string) (Article, error) {
 				// Keep figures near their original paragraphs instead of appending
 				// every image to the end of the article.
 				var cleanHTML bytes.Buffer
-				if parsed.RenderHTML(&cleanHTML) == nil && !structuredRecovered {
+				if parsed.RenderHTML(&cleanHTML) == nil {
 					cleaned := cleanHTML.String()
-					attachInlineLinks(blocks, cleaned, u)
-					ordered := positionArticleFigures(blocks, cleaned, u)
-					// Gallery pages frequently place figure captions outside a
-					// conventional article body. Recover only article/gallery
-					// figures, never unrelated site-wide images.
-					if strings.Contains(u.Path, "/gallery/") {
-						ordered = supplementGalleryFigures(ordered, raw, u)
+					preserveSelectedHTMLLinks(blocks, cleaned, u)
+					if !structuredRecovered {
+						ordered := positionArticleFigures(blocks, cleaned, u)
+						// Gallery pages frequently place figure captions outside a
+						// conventional article body. Recover only article/gallery
+						// figures, never unrelated site-wide images.
+						if strings.Contains(u.Path, "/gallery/") {
+							ordered = supplementGalleryFigures(ordered, raw, u)
+						}
+						blocks = ordered
 					}
-					blocks = ordered
 				}
 				if img == "" {
 					for _, photo := range blocks {
