@@ -32,13 +32,17 @@ func extractWithReadability(raw, source string) (Article, error) {
 				blocks = append(blocks, Block{Kind: "p", Text: line})
 				count += len(strings.Fields(line))
 			}
-			// Recover structurally complete articles as one ordered tree, rather
-			// than appending competing extractors and duplicating text.
 			structuredRecovered := false
 			if complete, ok := recoverStructuredDocument(raw, blocks, u); ok {
 				blocks = complete
 				count = countWords(blocks)
 				structuredRecovered = true
+			}
+			// Restore missing opening paragraphs before accepting an otherwise plausible
+			// Readability selection. Do not shift the remainder of the article.
+			if !structuredRecovered {
+				blocks = recoverLeadingParagraphs(raw, blocks, u)
+				count = countWords(blocks)
 			}
 			if count >= 60 {
 				title := parsed.Title()
@@ -46,26 +50,24 @@ func extractWithReadability(raw, source string) (Article, error) {
 					title = "Untitled article"
 				}
 				img := resolveImageURL(parsed.ImageURL(), u)
-				// Some publishers only advertise the lead photograph through Open Graph.
 				if img == "" {
 					img = resolveImageURL(meta(parseHTML(raw), "og:image", "twitter:image"), u)
 				}
-				// Keep figures near their original paragraphs instead of appending
-				// every image to the end of the article.
 				var cleanHTML bytes.Buffer
 				if parsed.RenderHTML(&cleanHTML) == nil {
 					cleaned := cleanHTML.String()
 					preserveSelectedHTMLLinks(blocks, cleaned, u)
 					if !structuredRecovered {
 						ordered := positionArticleFigures(blocks, cleaned, u)
-						// Gallery pages frequently place figure captions outside a
-						// conventional article body. Recover only article/gallery
-						// figures, never unrelated site-wide images.
 						if strings.Contains(u.Path, "/gallery/") {
 							ordered = supplementGalleryFigures(ordered, raw, u)
 						}
 						blocks = ordered
 					}
+				}
+				if !structuredRecovered {
+					blocks = recoverEditorialContinuity(raw, blocks, u)
+					count = countWords(blocks)
 				}
 				if img == "" {
 					for _, photo := range blocks {
@@ -75,15 +77,12 @@ func extractWithReadability(raw, source string) (Article, error) {
 						}
 					}
 				}
-				// The lead photograph should appear only once. A figure in
-				// article content carries the better caption and placement.
 				for _, photo := range blocks {
 					if photo.Kind == "img" && photo.URL == img {
 						img = ""
 						break
 					}
 				}
-
 				return Article{Title: title, Byline: parsed.Byline(), Site: parsed.SiteName(), URL: source, Blocks: blocks, WordCount: count, ImageURL: img, Method: "Go Readability v2"}, nil
 			}
 		}
@@ -99,7 +98,6 @@ func extractWithReadability(raw, source string) (Article, error) {
 	return fallback, fallbackErr
 }
 
-// resolveImageURL accepts only http(s) URLs, including relative references.
 func resolveImageURL(raw string, base *url.URL) string {
 	raw = strings.TrimSpace(raw)
 	if raw == "" {
@@ -119,8 +117,6 @@ func resolveImageURL(raw string, base *url.URL) string {
 	return resolved.String()
 }
 
-// articleImages reads imagery from the already cleaned Readability output.
-// Captions are kept as plain text; publisher HTML is never injected into the UI.
 func articleImages(cleaned string, base *url.URL) []Block {
 	root := parseHTML(cleaned)
 	images := []Block{}
@@ -162,9 +158,6 @@ func articleImages(cleaned string, base *url.URL) []Block {
 	return images
 }
 
-// attachInlineLinks associates allowed hyperlinks from Readability's cleaned
-// article DOM with text blocks. The UI builds DOM nodes with textContent,
-// never inserts arbitrary publisher HTML.
 func attachInlineLinks(blocks []Block, cleaned string, base *url.URL) {
 	root := parseHTML(cleaned)
 	for _, anchor := range find(root, func(n *Node) bool { return n.Tag == "a" }) {
@@ -173,10 +166,7 @@ func attachInlineLinks(blocks []Block, cleaned string, base *url.URL) {
 			continue
 		}
 		destination := resolveImageURL(anchor.Attr["href"], base)
-		if destination == "" {
-			continue
-		}
-		if !linkableDocument(destination) {
+		if destination == "" || !linkableDocument(destination) {
 			continue
 		}
 		for i := range blocks {
@@ -189,8 +179,6 @@ func attachInlineLinks(blocks []Block, cleaned string, base *url.URL) {
 	}
 }
 
-// Non-HTML resources retain their original destinations instead of being
-// sent to the article parser.
 func linkableDocument(destination string) bool {
 	u, err := url.Parse(destination)
 	if err != nil || (u.Scheme != "https" && u.Scheme != "http") || u.Hostname() == "" || u.User != nil {
@@ -209,9 +197,6 @@ func linkableDocument(destination string) bool {
 	return true
 }
 
-// positionArticleFigures uses paragraph boundaries in Readability's cleaned
-// DOM as anchors for image placement, retaining the original text blocks and
-// hyperlink annotations rather than reparsing body text.
 func positionArticleFigures(blocks []Block, cleaned string, base *url.URL) []Block {
 	root := parseHTML(cleaned)
 	figures := articleImages(cleaned, base)
@@ -229,7 +214,6 @@ func positionArticleFigures(blocks []Block, cleaned string, base *url.URL) []Blo
 			if txt == "" {
 				continue
 			}
-			// Do not count figure captions as ordinary article paragraphs.
 			inFigure := false
 			for x := n.Parent; x != nil; x = x.Parent {
 				if x.Tag == "figure" || x.Tag == "figcaption" {
@@ -284,8 +268,6 @@ func imageFromNode(n *Node, base *url.URL) string {
 	return ""
 }
 
-// supplementGalleryFigures recovers figures that Readability dropped from a
-// photo essay. Only scoped article/main/gallery figure elements qualify.
 func supplementGalleryFigures(blocks []Block, raw string, base *url.URL) []Block {
 	root := parseHTML(raw)
 	seen := map[string]bool{}
