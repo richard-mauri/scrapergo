@@ -24,7 +24,7 @@ import (
 )
 
 // ScraperGo application version is defined once and shared by all presentation paths.
-const appVersion = "0.2.49"
+const appVersion = "0.2.55"
 const sampleURL = "https://247wallst.com/investing/2026/10/16/taiwan-is-planning-4-billion-industrial-parks-in-texas-for-nvidias-suppliers/"
 
 //go:embed tanner.jpg
@@ -779,6 +779,7 @@ func api(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error(), "kind": "access_error"})
 		return
 	}
+	logSlateRetrievalDiagnostic(raw, finalURL)
 	// A navigation index is not a single article. Classify conservatively before
 	// Readability can flatten its menu and story cards into a false article.
 	if pageIsIndex(raw) || pageIsLanding(raw) {
@@ -798,6 +799,7 @@ func api(w http.ResponseWriter, r *http.Request) {
 		recoverArticlePhotographs(&article, raw, finalURL)
 		deduplicateArticleImages(&article)
 		recoverMissingArticleLinks(&article, raw, finalURL)
+		logSlateExtractionDiagnostic(article.Blocks, finalURL)
 	}
 	if kind != "" {
 		log.Printf("restriction publisher=%s kind=%s evidence=%s html_bytes=%d public_words=%d", mustHostname(finalURL), kind, restrictionEvidence(raw), len(raw), article.WordCount)
