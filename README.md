@@ -1,3 +1,7 @@
+## ScraperGo v0.2.67 validation candidate
+
+The displayed version is incremented from 0.2.66 to 0.2.67 to distinguish the current image-deduplication candidate from earlier builds. The existing URL-based duplicate suppression is not independently confirmed for the NPR photograph; do not claim it is resolved solely from automated checks. Check the visible version and the article's image behavior after restarting the Mac binary.
+
 ## Development candidate: image HTTP request compatibility (dev)
 
 The image delivery fetch now sends the full article URL (without query or fragment) as Referer rather than the publisher site root, and advertises only JPEG/PNG/GIF/WebP formats that the thumbnail decoder supports. This preserves the existing validated image selection, HTTPS-only/public-host requirements, redirect checks, response size and deadline limits. Regression tests cover article-scoped, query-stripped referrers. These request changes may help legitimate publisher hotlink checks, but real Practical Engineering and The Dial 502 failures remain unverified; no live success is claimed. Do not merge to main before Mac acceptance tests.
