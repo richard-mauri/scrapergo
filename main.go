@@ -24,7 +24,7 @@ import (
 )
 
 // ScraperGo application version is defined once and shared by all presentation paths.
-const appVersion = "0.2.55"
+const appVersion = "0.2.59"
 const sampleURL = "https://247wallst.com/investing/2026/10/16/taiwan-is-planning-4-billion-industrial-parks-in-texas-for-nvidias-suppliers/"
 
 //go:embed tanner.jpg
@@ -779,6 +779,11 @@ func api(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error(), "kind": "access_error"})
 		return
 	}
+	writeExtractedArticle(w, raw, finalURL)
+}
+
+// writeExtractedArticle is shared by normal retrieval and diagnostic HTML submission.
+func writeExtractedArticle(w http.ResponseWriter, raw, finalURL string) {
 	logSlateRetrievalDiagnostic(raw, finalURL)
 	// A navigation index is not a single article. Classify conservatively before
 	// Readability can flatten its menu and story cards into a false article.
@@ -998,6 +1003,10 @@ func main() {
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/read", api)
+	mux.HandleFunc("/api/image-metadata", imageMetadata)
+	mux.HandleFunc("/api/article-image", articleImage)
+	mux.HandleFunc("/api/thumbnail", articleThumbnail)
+	mux.HandleFunc("/api/diagnostic/extract", diagnosticExtract)
 	mux.HandleFunc("/tanner.jpg", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet && r.Method != http.MethodHead {
 			w.Header().Set("Allow", "GET, HEAD")

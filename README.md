@@ -1,3 +1,23 @@
+## v0.2.59 corrected thumbnail ZIP (2026-10-21)
+
+The original v0.2.59 distribution omitted `image_delivery.go` and `image_delivery_test.go` needed by the thumbnail endpoint. The corrected package includes those v0.2.58 files alongside the v0.2.59 changes. Run `go test ./...` before building or restarting. No publisher data or runtime configuration is bundled.
+
+## v0.2.59 development candidate — ScraperGo thumbnail API (October 21, 2026)
+
+`GET /api/thumbnail?url=<URL-encoded article URL>&width=256` returns a **real resized JPEG thumbnail** using the existing `/api/article-image` pipeline, which itself reuses article extraction and publisher image delivery. The default width is 256 pixels; allowed widths are 64–640 pixels. Output is center-cropped 16:11 (256×176 by default), JPEG quality 82, for NewsGo's existing 128×88 CSS card footprint at 2× density. No new image parsing or publisher-facing logic is added to NewsGo.
+
+A bounded process-local cache stores up to 128 completed JPEG thumbnails for 30 minutes, keyed by article URL and width; repeated requests can be served without re-extraction or image fetching. No persistent image files or credentials are written. On a cache miss, full extraction and image download remain expensive. This initial dependency-free implementation decodes JPEG, PNG and GIF; WebP/AVIF and other source formats return an unsupported-image error rather than masquerading as resized images. The 4 MiB downloaded-image cap and public HTTPS/SSRF checks from v0.2.58 still apply; input pixel count is capped at 16 million. A successful output image is not proof that all publishers permit automated delivery. The endpoint has not been live-tested against CNBC, Safari, or NewsGo. Add controlled endpoint-rate limits / cache coalescing before exposing broadly to untrusted public traffic.
+
+**Verification:** formatting and isolated thumbnail implementation tests passed in this environment; the complete ScraperGo suite could not run because the existing Codeberg Readability dependency was unavailable. On the user Mac with Go 1.27.1, run `go test ./...`, `./devbuild.sh`, `./scrapergo.sh`, then verify actual CNBC and Seahorse thumbnails, dimensions, cache HIT/MISS headers, and unchanged `/api/read` and diagnostic extraction. Do not commit/push before these checks.
+
+## v0.2.58 development candidate — Article image delivery
+
+`GET /api/article-image?url=<URL-encoded article URL>` returns the actual image bytes selected by existing article extraction (rather than merely an `imageUrl`). It calls the v0.2.57 metadata handler, which reuses `/api/read`, then fetches only that selected image. The response has an appropriate image MIME type or an error status. HTTPS image URLs, public hosts and redirects, a 4 MiB byte limit, timeouts, no upstream proxy and decoded image signatures constrain retrieval. This is not an arbitrary image URL proxy. Requests currently redo article extraction and image retrieval and are not cached; verify performance and security before broad exposure. The image URL may still be denied by publisher servers; no success is implied by metadata discovery. NewsGo and NewsValidate remain unchanged. The Go test/build suite must run locally on Mac Go 1.27.1 before restart or commit.
+
+## v0.2.57 development candidate — Image metadata API (not yet verified)
+
+`POST /api/image-metadata` accepts the same JSON article URL input as `/api/read` and returns only `{ "url": "...", "imageUrl": "...", "imagePresent": true }` (or false with an empty image URL). It delegates to the normal `/api/read` extraction handler and forwards structured error responses and status codes. It avoids duplicating extraction logic, but it **still runs the complete article retrieval and extraction**, so the response is smaller but the processing cost is not reduced. This endpoint does not download, proxy, or guarantee browser access to image bytes. The CNBC CDN may deny image requests depending on headers. Requires full local Go tests and live acceptance before commit or deployment. Preserves v0.2.56 diagnostic endpoint and uncommitted files.
+
 # ScraperGo — Clean Web Reader
 
 **Current GitHub source baseline:** v0.2.49 (October 19, 2026), commit `c24347c574ff638f29acc261f5ee46a459ea2363`. **Current development patch:** v0.2.55 unreleased anchored-tail extraction candidate (October 20, 2026); not pushed, tagged, deployed, or validated on the user's Mac. Do not assume the GitHub tree matches local uncommitted changes.
@@ -226,3 +246,20 @@ Confirm v0.2.55 and check the downloaded TXT through the final sentence,
 and verify two later gallery images and caption deduplication. Do not push,
 commit, tag or release before live tests succeed. This remains an unreleased
 candidate; an isolated fixture alone does not certify the live article.
+
+## v0.2.56 — localhost diagnostic HTML extraction
+
+Normal `POST /api/read` fetching, HTTP fallback, extraction and browser UI remain unchanged in behavior. The separate `POST /api/diagnostic/extract` receives JSON with `url` and `html` and passes the supplied HTML through the **same post-download extraction routine** as `/api/read`, including article/index checks, restricted-preview classification, continuity and link/image recovery. It never fetches the supplied URL or HTML-linked assets.
+
+The endpoint requires a direct loopback TCP peer (`127.0.0.1` or `::1`), accepts only HTTP(S) URL metadata, limits HTML to 5 MiB, and returns the normal article JSON or the existing extraction error JSON. This loopback gate is not authentication; do not expose it through a reverse proxy or tunnel that forwards connections over loopback. Requests are not persisted by the endpoint. Avoid submitting untrusted HTML to a public server.
+
+Example from the ScraperGo host, using JSON constructed from NewsValidate's saved HTML:
+
+```sh
+python3 -c 'import json,sys;print(json.dumps({"url":sys.argv[1],"html":open(sys.argv[2]).read()}))' \
+  'https://example.com/article' 'publisher-response.html' | \
+  curl -sS http://127.0.0.1:8083/api/diagnostic/extract \
+    -H 'Content-Type: application/json' --data-binary @-
+```
+
+The sample above illustrates the request format; do not install Python solely for this operation. NewsValidate can submit JSON directly using its existing Go HTTP client. The normal `/api/read` route remains the default; the diagnostic route is opt-in.
