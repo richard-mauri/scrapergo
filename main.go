@@ -24,7 +24,7 @@ import (
 )
 
 // ScraperGo application version is defined once and shared by all presentation paths.
-const appVersion = "0.2.78"
+const appVersion = "0.2.79"
 const sampleURL = "https://247wallst.com/investing/2026/10/16/taiwan-is-planning-4-billion-industrial-parks-in-texas-for-nvidias-suppliers/"
 
 //go:embed tanner.jpg
@@ -1019,6 +1019,7 @@ func main() {
 	mux.HandleFunc("/api/article-image", articleImage)
 	mux.HandleFunc("/api/thumbnail", articleThumbnail)
 	mux.HandleFunc("/api/diagnostic/extract", diagnosticExtract)
+	mux.HandleFunc("/api/diagnostic/image-trace", diagnosticImageTrace)
 	mux.HandleFunc("/tanner.jpg", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet && r.Method != http.MethodHead {
 			w.Header().Set("Allow", "GET, HEAD")
