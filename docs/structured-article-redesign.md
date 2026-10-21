@@ -1,6 +1,6 @@
 # Structured Article Extraction Redesign
 
-Status: architecture and test-contract stage; **not a release candidate**.
+Status: staged implementation v0.2.73; **not yet a Mac release candidate**. Structural media DOM sanitization and opening-title / identical-image reconciliation have been implemented and tested, and the accepted NewsGo-inspired palette and centered spacing have been brought over without experimental image heuristics. Full representative publisher fixtures, robust source image-role classification, and browser/PDF regression coverage remain outstanding.
 
 ## Branch policy
 - `main` remains production/stable; do not merge until owner explicitly accepts a tested candidate.
