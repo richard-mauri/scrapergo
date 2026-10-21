@@ -1,3 +1,7 @@
+## Structured source-image identity — v0.2.74
+
+The normalized article model now identifies multiple NPR Brightspot renditions by the explicitly embedded original asset URL in the CDN's `url` query parameter. This is based on the two actual NPR links captured from the Mac, not a guess about filenames or dimensions. The higher-quality publisher lead rendition is retained, the inline editorial caption preserved, and separate author portraits maintained. For CDNs that do not expose an original asset identity, only identical image URLs are treated as the same. Regression tests use the captured NPR URLs; Safari and print/PDF acceptance are still pending. The rewrite remains isolated from main on PR #4.
+
 ## Structured article rewrite — v0.2.73 development candidate
 
 This rewrite branch is based on current main; it is not a promoted release. Instead of importing the v0.2.66–v0.2.72 display heuristics, it preprocesses the HTML DOM to remove interactive media nodes before Readability, strips serialized media tags from ordinary text nodes while retaining code examples, and uses the same sanitized HTML for content, image and link recovery. After extraction, document normalization reconciles a duplicated opening title and constructs one typed image-block stream (optional role `lead`) for the UI. The existing `imageUrl` response remains available as metadata for API compatibility. The approved NewsGo-like dark palette and centered 1200px layout are retained.
