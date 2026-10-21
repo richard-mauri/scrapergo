@@ -24,7 +24,7 @@ import (
 )
 
 // ScraperGo application version is defined once and shared by all presentation paths.
-const appVersion = "0.2.74"
+const appVersion = "0.2.75"
 const sampleURL = "https://247wallst.com/investing/2026/10/16/taiwan-is-planning-4-billion-industrial-parks-in-texas-for-nvidias-suppliers/"
 
 //go:embed tanner.jpg
@@ -811,6 +811,7 @@ func writeExtractedArticle(w http.ResponseWriter, raw, finalURL string) {
         if base, err := url.Parse(finalURL); err == nil {
             sourceLead = resolveImageURL(meta(parseHTML(cleanedArticleHTML), "og:image", "twitter:image"), base)
         }
+        removeSerializedPlayerBlocks(&article)
         normalizeArticleDocument(&article, sourceLead)
 		logSlateExtractionDiagnostic(article.Blocks, finalURL)
 	}
