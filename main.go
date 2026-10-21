@@ -806,6 +806,7 @@ func writeExtractedArticle(w http.ResponseWriter, raw, finalURL string) {
 		recoverArticlePhotographs(&article, cleanedArticleHTML, finalURL)
 		deduplicateArticleImages(&article)
 		recoverMissingArticleLinks(&article, cleanedArticleHTML, finalURL)
+        recoverAuthorPortrait(&article, cleanedArticleHTML, finalURL)
         sourceLead := ""
         if base, err := url.Parse(finalURL); err == nil {
             sourceLead = resolveImageURL(meta(parseHTML(cleanedArticleHTML), "og:image", "twitter:image"), base)
