@@ -24,7 +24,7 @@ import (
 )
 
 // ScraperGo application version is defined once and shared by all presentation paths.
-const appVersion = "0.2.69"
+const appVersion = "0.2.70"
 const sampleURL = "https://247wallst.com/investing/2026/10/16/taiwan-is-planning-4-billion-industrial-parks-in-texas-for-nvidias-suppliers/"
 
 //go:embed tanner.jpg
@@ -791,6 +791,31 @@ func api(w http.ResponseWriter, r *http.Request) {
 }
 
 // writeExtractedArticle is shared by normal retrieval and diagnostic HTML submission.
+// sanitizeEmbeddedPlayerBlocks runs after Readability, since Readability may turn
+// escaped player markup into separate heading, text, and punctuation blocks.
+func sanitizeEmbeddedPlayerBlocks(a *Article) {
+ if a == nil { return }
+ player := func(t string) bool {
+  low:=strings.ToLower(html.UnescapeString(t))
+  return isEmbeddedMarkupBlock(low) || strings.Contains(low,"/player/embed/") || strings.Contains(low,"<iframe") || strings.Contains(low,"&lt;iframe")
+ }
+ discard := make([]bool,len(a.Blocks))
+ for i,b:=range a.Blocks {
+  if player(b.Text) {
+   discard[i]=true
+   for j:=i-1;j>=0 && j>=i-5;j-- {
+    t:=strings.TrimSpace(a.Blocks[j].Text)
+    if a.Blocks[j].Kind=="img" { break }
+    if strings.EqualFold(t,"Embed") || t=="\">" || t=="'>" || t=="•" || t=="" {discard[j]=true;continue}
+    break
+   }
+  }
+ }
+ out:=make([]Block,0,len(a.Blocks))
+ for i,b:=range a.Blocks {if !discard[i] {out=append(out,b)}}
+ a.Blocks=out
+}
+
 func writeExtractedArticle(w http.ResponseWriter, raw, finalURL string) {
 	logSlateRetrievalDiagnostic(raw, finalURL)
 	// A navigation index is not a single article. Classify conservatively before
@@ -809,6 +834,7 @@ func writeExtractedArticle(w http.ResponseWriter, raw, finalURL string) {
 	kind := accessRestriction(raw)
 	article, extractionErr := extractWithReadability(raw, finalURL)
 	if extractionErr == nil {
+		sanitizeEmbeddedPlayerBlocks(&article)
 		recoverArticlePhotographs(&article, raw, finalURL)
 		deduplicateArticleImages(&article)
 		recoverMissingArticleLinks(&article, raw, finalURL)
