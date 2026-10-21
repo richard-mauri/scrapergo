@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	_ "golang.org/x/image/webp"
 	"image"
 	"image/color"
 	"image/draw"
@@ -91,22 +92,43 @@ func thumbnailWidth(r *http.Request) (int, error) {
 	return n, nil
 }
 
+// thumbnailSourceType identifies common formats even when no decoder is registered.
+// The label appears only in resize errors, never in successful image responses.
+func thumbnailSourceType(b []byte) string {
+	if len(b) >= 12 && string(b[:4]) == "RIFF" && string(b[8:12]) == "WEBP" {
+		return "webp"
+	}
+	if len(b) >= 12 && string(b[4:8]) == "ftyp" && (string(b[8:12]) == "avif" || string(b[8:12]) == "avis") {
+		return "avif"
+	}
+	if len(b) >= 8 && string(b[:8]) == "\x89PNG\r\n\x1a\n" {
+		return "png"
+	}
+	if len(b) >= 3 && string(b[:3]) == "\xff\xd8\xff" {
+		return "jpeg"
+	}
+	if len(b) >= 6 && (string(b[:6]) == "GIF87a" || string(b[:6]) == "GIF89a") {
+		return "gif"
+	}
+	return "unknown"
+}
+
 // cropAndEncodeThumbnail performs center-cropped 16:11 rendering using only Go's
 // standard library. It avoids unbounded image allocations before decoding.
 func cropAndEncodeThumbnail(data []byte, width int) ([]byte, error) {
 	cfg, format, err := image.DecodeConfig(bytes.NewReader(data))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("decode thumbnail image header (%s): %w", thumbnailSourceType(data), err)
 	}
-	if format != "jpeg" && format != "png" && format != "gif" {
-		return nil, errors.New("unsupported thumbnail source format")
+	if format != "jpeg" && format != "png" && format != "gif" && format != "webp" {
+		return nil, fmt.Errorf("unsupported thumbnail source format %q", format)
 	}
 	if cfg.Width < 1 || cfg.Height < 1 || int64(cfg.Width)*int64(cfg.Height) > thumbnailMaxPixels {
 		return nil, errors.New("image dimensions exceed limit")
 	}
 	src, _, err := image.Decode(bytes.NewReader(data))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("decode %s thumbnail pixels: %w", format, err)
 	}
 	height := width * 11 / 16
 	bounds := src.Bounds()
@@ -182,7 +204,8 @@ func articleThumbnail(w http.ResponseWriter, r *http.Request) {
 	}
 	b, err := cropAndEncodeThumbnail([]byte(capture.body.String()), width)
 	if err != nil {
-		http.Error(w, "image could not be resized", http.StatusUnsupportedMediaType)
+		// Include only the local decoder failure; never echo an article URL.
+		http.Error(w, "image could not be resized: "+err.Error(), http.StatusUnsupportedMediaType)
 		return
 	}
 	thumbs.put(key, b)

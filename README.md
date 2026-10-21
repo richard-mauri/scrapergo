@@ -263,3 +263,10 @@ python3 -c 'import json,sys;print(json.dumps({"url":sys.argv[1],"html":open(sys.
 ```
 
 The sample above illustrates the request format; do not install Python solely for this operation. NewsValidate can submit JSON directly using its existing Go HTTP client. The normal `/api/read` route remains the default; the diagnostic route is opt-in.
+
+
+## ScraperGo v0.2.60 thumbnail decoding (development)
+
+The thumbnail handler supports WebP source images through `golang.org/x/image/webp` in addition to JPEG, PNG, and GIF. The returned thumbnail remains JPEG with the existing 16:11 crop and cache behavior. AVIF is not decoded; resize failures return a more specific format/decoder error instead of the generic `image could not be resized`. These errors may help diagnose publisher incompatibilities; they do not resolve upstream 502 responses.
+
+After installing this patch, run `go get golang.org/x/image@v0.30.0` from the ScraperGo project root on the Mac before `go test -count=1 ./...`, so go.mod and go.sum record the new module. Test both the Guardian URL that returned 415 and the previously successful CNBC JPEG. Build and restart through the existing scripts only after tests pass.

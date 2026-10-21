@@ -8,6 +8,7 @@ import (
 	"image/jpeg"
 	"net/http/httptest"
 	"strconv"
+	"strings"
 	"testing"
 )
 
@@ -65,5 +66,27 @@ func TestThumbnailCache(t *testing.T) {
 	}
 	if store.order.Len() != thumbnailCacheEntries {
 		t.Fatal("cache capacity exceeded")
+	}
+}
+
+func TestThumbnailSourceType(t *testing.T) {
+	cases := []struct {
+		data []byte
+		want string
+	}{
+		{[]byte("RIFF\x00\x00\x00\x00WEBPVP8 "), "webp"},
+		{[]byte("\x00\x00\x00\x18ftypavif"), "avif"},
+		{[]byte("nonsense"), "unknown"},
+	}
+	for _, tc := range cases {
+		if got := thumbnailSourceType(tc.data); got != tc.want {
+			t.Fatalf("got %q; want %q", got, tc.want)
+		}
+	}
+}
+func TestUnsupportedThumbnailFormatExplained(t *testing.T) {
+	_, err := cropAndEncodeThumbnail([]byte("\x00\x00\x00\x18ftypavif"), 256)
+	if err == nil || !strings.Contains(err.Error(), "avif") {
+		t.Fatalf("expected AVIF diagnostic, got %v", err)
 	}
 }

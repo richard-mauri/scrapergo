@@ -1,3 +1,13 @@
+# ScraperGo v0.2.60 development patch (2026-10-21)
+
+Use local installed v0.2.59 as baseline. Apply this direct-unzip source patch only if local diff audit shows no conflicting work. No commit or push implied.
+
+v0.2.60 registers golang.org/x/image/webp for WebP image decoding (output remains center-cropped JPEG), adds format-specific diagnostics on HTTP 415, and includes tests for source-type detection. AVIF is not decoded and is named in error diagnostics. Existing article-image HTTP 502 causes are not addressed by this patch.
+
+DEPENDENCY: after unzip, run `go get golang.org/x/image@v0.30.0` on the Mac (downloads module and updates go.mod/go.sum), then `go test -count=1 ./...`. Keep module files in commit after verification. This environment could not download that dependency and did not execute the full test suite. Do not advertise tested or release-ready until the local suite and live examples pass.
+
+Leave launchers, tunnel, data, scraped articles and runtime binary alone. Changes are in main.go, thumbnail.go, thumbnail_test.go, README.md, AGENTS.md. Review git diff and do not commit automatically.
+
 # ACTIVE HANDOFF — ScraperGo v0.2.59 corrected thumbnail candidate (2026-10-21)
 
 - **Corrected package:** the first v0.2.59 ZIP omitted `image_delivery.go`/`image_delivery_test.go` from v0.2.58 even though `main.go` and `thumbnail.go` call `articleImage` and `newResponseCapture`. The corrected ZIP includes both dependencies. Do not build/restart using the incomplete package. Full Go tests must pass on the user Mac before deployment.
