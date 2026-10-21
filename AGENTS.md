@@ -1,12 +1,23 @@
-# ScraperGo v0.2.60 development patch (2026-10-21)
+# ScraperGo v0.2.65 development handoff
+Classification rejects publisher-access failures as unavailable. Keep v0.2.64 image selection. Image-fetch failures are not fixed in this patch. No changes to launchers, tunnels, or runtime data. Test locally before committing.
 
-Use local installed v0.2.59 as baseline. Apply this direct-unzip source patch only if local diff audit shows no conflicting work. No commit or push implied.
+# ScraperGo v0.2.64 development candidate — 2026-10-21
 
-v0.2.60 registers golang.org/x/image/webp for WebP image decoding (output remains center-cropped JPEG), adds format-specific diagnostics on HTTP 415, and includes tests for source-type detection. AVIF is not decoded and is named in error diagnostics. Existing article-image HTTP 502 causes are not addressed by this patch.
+Article image metadata now selects from the SAME article image references used by the reader: `Article.ImageURL` followed by first inline `Block{Kind:"img"}` image(s), with duplicates removed. `imageUrl` remains backward-compatible and a new `imageCandidates` array describes up to the displayed article images. `/api/article-image` makes at most three secure retrieval attempts on these candidates. HTTP 502 may remain if publisher image delivery blocks every candidate; no access restrictions are bypassed. Existing SSRF, size, redirect, timeout and image format safeguards remain enforced for each request. Browser rendering and thumbnail crop/encoder are unchanged. Includes `image_selection_test.go`.
 
-DEPENDENCY: after unzip, run `go get golang.org/x/image@v0.30.0` on the Mac (downloads module and updates go.mod/go.sum), then `go test -count=1 ./...`. Keep module files in commit after verification. This environment could not download that dependency and did not execute the full test suite. Do not advertise tested or release-ready until the local suite and live examples pass.
+Run `go test -count=1 ./...` and `./devbuild.sh` on Mac before restart. Test Practical Engineering, Dries Buytaert, The Dial, Maevyn.codes with `/api/thumbnail`, and confirm thumbnails are 256x176 JPEG; inspect failure stage headers when not. No commits or releases performed. Local verified source always takes precedence over this staged patch.
 
-Leave launchers, tunnel, data, scraped articles and runtime binary alone. Changes are in main.go, thumbnail.go, thumbnail_test.go, README.md, AGENTS.md. Review git diff and do not commit automatically.
+# 0.2.63 development candidate — 2026-10-21
+
+Classify confirmed extraction_error pages as unreadable; retain transient failures as unknown.
+
+Install ScraperGo before NewsGo. Run full Mac tests/build and browser acceptance prior to commit. Preserve launcher/tunnel and local runtime state.
+
+# v0.2.62 candidate — classification gate
+
+ScraperGo POST /api/classify uses existing /api/read outcomes and caches results. Confirmed page_index becomes homepage; valid extracted articles become article; publisher errors/timeouts become unknown. NewsGo integration should follow successful validation. Classification incurs extraction cost on cache miss; it does not share a cached article extraction with thumbnails yet.
+
+Do not commit or push without testing, and preserve local changes, launchers and tunnel configuration.
 
 # ACTIVE HANDOFF — ScraperGo v0.2.59 corrected thumbnail candidate (2026-10-21)
 

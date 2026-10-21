@@ -199,12 +199,23 @@ func articleThumbnail(w http.ResponseWriter, r *http.Request) {
 	capture := newResponseCapture()
 	articleImage(capture, req)
 	if capture.status != http.StatusOK {
-		http.Error(w, "article image unavailable", http.StatusBadGateway)
+		stage := capture.header.Get("X-Image-Failure-Stage")
+		if stage == "" {
+			stage = "image-delivery"
+		}
+		w.Header().Set("X-Thumbnail-Failure-Stage", stage)
+		// A missing publisher image is not a gateway failure.
+		if capture.status == http.StatusNotFound {
+			http.Error(w, "article has no selected image", http.StatusNotFound)
+		} else {
+			http.Error(w, "article image unavailable ("+stage+")", http.StatusBadGateway)
+		}
 		return
 	}
 	b, err := cropAndEncodeThumbnail([]byte(capture.body.String()), width)
 	if err != nil {
 		// Include only the local decoder failure; never echo an article URL.
+		w.Header().Set("X-Thumbnail-Failure-Stage", "image-decode")
 		http.Error(w, "image could not be resized: "+err.Error(), http.StatusUnsupportedMediaType)
 		return
 	}

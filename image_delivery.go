@@ -45,18 +45,46 @@ func articleImage(w http.ResponseWriter, r *http.Request) {
 	rec := newResponseCapture()
 	imageMetadata(rec, req)
 	if rec.status != http.StatusOK {
+		w.Header().Set("X-Image-Failure-Stage", "metadata")
 		http.Error(w, "article image lookup failed", http.StatusBadGateway)
 		return
 	}
 	var meta struct {
-		ImageURL string `json:"imageUrl"`
+		ImageURL   string   `json:"imageUrl"`
+		Candidates []string `json:"imageCandidates"`
 	}
-	if err = json.Unmarshal([]byte(rec.body.String()), &meta); err != nil || meta.ImageURL == "" {
-		http.Error(w, "article has no selected image", 404)
+	if err = json.Unmarshal([]byte(rec.body.String()), &meta); err != nil {
+		w.Header().Set("X-Image-Failure-Stage", "metadata")
+		http.Error(w, "invalid image metadata", http.StatusBadGateway)
 		return
 	}
-	b, typ, err := retrieveSelectedImage(ctx, meta.ImageURL, articleURL)
+	if len(meta.Candidates) == 0 && meta.ImageURL != "" {
+		meta.Candidates = []string{meta.ImageURL}
+	}
+	if len(meta.Candidates) == 0 {
+		w.Header().Set("X-Image-Failure-Stage", "no-selected-image")
+		http.Error(w, "article has no selected image", http.StatusNotFound)
+		return
+	}
+	var b []byte
+	var typ string
+	// Bound fallback attempts: the reader may show several inline images,
+	// but this endpoint must never download an unbounded gallery.
+	attempts := len(meta.Candidates)
+	if attempts > 3 {
+		attempts = 3
+	}
+	for _, candidate := range meta.Candidates[:attempts] {
+		b, typ, err = retrieveSelectedImage(ctx, candidate, articleURL)
+		if err == nil {
+			break
+		}
+		if ctx.Err() != nil {
+			break
+		}
+	}
 	if err != nil {
+		w.Header().Set("X-Image-Failure-Stage", imageRetrievalFailureKind(err))
 		http.Error(w, "selected image unavailable", http.StatusBadGateway)
 		return
 	}
@@ -148,4 +176,29 @@ func retrieveSelectedImage(ctx context.Context, raw, articleURL string) ([]byte,
 		return b, detected, nil
 	}
 	return nil, "", errors.New("unsupported or nonimage response")
+}
+
+// imageRetrievalFailureKind exposes a fixed diagnostic category, never a publisher
+// URL, response body, hostname, or internal network error to public clients.
+func imageRetrievalFailureKind(err error) string {
+	if err == nil {
+		return "none"
+	}
+	if strings.HasPrefix(err.Error(), "upstream image status ") {
+		return "upstream-status"
+	}
+	if strings.Contains(err.Error(), "image too large") {
+		return "size-limit"
+	}
+	if strings.Contains(err.Error(), "unsupported or nonimage response") {
+		return "unsupported-source"
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		return "timeout"
+	}
+	var netErr net.Error
+	if errors.As(err, &netErr) && netErr.Timeout() {
+		return "timeout"
+	}
+	return "image-fetch"
 }

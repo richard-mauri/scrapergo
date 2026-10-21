@@ -24,7 +24,7 @@ import (
 )
 
 // ScraperGo application version is defined once and shared by all presentation paths.
-const appVersion = "0.2.60"
+const appVersion = "0.2.65"
 const sampleURL = "https://247wallst.com/investing/2026/10/16/taiwan-is-planning-4-billion-industrial-parks-in-texas-for-nvidias-suppliers/"
 
 //go:embed tanner.jpg
@@ -1003,6 +1003,7 @@ func main() {
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/read", api)
+	mux.HandleFunc("/api/classify", classifyArticle)
 	mux.HandleFunc("/api/image-metadata", imageMetadata)
 	mux.HandleFunc("/api/article-image", articleImage)
 	mux.HandleFunc("/api/thumbnail", articleThumbnail)

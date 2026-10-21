@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 )
 
 // imageMetadata invokes the ordinary article API, ensuring that image selection,
@@ -32,17 +33,42 @@ func imageMetadata(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	var article struct {
-		URL      string `json:"url"`
-		ImageURL string `json:"imageUrl"`
-	}
+	var article Article
 	if err := json.NewDecoder(result.Body).Decode(&article); err != nil {
 		http.Error(w, "invalid extraction response", http.StatusInternalServerError)
 		return
 	}
+	candidates := articleImageCandidates(article)
+	selected := ""
+	if len(candidates) > 0 {
+		selected = candidates[0]
+	}
 	_ = json.NewEncoder(w).Encode(struct {
-		URL          string `json:"url"`
-		ImageURL     string `json:"imageUrl"`
-		ImagePresent bool   `json:"imagePresent"`
-	}{URL: article.URL, ImageURL: article.ImageURL, ImagePresent: article.ImageURL != ""})
+		URL          string   `json:"url"`
+		ImageURL     string   `json:"imageUrl"`
+		ImagePresent bool     `json:"imagePresent"`
+		Candidates   []string `json:"imageCandidates"`
+	}{URL: article.URL, ImageURL: selected, ImagePresent: selected != "", Candidates: candidates})
+}
+
+// articleImageCandidates uses the same hero and ordered inline image references
+// that the reader renders. Readability may intentionally omit ImageURL when a
+// matching block already displays it; that must not hide it from thumbnails.
+func articleImageCandidates(a Article) []string {
+	var out []string
+	seen := make(map[string]bool)
+	add := func(raw string) {
+		raw = strings.TrimSpace(raw)
+		if raw != "" && !seen[raw] {
+			seen[raw] = true
+			out = append(out, raw)
+		}
+	}
+	add(a.ImageURL)
+	for _, b := range a.Blocks {
+		if b.Kind == "img" {
+			add(b.URL)
+		}
+	}
+	return out
 }

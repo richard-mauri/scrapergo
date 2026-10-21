@@ -1,3 +1,24 @@
+## v0.2.65 — conservative classification (development)
+
+`POST /api/classify` now explicitly marks publisher-access and transport failures as `unavailable` instead of `unknown`. NewsGo v0.2.52 displays only confirmed `article` results. This avoids headlines that open to HTTP 202 (Accepted) publisher responses. Unavailable results expire after one minute and do not permanently exclude subscriptions. Existing article extraction, thumbnail selection, secure image fetching, and JPEG output are unchanged. Image-fetch failures remain unresolved; no new shared extraction cache is claimed. Run full Mac tests and live acceptance before committing.
+
+# ScraperGo v0.2.64 development candidate — 2026-10-21
+
+Article image metadata now selects from the SAME article image references used by the reader: `Article.ImageURL` followed by first inline `Block{Kind:"img"}` image(s), with duplicates removed. `imageUrl` remains backward-compatible and a new `imageCandidates` array describes up to the displayed article images. `/api/article-image` makes at most three secure retrieval attempts on these candidates. HTTP 502 may remain if publisher image delivery blocks every candidate; no access restrictions are bypassed. Existing SSRF, size, redirect, timeout and image format safeguards remain enforced for each request. Browser rendering and thumbnail crop/encoder are unchanged. Includes `image_selection_test.go`.
+
+Run `go test -count=1 ./...` and `./devbuild.sh` on Mac before restart. Test Practical Engineering, Dries Buytaert, The Dial, Maevyn.codes with `/api/thumbnail`, and confirm thumbnails are 256x176 JPEG; inspect failure stage headers when not. No commits or releases performed. Local verified source always takes precedence over this staged patch.
+
+# 0.2.63 development candidate — 2026-10-21
+
+Classify confirmed extraction_error pages as unreadable; retain transient failures as unknown.
+
+Install ScraperGo before NewsGo. Run full Mac tests/build and browser acceptance prior to commit. Preserve launcher/tunnel and local runtime state.
+
+
+## Development candidate v0.2.62 — 2026-10-21
+
+ScraperGo POST /api/classify uses existing /api/read outcomes and caches results. Confirmed page_index becomes homepage; valid extracted articles become article; publisher errors/timeouts become unknown. NewsGo integration should follow successful validation. Classification incurs extraction cost on cache miss; it does not share a cached article extraction with thumbnails yet.
+
 ## v0.2.59 corrected thumbnail ZIP (2026-10-21)
 
 The original v0.2.59 distribution omitted `image_delivery.go` and `image_delivery_test.go` needed by the thumbnail endpoint. The corrected package includes those v0.2.58 files alongside the v0.2.59 changes. Run `go test ./...` before building or restarting. No publisher data or runtime configuration is bundled.
@@ -263,10 +284,3 @@ python3 -c 'import json,sys;print(json.dumps({"url":sys.argv[1],"html":open(sys.
 ```
 
 The sample above illustrates the request format; do not install Python solely for this operation. NewsValidate can submit JSON directly using its existing Go HTTP client. The normal `/api/read` route remains the default; the diagnostic route is opt-in.
-
-
-## ScraperGo v0.2.60 thumbnail decoding (development)
-
-The thumbnail handler supports WebP source images through `golang.org/x/image/webp` in addition to JPEG, PNG, and GIF. The returned thumbnail remains JPEG with the existing 16:11 crop and cache behavior. AVIF is not decoded; resize failures return a more specific format/decoder error instead of the generic `image could not be resized`. These errors may help diagnose publisher incompatibilities; they do not resolve upstream 502 responses.
-
-After installing this patch, run `go get golang.org/x/image@v0.30.0` from the ScraperGo project root on the Mac before `go test -count=1 ./...`, so go.mod and go.sum record the new module. Test both the Guardian URL that returned 415 and the previously successful CNBC JPEG. Build and restart through the existing scripts only after tests pass.
