@@ -1,3 +1,7 @@
+# APPROVED EXCEPTION — structured extraction rewrite (2026-10-21)
+
+The owner explicitly authorized a proper extraction architecture redesign and delegated branch management. For this project **on this branch**, make development commits to `rewrite/structured-articles` rather than the historical `dev` integration branch. This section supersedes only branch-target instructions below, not safety, CI, documentation, owner acceptance, or release gating. `main` is unchanged and remains protected from merge until owner acceptance. The complete pre-rewrite experiments remain at `archive/scrapergo-v0272-experiments`; do not cherry-pick their brittle image/embedded-markup JS into the rewrite. Keep PR #4 draft, build the frozen multi-publisher fixtures and structural image-role coverage, and validate the Mac release only after CI passes. Increment the visible version for Mac candidates and always provide full fetch, checkout, tests, build, restart, and Safari steps.
+
 # AUTHORITATIVE DEVELOPMENT WORKFLOW — effective 2026-10-21
 
 This section supersedes any conflicting directions in the historical handoff notes below. The notes remain for technical provenance, not as active release instructions.
