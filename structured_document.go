@@ -53,6 +53,29 @@ func imageSourceIdentity(raw string) string {
  return u.String()
 }
 
+// classifyContributorImages uses the source document's byline structure and
+// nearby named contributor links, not file dimensions or URL guesses.
+func classifyContributorImages(a *Article) {
+ if a==nil{return}
+ for i:=range a.Blocks {
+  b:=&a.Blocks[i]
+  if b.Kind!="img" || b.Role=="author" {continue}
+  caption:=strings.TrimSpace(b.Text)
+  if caption=="" {continue}
+  // Contributor names often occur as links adjacent to their headshots.
+  // Require a matching named link in the nearby introductory content.
+  for j:=i-2;j<=i+2;j++ {
+   if j<0||j>=len(a.Blocks)||j==i {continue}
+   nearby:=a.Blocks[j]
+   if nearby.Kind=="img" {continue}
+   if strings.EqualFold(strings.TrimSpace(nearby.Text),caption) && (len(nearby.Links)>0 || nearby.Kind=="a") {
+    b.Role="author"
+    break
+   }
+  }
+ }
+}
+
 // normalizeArticleDocument reconciles the article title and image identities.
 // The first editorial image wins over metadata; metadata is a fallback or\n// alternate rendition of the same identified source.
 func normalizeArticleDocument(a *Article, sourceLead ...string) {
@@ -93,7 +116,7 @@ func normalizeArticleDocument(a *Article, sourceLead ...string) {
  }
  if candidate<0 {
   for i,b:=range out {
-   if b.Kind=="img" && b.Role!="author" {candidate=i;break}
+   if b.Kind=="img" && b.Role!="author" && b.Role!="decorative" {candidate=i;break}
   }
  }
  for i:=range out {if out[i].Kind=="img" && out[i].Role=="lead" {out[i].Role=""}}
