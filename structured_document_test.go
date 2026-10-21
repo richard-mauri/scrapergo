@@ -29,3 +29,15 @@ func TestNormalizeArticleDocumentDistinctHero(t *testing.T) {
  normalizeArticleDocument(&a)
  if a.ImageURL=="" {t.Fatal("a distinct lead image was suppressed by author portrait")}
 }
+
+func TestEscapedPlayerMarkupIsRemovedWithoutDeletingProse(t *testing.T) {
+ raw:=`<html><body><article><p>Before &lt;iframe src="https://audio.example/player" width="100%"&gt; after.</p><p>Later article content remains.</p></article></body></html>`
+ cleaned:=stripEmbeddedMedia(raw)
+ if strings.Contains(cleaned,"audio.example/player") {t.Fatal("escaped media element leaked into output")}
+ if !strings.Contains(cleaned,"Before")||!strings.Contains(cleaned,"after.")||!strings.Contains(cleaned,"Later article content") {t.Fatal("legitimate surrounding prose lost")}
+}
+func TestCodeSamplesAreNotDiscarded(t *testing.T) {
+ raw:=`<html><body><article><pre><code>&lt;iframe src="https://docs.example/sample"&gt;</code></pre></article></body></html>`
+ cleaned:=stripEmbeddedMedia(raw)
+ if !strings.Contains(cleaned,"docs.example/sample"){t.Fatal("legitimate technical code example was removed")}
+}
