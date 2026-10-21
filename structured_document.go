@@ -124,3 +124,26 @@ func recoverAuthorPortrait(a *Article, sourceHTML, baseURL string) {
   }
  }
 }
+
+// removeSerializedPlayerBlocks rejects standalone serialized player widgets
+// that survived Readability as article blocks. It does not inspect neighboring
+// blocks, and never removes a list item just because it says "Embed".
+func removeSerializedPlayerBlocks(a *Article) {
+ if a==nil {return}
+ out:=make([]Block,0,len(a.Blocks))
+ for _,b:=range a.Blocks {
+  if b.Kind!="img" && containsSerializedMediaTag(b.Text) {
+   // Only suppress blocks that are player widgets rather than mixed prose.
+   remainder:=escapedMediaElementRE.ReplaceAllString(b.Text,"")
+   remainder=strings.TrimSpace(strings.ToLower(remainder))
+   remainder=strings.TrimSpace(strings.TrimPrefix(remainder,"embed"))
+   remainder=strings.TrimSpace(remainder)
+   if remainder=="" {continue}
+  }
+  out=append(out,b)
+ }
+ a.Blocks=out
+}
+func containsSerializedMediaTag(text string) bool {
+ return escapedMediaElementRE.MatchString(text)
+}
