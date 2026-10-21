@@ -799,11 +799,12 @@ func writeExtractedArticle(w http.ResponseWriter, raw, finalURL string) {
 	// Extract before deciding whether restricted pages offer readable public text.
 	// Restriction metadata alone does not establish that no usable preview exists.
 	kind := accessRestriction(raw)
-	article, extractionErr := extractWithReadability(stripEmbeddedMedia(raw), finalURL)
+	cleanedArticleHTML := stripEmbeddedMedia(raw)
+	article, extractionErr := extractWithReadability(cleanedArticleHTML, finalURL)
 	if extractionErr == nil {
-		recoverArticlePhotographs(&article, raw, finalURL)
+		recoverArticlePhotographs(&article, cleanedArticleHTML, finalURL)
 		deduplicateArticleImages(&article)
-		recoverMissingArticleLinks(&article, raw, finalURL)
+		recoverMissingArticleLinks(&article, cleanedArticleHTML, finalURL)
         normalizeArticleDocument(&article)
 		logSlateExtractionDiagnostic(article.Blocks, finalURL)
 	}
