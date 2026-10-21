@@ -1,3 +1,26 @@
+# AUTHORITATIVE DEVELOPMENT WORKFLOW — effective 2026-10-21
+
+This section supersedes any conflicting directions in the historical handoff notes below. The notes remain for technical provenance, not as active release instructions.
+
+## Branches, source of truth, and ownership
+- GitHub `dev` is the integration branch for routine development. Before editing, read this file and `README.md`, fetch the current `dev` source, and preserve existing behavior and user state unless the task explicitly changes it.
+- Commit and push focused changes directly to `dev` only while carrying out an authorized development request. Include meaningful regression tests and concise documentation; do not require the user to apply ZIP patches or hand-edit source.
+- Keep `main` unchanged until the owner explicitly authorizes release promotion. Do not merge, force-push, rewrite shared history, or create a release/tag without the owner's authorization. A ready-for-review PR is not approval to merge.
+- Preserve launch scripts, Cloudflare tunnels, application ports, user tokens, subscriptions/exclusions, data directories, and local configuration. Do not overwrite generated binaries or operating data.
+
+## CI and diagnostics
+- Each push to `dev` triggers `.github/workflows/go-ci.yml`; the workflow runs `go test -count=1 ./...` and `go build ./...`. Existing repository-wide formatting debt is reported without blocking these checks; format all touched Go code.
+- Keep a PR from `dev` to `main` open for run discovery and job-log inspection. Commits to `dev` also trigger PR validation. Find the workflow run associated with the latest commit, inspect job steps and full logs, fix failures on `dev`, and repeat until CI passes. Do not ask the owner to monitor CI or send screenshots for ordinary compilation/test failures.
+- A green build means tests compile/pass; it does not prove publisher access, Safari behavior, tunnel routing, or other live integrations. Never claim a live defect fixed solely on CI results.
+- If CI or logs cannot be retrieved, explicitly report that limit and avoid claiming verification. Do not leave unverified changes represented as release-ready.
+
+## Mac acceptance and promotion
+- After CI passes, provide Mac-compatible checkout/pull, `./devbuild.sh`, and existing launcher instructions for a specific candidate. The owner's Mac uses an older Git that supports `git checkout`, not `git switch`.
+- Request owner acceptance for observable changes in the live application, especially Safari/UI, RSS/publisher integrations, image retrieval, admin settings, and tunnels. Keep acceptance separate from automated CI.
+- Prepare or update the PR with the intended scope, latest commit, CI outcome, live acceptance evidence, remaining limitations, and explicit no-merge-until-approved status. Only the owner decides when to approve/merge into `main`.
+- After owner merges, use `git checkout main`, `git pull --ff-only origin main`, `./devbuild.sh`, and the existing application launcher to verify the promoted `main` candidate. Do not automatically merge another app's changes.
+- Work occurs only during an active interaction unless a separately scheduled automation is requested; never imply continuing development after ending a reply.
+
 # CURRENT DEV IMAGE FETCH CHANGE
 
 Use an article-scoped Referer stripped of query/fragment and an Accept header limited to supported image formats for the selected article image request. All existing security checks remain. Tests in image_referrer_test.go. Publisher-specific image delivery remains unverified. No appVersion release bump or main merge.
