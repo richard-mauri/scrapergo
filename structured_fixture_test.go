@@ -20,7 +20,7 @@ func TestFixtureArticleMediaAndAuthor(t *testing.T){
  for _,b:=range a.Blocks {
   if strings.Contains(b.Text,"audio.example.org/player")||strings.Contains(b.Text,"<iframe"){t.Fatalf("embedded media markup leaked: %+v",b)}
   if b.Kind=="img"&&strings.Contains(b.URL,"lead-courthouse.jpg"){leadCount++;if b.Role!="lead"{t.Errorf("lead image missing role: %+v",b)}}
-  if b.Kind=="img"&&strings.Contains(b.URL,"author-portrait.jpg"){authorCount++}
+  if b.Kind=="img"&&strings.Contains(b.URL,"author-portrait.jpg"){authorCount++;if b.Role!="author"{t.Errorf("author image missing role: %+v",b)}}
  }
  if leadCount!=1{t.Errorf("lead count = %d, want exactly 1",leadCount)}
  if authorCount!=1{t.Errorf("author portrait count = %d, want exactly 1",authorCount)}
