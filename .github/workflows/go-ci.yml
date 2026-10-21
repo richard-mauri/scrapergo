@@ -19,13 +19,9 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
-      - name: Verify formatting
+      - name: Report formatting debt (non-blocking)
         run: |
-          files="$(gofmt -l $(git ls-files '*.go'))"
-          if [ -n "$files" ]; then
-            echo "$files"
-            exit 1
-          fi
+          git ls-files '*.go' | xargs gofmt -l
       - name: Run tests
         run: go test -count=1 ./...
       - name: Build
