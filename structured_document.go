@@ -68,7 +68,7 @@ func normalizeArticleDocument(a *Article, sourceLead ...string) {
 func recoverAuthorPortrait(a *Article, sourceHTML, baseURL string) {
  if a==nil{return}
  root:=parseHTML(sourceHTML)
- byline:=regexp.MustCompile(`(?i)(?:^|[\\s_-])(?:author|byline|contributor)(?:$|[\\s_-])`)
+ byline:=regexp.MustCompile(`(?i)(?:^|[\s_-])(?:author|byline|contributor)(?:$|[\s_-])`)
  candidates:=find(root,func(n *Node)bool{
   return n.Tag=="div"||n.Tag=="section"||n.Tag=="span"||n.Tag=="figure"
  })
