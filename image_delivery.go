@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -214,6 +215,22 @@ func imageRetrievalFailureKind(err error) string {
 	var netErr net.Error
 	if errors.As(err, &netErr) && netErr.Timeout() {
 		return "timeout"
+	}
+	var dnsErr *net.DNSError
+	if errors.As(err, &dnsErr) {
+		return "dns"
+	}
+	var certErr *tls.CertificateVerificationError
+	if errors.As(err, &certErr) {
+		return "tls-certificate"
+	}
+	var recordErr tls.RecordHeaderError
+	if errors.As(err, &recordErr) {
+		return "tls-handshake"
+	}
+	var opErr *net.OpError
+	if errors.As(err, &opErr) {
+		return "connection"
 	}
 	return "image-fetch"
 }
