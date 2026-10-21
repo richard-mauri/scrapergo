@@ -108,8 +108,20 @@ func (r *responseCapture) Header() http.Header         { return r.header }
 func (r *responseCapture) WriteHeader(code int)        { r.status = code }
 func (r *responseCapture) Write(p []byte) (int, error) { return r.body.Write(p) }
 
+// httpsImageURL upgrades publisher-selected image references, never permitting
+// a plaintext fetch. HTTPS validation and safe-host checks still run afterward.
+func httpsImageURL(raw string) (string, error) {
+ u, err := url.Parse(raw)
+ if err != nil { return "", err }
+ if u.Scheme != "http" && u.Scheme != "https" { return "", errors.New("image URL scheme unsupported") }
+ if u.Scheme == "http" { u.Scheme = "https" }
+ return u.String(), nil
+}
+
 func retrieveSelectedImage(ctx context.Context, raw, articleURL string) ([]byte, string, error) {
-	u, err := validatedURL(ctx, raw)
+	normalized, err := httpsImageURL(raw)
+	if err != nil { return nil, "", err }
+	u, err := validatedURL(ctx, normalized)
 	if err != nil {
 		return nil, "", err
 	}
