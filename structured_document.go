@@ -39,17 +39,28 @@ func stripEmbeddedMedia(raw string) string {
 // normalizeArticleDocument resolves duplicate metadata and content structure
 // before any UI renders it. The image URL is kept as metadata if it isn't
 // the exact identity of an editorial figure, allowing a separate lead.
-func normalizeArticleDocument(a *Article) {
+// normalizeArticleDocument creates a single renderable stream. ImageURL remains
+// available as metadata for existing API clients, but any selected lead image
+// is represented by precisely one Block with Role="lead".
+func normalizeArticleDocument(a *Article, sourceLead ...string) {
  if a==nil{return}
  title:=strings.Join(strings.Fields(strings.ToLower(a.Title))," ")
  for i,b:=range a.Blocks {
   if b.Kind=="img"{continue}
-  if (b.Kind=="h1"||b.Kind=="h2"||b.Kind=="h3"||b.Kind=="h4")&&strings.Join(strings.Fields(strings.ToLower(b.Text))," ")==title {
+  if (b.Kind=="h1"||b.Kind=="h2"||b.Kind=="h3"||b.Kind=="h4"||b.Kind=="p")&&strings.Join(strings.Fields(strings.ToLower(b.Text))," ")==title {
    a.Blocks=append(a.Blocks[:i],a.Blocks[i+1:]...)
   }
   break
  }
- if a.ImageURL!="" {
-  for _,b:=range a.Blocks {if b.Kind=="img"&&b.URL==a.ImageURL {a.ImageURL="";break}}
+ lead:=""
+ if len(sourceLead)>0 {lead=strings.TrimSpace(sourceLead[0])}
+ if lead=="" {lead=a.ImageURL}
+ if lead=="" {return}
+ for i:=range a.Blocks {
+  if a.Blocks[i].Kind=="img"&&a.Blocks[i].URL==lead {
+   a.Blocks[i].Role="lead"
+   return
+  }
  }
+ a.Blocks=append([]Block{{Kind:"img",URL:lead,Role:"lead"}},a.Blocks...)
 }
