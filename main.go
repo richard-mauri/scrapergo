@@ -279,7 +279,7 @@ func inlineTextParts(n *Node, baseURL string) []TextPart {
 	return parts
 }
 
-var embeddedMarkupRE = regexp.MustCompile(`(?i)<\\s*/?\\s*(?:iframe|audio|video|embed)\\b|\\b(?:iframe|audio|video)\\s+src\\s*=|\\bframeborder\\s*=|\\bscrolling\\s*=\\s*["']?no`)
+var embeddedMarkupRE = regexp.MustCompile(`(?i)<\s*/?\s*(?:iframe|audio|video|embed)\b|\b(?:iframe|audio|video)\s+src\s*=|\bframeborder\s*=|\bscrolling\s*=\s*["']?no`)
 
 func isEmbeddedMarkupBlock(txt string) bool {
  return embeddedMarkupRE.MatchString(txt)
