@@ -1,3 +1,7 @@
+## Development candidate: image HTTP request compatibility (dev)
+
+The image delivery fetch now sends the full article URL (without query or fragment) as Referer rather than the publisher site root, and advertises only JPEG/PNG/GIF/WebP formats that the thumbnail decoder supports. This preserves the existing validated image selection, HTTPS-only/public-host requirements, redirect checks, response size and deadline limits. Regression tests cover article-scoped, query-stripped referrers. These request changes may help legitimate publisher hotlink checks, but real Practical Engineering and The Dial 502 failures remain unverified; no live success is claimed. Do not merge to main before Mac acceptance tests.
+
 ## v0.2.65 — conservative classification (development)
 
 `POST /api/classify` now explicitly marks publisher-access and transport failures as `unavailable` instead of `unknown`. NewsGo v0.2.52 displays only confirmed `article` results. This avoids headlines that open to HTTP 202 (Accepted) publisher responses. Unavailable results expire after one minute and do not permanently exclude subscriptions. Existing article extraction, thumbnail selection, secure image fetching, and JPEG output are unchanged. Image-fetch failures remain unresolved; no new shared extraction cache is claimed. Run full Mac tests and live acceptance before committing.
