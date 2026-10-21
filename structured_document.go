@@ -61,3 +61,31 @@ func normalizeArticleDocument(a *Article, sourceLead ...string) {
  }
  a.Blocks=append([]Block{{Kind:"img",URL:lead,Role:"lead"}},a.Blocks...)
 }
+
+// recoverAuthorPortrait retains a photo identified by the source document's
+// byline/author structure. It never treats a generic inline photograph as an
+// author portrait based on its dimensions or URL naming.
+func recoverAuthorPortrait(a *Article, sourceHTML, baseURL string) {
+ if a==nil{return}
+ root:=parseHTML(sourceHTML)
+ byline:=regexp.MustCompile(`(?i)(?:^|[\\s_-])(?:author|byline|contributor)(?:$|[\\s_-])`)
+ candidates:=find(root,func(n *Node)bool{
+  return n.Tag=="div"||n.Tag=="section"||n.Tag=="span"||n.Tag=="figure"
+ })
+ for _,group:=range candidates{
+  if !byline.MatchString(group.Attr["class"]+" "+group.Attr["id"]){continue}
+  photos:=find(group,func(n *Node)bool{return n.Tag=="img"})
+  for _,p:=range photos{
+   src:=articleImageURL(p,baseURL)
+   if src==""{continue}
+   for i:=range a.Blocks{
+    if a.Blocks[i].Kind=="img"&&a.Blocks[i].URL==src {
+     a.Blocks[i].Role="author"
+     return
+    }
+   }
+   a.Blocks=append([]Block{{Kind:"img",Role:"author",URL:src,Text:normalize(p.Attr["alt"])}},a.Blocks...)
+   return
+  }
+ }
+}
