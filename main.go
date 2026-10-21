@@ -24,7 +24,7 @@ import (
 )
 
 // ScraperGo application version is defined once and shared by all presentation paths.
-const appVersion = "0.2.68"
+const appVersion = "0.2.69"
 const sampleURL = "https://247wallst.com/investing/2026/10/16/taiwan-is-planning-4-billion-industrial-parks-in-texas-for-nvidias-suppliers/"
 
 //go:embed tanner.jpg
@@ -279,6 +279,12 @@ func inlineTextParts(n *Node, baseURL string) []TextPart {
 	return parts
 }
 
+var embeddedMarkupRE = regexp.MustCompile(`(?i)<\\s*/?\\s*(?:iframe|audio|video|embed)\\b|\\b(?:iframe|audio|video)\\s+src\\s*=|\\bframeborder\\s*=|\\bscrolling\\s*=\\s*["']?no`)
+
+func isEmbeddedMarkupBlock(txt string) bool {
+ return embeddedMarkupRE.MatchString(txt)
+}
+
 func extractBlocks(root *Node, bases ...string) []Block {
 	baseURL := ""
 	if len(bases) > 0 {
@@ -316,7 +322,7 @@ func extractBlocks(root *Node, bases ...string) []Block {
 				return
 			}
 			txt := textOf(n)
-			if len(txt) > 0 && !sentenceAdRE.MatchString(txt) && !(n.Tag == "p" && len(txt) < 25 && len(find(n, func(child *Node) bool { return child.Tag == "a" })) == 0) {
+			if len(txt) > 0 && !isEmbeddedMarkupBlock(txt) && !sentenceAdRE.MatchString(txt) && !(n.Tag == "p" && len(txt) < 25 && len(find(n, func(child *Node) bool { return child.Tag == "a" })) == 0) {
 				blocks = append(blocks, Block{Kind: n.Tag, Text: txt, Parts: inlineTextParts(n, baseURL)})
 			}
 			return
@@ -329,6 +335,8 @@ func extractBlocks(root *Node, bases ...string) []Block {
 	seen := map[string]bool{}
 	out := []Block{}
 	for _, b := range blocks {
+        if isEmbeddedMarkupBlock(b.Text) { continue }
+        if strings.EqualFold(strings.TrimSpace(b.Text), "Embed") { continue }
 		key := strings.ToLower(b.Kind + "|" + b.URL + "|" + b.Text)
 		if seen[key] {
 			continue
