@@ -2,6 +2,7 @@ package main
 
 import (
  "bytes"
+ "net/url"
  "regexp"
  "strings"
 
@@ -36,9 +37,25 @@ func stripEmbeddedMedia(raw string) string {
  return b.String()
 }
 
-// normalizeArticleDocument creates a single renderable stream. ImageURL remains
-// available as metadata for existing API clients, but any selected lead image
-// is represented by precisely one Block with Role="lead".
+// imageSourceIdentity identifies renditions only when the CDN supplies
+// an explicit original asset URL. It never guesses by filename or dimensions.
+func imageSourceIdentity(raw string) string {
+ u,err:=url.Parse(raw)
+ if err!=nil || (u.Scheme!="https"&&u.Scheme!="http") || u.Hostname()=="" {return raw}
+ if strings.EqualFold(u.Hostname(),"npr.brightspotcdn.com") {
+  embedded:=u.Query().Get("url")
+  if asset,err:=url.Parse(embedded);err==nil && (asset.Scheme=="http"||asset.Scheme=="https") && asset.Hostname()!="" {
+   asset.Fragment=""
+   return asset.String()
+  }
+ }
+ u.Fragment=""
+ return u.String()
+}
+
+// normalizeArticleDocument reconciles the article title and image identities.
+// A publisher lead rendition wins, while captions and credits survive from
+// the matching inline figure. API imageUrl metadata is kept for compatibility.
 func normalizeArticleDocument(a *Article, sourceLead ...string) {
  if a==nil{return}
  title:=strings.Join(strings.Fields(strings.ToLower(a.Title))," ")
@@ -52,14 +69,32 @@ func normalizeArticleDocument(a *Article, sourceLead ...string) {
  lead:=""
  if len(sourceLead)>0 {lead=strings.TrimSpace(sourceLead[0])}
  if lead=="" {lead=a.ImageURL}
- if lead=="" {return}
- for i:=range a.Blocks {
-  if a.Blocks[i].Kind=="img"&&a.Blocks[i].URL==lead {
-   a.Blocks[i].Role="lead"
-   return
+ // Collect a single block per source identity, retaining order. Distinct
+ // author photos must never be suppressed by an unrelated lead image.
+ out:=make([]Block,0,len(a.Blocks)+1)
+ seen:=make(map[string]int)
+ for _,b:=range a.Blocks {
+  if b.Kind!="img" {out=append(out,b);continue}
+  key:=imageSourceIdentity(b.URL)
+  if prev,ok:=seen[key];ok{
+   existing:=&out[prev]
+   if existing.Text=="" {existing.Text=b.Text}
+   if existing.Role=="" {existing.Role=b.Role}
+   continue
+  }
+  seen[key]=len(out)
+  out=append(out,b)
+ }
+ if lead!="" {
+  key:=imageSourceIdentity(lead)
+  if prev,ok:=seen[key];ok {
+   out[prev].URL=lead
+   out[prev].Role="lead"
+  } else {
+   out=append([]Block{{Kind:"img",URL:lead,Role:"lead"}},out...)
   }
  }
- a.Blocks=append([]Block{{Kind:"img",URL:lead,Role:"lead"}},a.Blocks...)
+ a.Blocks=out
 }
 
 // recoverAuthorPortrait retains a photo identified by the source document's
