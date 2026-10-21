@@ -1,3 +1,7 @@
+# CURRENT DEV IMAGE FETCH CHANGE
+
+Use an article-scoped Referer stripped of query/fragment and an Accept header limited to supported image formats for the selected article image request. All existing security checks remain. Tests in image_referrer_test.go. Publisher-specific image delivery remains unverified. No appVersion release bump or main merge.
+
 # ScraperGo v0.2.65 development handoff
 Classification rejects publisher-access failures as unavailable. Keep v0.2.64 image selection. Image-fetch failures are not fixed in this patch. No changes to launchers, tunnels, or runtime data. Test locally before committing.
 
