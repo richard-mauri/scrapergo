@@ -1,3 +1,7 @@
+## v0.2.78 — linked contributor byline and paragraph whitespace
+
+Reconcile adjacent contributor-name links and separating punctuation into the article byline, rather than rendering them as separate paragraphs. Ordinary article paragraphs now collapse original HTML line breaks (`white-space: normal`). Synthetic regressions assert a four-author byline and preservation of article prose, contributor portrait and lead figure. The actual NPR byline extraction still requires Mac validation; v0.2.77's oversized contributor-photo issue is not claimed resolved by this change. The rewrite remains on draft PR #4, and main is unchanged.
+
 ## v0.2.77 — contributor portrait classification before editorial lead selection
 
 The extraction pipeline now classifies contributor portraits identified by adjacent linked contributor names before selecting the article's lead photograph. This preserves a separate author role instead of promoting an unclassified byline headshot to a full-width lead. A regression based on the actual Daniel Estrin portrait URL, Israeli security-forces image, and later olive-harvest image checks role assignments and order. This is an incremental evidence-based classifier: live NPR HTML and the NewsGo thumbnail path are not yet verified. No NewsGo code or production main was changed. PR #4 remains draft pending Mac acceptance.
