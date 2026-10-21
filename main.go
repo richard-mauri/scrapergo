@@ -24,7 +24,7 @@ import (
 )
 
 // ScraperGo application version is defined once and shared by all presentation paths.
-const appVersion = "0.2.70"
+const appVersion = "0.2.71"
 const sampleURL = "https://247wallst.com/investing/2026/10/16/taiwan-is-planning-4-billion-industrial-parks-in-texas-for-nvidias-suppliers/"
 
 //go:embed tanner.jpg
@@ -816,6 +816,21 @@ func sanitizeEmbeddedPlayerBlocks(a *Article) {
  a.Blocks=out
 }
 
+// Drop an opening heading repeated verbatim as the article's displayed title.
+func removeRepeatedOpeningTitle(a *Article) {
+ if a==nil {return}
+ key:=func(v string) string {return strings.Join(strings.Fields(strings.ToLower(strings.TrimSpace(v)))," ")}
+ title:=key(a.Title)
+ if title=="" {return}
+ for i,b:=range a.Blocks {
+  if b.Kind=="img" {continue}
+  if (b.Kind=="h2" || b.Kind=="h3" || b.Kind=="h4" || b.Kind=="h1") && key(b.Text)==title {
+   a.Blocks=append(a.Blocks[:i],a.Blocks[i+1:]...)
+  }
+  break
+ }
+}
+
 func writeExtractedArticle(w http.ResponseWriter, raw, finalURL string) {
 	logSlateRetrievalDiagnostic(raw, finalURL)
 	// A navigation index is not a single article. Classify conservatively before
@@ -835,6 +850,7 @@ func writeExtractedArticle(w http.ResponseWriter, raw, finalURL string) {
 	article, extractionErr := extractWithReadability(raw, finalURL)
 	if extractionErr == nil {
 		sanitizeEmbeddedPlayerBlocks(&article)
+        removeRepeatedOpeningTitle(&article)
 		recoverArticlePhotographs(&article, raw, finalURL)
 		deduplicateArticleImages(&article)
 		recoverMissingArticleLinks(&article, raw, finalURL)
