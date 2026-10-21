@@ -24,7 +24,7 @@ import (
 )
 
 // ScraperGo application version is defined once and shared by all presentation paths.
-const appVersion = "0.2.65"
+const appVersion = "0.2.73"
 const sampleURL = "https://247wallst.com/investing/2026/10/16/taiwan-is-planning-4-billion-industrial-parks-in-texas-for-nvidias-suppliers/"
 
 //go:embed tanner.jpg
@@ -799,11 +799,12 @@ func writeExtractedArticle(w http.ResponseWriter, raw, finalURL string) {
 	// Extract before deciding whether restricted pages offer readable public text.
 	// Restriction metadata alone does not establish that no usable preview exists.
 	kind := accessRestriction(raw)
-	article, extractionErr := extractWithReadability(raw, finalURL)
+	article, extractionErr := extractWithReadability(stripEmbeddedMedia(raw), finalURL)
 	if extractionErr == nil {
 		recoverArticlePhotographs(&article, raw, finalURL)
 		deduplicateArticleImages(&article)
 		recoverMissingArticleLinks(&article, raw, finalURL)
+        normalizeArticleDocument(&article)
 		logSlateExtractionDiagnostic(article.Blocks, finalURL)
 	}
 	if kind != "" {
