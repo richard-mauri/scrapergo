@@ -2,6 +2,7 @@ package main
 
 import (
  "encoding/json"
+ "io"
  "net"
  "net/http"
  "net/url"
@@ -55,8 +56,18 @@ func diagnosticImageTrace(w http.ResponseWriter,r *http.Request) {
  var input struct {URL string `json:"url"`; HTML string `json:"html"`}
  dec:=json.NewDecoder(r.Body)
  if err:=dec.Decode(&input);err!=nil{http.Error(w,"invalid JSON",400);return}
+ var trailing any
+ if err:=dec.Decode(&trailing);err!=io.EOF {http.Error(w,"one JSON object required",400);return}
  u,err:=url.Parse(input.URL)
- if err!=nil|| (u.Scheme!="http"&&u.Scheme!="https")||u.Hostname()==""||u.User!=nil||u.Fragment!=""||strings.ContainsAny(input.URL,"\r\n")||len(input.HTML)==0||len(input.HTML)>maxHTML{http.Error(w,"invalid URL or HTML",400);return}
+ if err!=nil|| (u.Scheme!="http"&&u.Scheme!="https")||u.Hostname()==""||u.User!=nil||u.Fragment!=""||strings.ContainsAny(input.URL,"\r\n")||len(input.HTML)>maxHTML{http.Error(w,"invalid URL or HTML",400);return}
+ if input.HTML=="" {
+  resolved,err:=resolveGoogleNewsURL(r.Context(),input.URL)
+  if err!=nil {http.Error(w,"URL resolution failed",422);return}
+  raw,final,err:=download(r.Context(),resolved)
+  if err!=nil {http.Error(w,"article retrieval failed",422);return}
+  input.HTML=raw
+  input.URL=final
+ }
  cleaned:=stripEmbeddedMedia(input.HTML)
  article,err:=extractWithReadability(cleaned,input.URL)
  if err!=nil{http.Error(w,"extraction failed",422);return}
