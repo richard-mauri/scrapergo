@@ -150,8 +150,11 @@ func retrieveSelectedImage(ctx context.Context, raw, articleURL string) ([]byte,
 		return nil, "", err
 	}
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 Version/18.0 Safari/605.1.15")
-	req.Header.Set("Accept", "image/avif,image/webp,image/apng,image/*,*/*;q=0.8")
-	req.Header.Set("Referer", article.Scheme+"://"+article.Host+"/")
+	req.Header.Set("Accept", "image/webp,image/png,image/jpeg,image/gif,image/*;q=0.8")
+	// Preserve the full publisher article as referrer for images protected by
+	// normal anti-hotlink rules. The image URL is still selected by extraction,
+	// and all public-host, HTTPS, redirect and byte limits remain enforced.
+	req.Header.Set("Referer", articleReferrer(article))
 	res, err := client.Do(req)
 	if err != nil {
 		return nil, "", err
@@ -176,6 +179,18 @@ func retrieveSelectedImage(ctx context.Context, raw, articleURL string) ([]byte,
 		return b, detected, nil
 	}
 	return nil, "", errors.New("unsupported or nonimage response")
+}
+
+// articleReferrer uses a validated publisher article URL, without credentials,
+// fragment or query parameters that may contain private tracking tokens.
+func articleReferrer(article *url.URL) string {
+	copy := *article
+	copy.User = nil
+	copy.RawQuery = ""
+	copy.ForceQuery = false
+	copy.Fragment = ""
+	copy.RawFragment = ""
+	return copy.String()
 }
 
 // imageRetrievalFailureKind exposes a fixed diagnostic category, never a publisher
