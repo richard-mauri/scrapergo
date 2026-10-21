@@ -185,3 +185,40 @@ func removeSerializedPlayerBlocks(a *Article) {
 func containsSerializedMediaTag(text string) bool {
  return escapedMediaElementRE.MatchString(text)
 }
+
+// reconcileContributorByline keeps source-linked contributor names together
+// as metadata and removes only the byline fragments preceding the story body.
+// Editorial paragraphs, images and ordinary links remain untouched.
+func reconcileContributorByline(a *Article) {
+ if a==nil || len(a.Blocks)==0{return}
+ names:=[]string{}
+ seen:=map[string]bool{}
+ remove:=map[int]bool{}
+ started:=false
+ for i,b:=range a.Blocks {
+  if b.Kind=="img" {
+   if b.Role=="author" {continue}
+   break
+  }
+  t:=strings.TrimSpace(b.Text)
+  if b.Kind=="p" && (t=="By"||t==",") {
+   remove[i]=true;started=true;continue
+  }
+  if b.Kind=="p" && t!="" && len(t)<90 && len(b.Links)>0 {
+   matched:=false
+   for _,link:=range b.Links {if strings.EqualFold(strings.TrimSpace(link.Text),t){matched=true;break}}
+   if matched {
+    if !seen[strings.ToLower(t)] {names=append(names,t);seen[strings.ToLower(t)]=true}
+    remove[i]=true;started=true;continue
+   }
+  }
+  if started && t=="" {remove[i]=true;continue}
+  if b.Kind=="p" && t=="Middle East" {continue}
+  if started && b.Kind!="img" {break}
+ }
+ if len(names)<2{return}
+ out:=make([]Block,0,len(a.Blocks))
+ for i,b:=range a.Blocks {if !remove[i] {out=append(out,b)}}
+ a.Blocks=out
+ a.Byline=strings.Join(names,", ")
+}
