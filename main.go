@@ -778,16 +778,14 @@ func writeExtractedArticle(w http.ResponseWriter, raw, finalURL string) {
 	// Restriction metadata alone does not establish that no usable preview exists.
 	kind := accessRestriction(raw)
 	cleanedArticleHTML := stripEmbeddedMedia(raw)
-	article, extractionErr := extractWithReadability(cleanedArticleHTML, finalURL)
+	extracted, extractionErr := extractWithEvidence(cleanedArticleHTML, finalURL)
+	article := extracted.Article
 	if extractionErr == nil {
 		recoverArticlePhotographs(&article, cleanedArticleHTML, finalURL)
 		deduplicateArticleImages(&article)
 		recoverMissingArticleLinks(&article, cleanedArticleHTML, finalURL)
         recoverAuthorPortrait(&article, cleanedArticleHTML, finalURL)
-        sourceLead := ""
-        if base, err := url.Parse(finalURL); err == nil {
-            sourceLead = resolveImageURL(meta(parseHTML(cleanedArticleHTML), "og:image", "twitter:image"), base)
-        }
+        sourceLead := extracted.Evidence.MetadataImageURL
         removeSerializedPlayerBlocks(&article)
         classifyContributorImages(&article)
         classifyImagesFromSource(&article, cleanedArticleHTML, finalURL)

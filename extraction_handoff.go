@@ -1,0 +1,20 @@
+package main
+
+import (
+ "net/url"
+
+ extractionmodel "clean-article-reader/internal/extraction"
+)
+
+// extractWithEvidence preserves the initial extractor result and independently
+// records the publisher's source metadata. No later normalization decision is
+// made while gathering this evidence.
+func extractWithEvidence(raw, source string) (extractionmodel.Result, error) {
+ article, err := extractWithReadability(raw, source)
+ if err != nil { return extractionmodel.Result{}, err }
+ result := extractionmodel.Result{Article: article, Evidence: extractionmodel.SourceEvidence{SourceURL: source}}
+ if base, err := url.Parse(source); err == nil {
+  result.Evidence.MetadataImageURL = resolveImageURL(meta(parseHTML(raw), "og:image", "twitter:image"), base)
+ }
+ return result, nil
+}
