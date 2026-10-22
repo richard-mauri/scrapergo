@@ -1,3 +1,7 @@
+# CURRENT WORK — opening figure policy migration (2026-10-22)
+
+PR #38 was merged to main at e53115b5627228eaed741ee03134c284fc7cd6d3 after owner acceptance of the Hackaday opening image, BMW gallery, and link behavior. This new branch refactor/opening-figure-policy starts from that merged main and moves publisher-neutral opening-image ancestor eligibility to internal/media. Root adapter retains source DOM traversal, scope/noise checks, URL resolution, image identity matching, and document insertion. No behavior changes, publisher-specific selectors, version bump, new network operations, or launcher changes. Run Go CI and owner Mac acceptance before merging. Owner alone authorizes merges. Earlier PR #38 headers below are historical.
+
 # PR #38 Hackaday image diagnostic — 2026-10-22
 
 Owner accepted inline-link navigation from BMW to Hackaday but reported the opening windshield photograph absent entirely from ScraperGo; the first ScraperGo photo is a later source image. Do not misclassify as mere image positioning or assume metadata recovery. This PR adds read-only, localhost-only image trace comparison `sourceImagesAbsentFromArticle`, de-duplicated by media identity, to identify which source images never survive assembly. Next: collect Hackaday trace and use source ancestor/stage history to establish an evidence-backed generic recovery fix. The diagnostic is not a lead-selection fix; do not merge based on it alone. Preserve verified link refactor and BMW gallery. No semantic version bump.
