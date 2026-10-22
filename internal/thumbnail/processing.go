@@ -160,3 +160,6 @@ func CropAndEncode(data []byte, width int) ([]byte, error) {
 	return out.Bytes(), nil
 }
 
+
+// Len reports the bounded number of completed thumbnail cache entries.
+func (s *Store) Len() int { s.mu.Lock(); defer s.mu.Unlock(); return s.order.Len() }
