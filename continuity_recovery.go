@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/url"
+ "clean-article-reader/internal/recovery"
 	"strings"
 )
 
@@ -53,44 +54,14 @@ func recoverEditorialContinuity(raw string, selected []Block, base *url.URL) []B
 			selectedText[normalize(b.Text)] = true
 		}
 	}
-	extraParagraphs, extraImages := 0, 0
-	for _, b := range best {
-		if b.Kind == "p" && len(b.Text) >= 25 && !selectedText[normalize(b.Text)] {
-			extraParagraphs++
-		}
-		if b.Kind == "img" && !selectedImages[b.URL] {
-			extraImages++
-		}
-	}
-	// Decline speculative replacement when Readability is already complete.
-	if extraParagraphs < 2 && extraImages == 0 {
-		return recoverAnchoredEditorialTail(root, selected, base)
-	}
-	// The replacement must not shrink text substantially (common for
-	// inaccessible / separately-rendered page fragments).
-	if countWords(best)*10 < countWords(selected)*9 {
+	if !recovery.ReplacementAllowed(selected, best, selectedText, selectedImages) {
 		return recoverAnchoredEditorialTail(root, selected, base)
 	}
 	return best
 }
 
 func orderedEditorialMatches(retained []string, candidate []Block) int {
-	index, matches := 0, 0
-	for _, b := range candidate {
-		if index >= len(retained) {
-			break
-		}
-		if b.Kind != "p" {
-			continue
-		}
-		a, c := retained[index], normalize(b.Text)
-		if a == c || (len(a) >= 65 && len(c) >= 65 &&
-			(strings.HasPrefix(a, c) || strings.HasPrefix(c, a))) {
-			index++
-			matches++
-		}
-	}
-	return matches
+	return recovery.OrderedMatches(retained,candidate)
 }
 
 // editorialContinuityBlocks traverses one article element in source order.
