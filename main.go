@@ -46,6 +46,7 @@ type Node = sourcehtml.Node
 var promotRE = regexp.MustCompile(`(?i)(advertis|sponsor|promo|newsletter|signup|sign-up|subscribe|paywall|related|recommended|trending|most-read|share[-_ ]|social|ticker|stock[-_ ]?quote|market[-_ ]?data|author[-_ ]?bio|affiliate|outbrain|taboola|comments|breadcrumb|sidebar|sticky|modal|popup|cookie|footer|navigation|nav-menu|more-content|continue-reading|biggest-winner|biggest-loser)`)
 var sentenceAdRE = regexp.MustCompile(`(?i)(enter your email|free report|stocks to buy right now|our analysts combed|click here to|grab your free|sign up for|subscribe to|advertisement|read more:|get our free|limited.time offer)`)
 var blockedTags = sourcehtml.BlockedTags
+var wsRE = regexp.MustCompile(`\s+`)
 
 func normalize(s string) string { return sourcehtml.Normalize(s) }
 func parseHTML(raw string) *Node { return sourcehtml.Parse(raw) }
