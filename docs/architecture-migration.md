@@ -38,3 +38,7 @@ The `internal/extraction.Result` type now separates `Article` from `SourceEviden
 ## Phase 4: order-preserving transformation stage contract
 
 `internal/assembly` defines a `Stage` interface, an adapter for legacy transformation functions, and a pipeline runner. The runner copies the initial article blocks and nested link/part slices before running transformations, protecting the extracted document from subsequent in-place edits. `document_assembler.go` enumerates the existing eleven passes as named stages in their previous order; the same Go implementations and image/source evidence are used. This makes stage orchestration and ownership testable without prematurely migrating their tightly coupled implementations into incompatible packages. Diagnostic stage instrumentation remains unchanged. Follow-up work should build frozen source fixtures and gradually migrate individual stages behind narrower domain interfaces.
+
+## Phase 5: extract media identity and deduplication
+
+`internal/media` now owns image delivery-URL identity and duplicate elimination as a dependency-light, independently tested package. The document assembler invokes `media.Deduplicate` directly, while existing root helpers delegate for compatibility with older callers and tests. This does not change which photos are selected or their order, and does not alter source-image role classification. The migration is intentionally limited to one low-coupling stage; further stages should move only after their dependencies and output invariants are characterized.
