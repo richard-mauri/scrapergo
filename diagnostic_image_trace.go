@@ -21,12 +21,14 @@ type traceImage struct {
  Grandparent string `json:"grandparent,omitempty"`
  GrandparentClass string `json:"grandparentClass,omitempty"`
  SourceIdentity string `json:"sourceIdentity,omitempty"`
+ Gallery string `json:"gallery,omitempty"`
+ Ancestors []string `json:"ancestors,omitempty"`
 }
 func traceImageBlocks(stage string, blocks []Block) []traceImage {
  out:=[]traceImage{}
  for i,b:=range blocks {
   if b.Kind!="img" {continue}
-  out=append(out,traceImage{Stage:stage,Index:i,URL:b.URL,Role:b.Role,Caption:b.Text,SourceIdentity:imageSourceIdentity(b.URL)})
+  out=append(out,traceImage{Stage:stage,Index:i,URL:b.URL,Role:b.Role,Caption:b.Text,SourceIdentity:imageSourceIdentity(b.URL),Gallery:b.Gallery})
  }
  return out
 }
@@ -39,7 +41,11 @@ func sourceImageTrace(raw,articleURL string) []traceImage {
   if n.Parent!=nil {parent=n.Parent.Tag;pc=n.Parent.Attr["class"];if n.Parent.Parent!=nil{gparent=n.Parent.Parent.Tag;gc=n.Parent.Parent.Attr["class"]}}
   src:=articleImageURL(n,articleURL)
   if src=="" {continue}
-  out=append(out,traceImage{Stage:"source-dom",Index:len(out),URL:src,Caption:n.Attr["alt"],Parent:parent,ParentClass:pc,Grandparent:gparent,GrandparentClass:gc,SourceIdentity:imageSourceIdentity(src)})
+  ancestry:=[]string{}
+  for ancestor:=n.Parent;ancestor!=nil && len(ancestry)<8;ancestor=ancestor.Parent {
+   ancestry=append(ancestry,ancestor.Tag+"#"+ancestor.Attr["id"]+"."+ancestor.Attr["class"])
+  }
+  out=append(out,traceImage{Stage:"source-dom",Index:len(out),URL:src,Caption:n.Attr["alt"],Parent:parent,ParentClass:pc,Grandparent:gparent,GrandparentClass:gc,SourceIdentity:imageSourceIdentity(src),Ancestors:ancestry})
   if len(out)>=150 {break}
  }
  return out
@@ -52,7 +58,7 @@ func traceOpeningBlocks(stage string, blocks []Block) []map[string]any {
  limit:=len(blocks);if limit>45 {limit=45}
  for i:=0;i<limit;i++ {
   b:=blocks[i]
-  out=append(out,map[string]any{"stage":stage,"index":i,"kind":b.Kind,"text":b.Text,"role":b.Role,"url":b.URL,"links":b.Links,"parts":b.Parts})
+  out=append(out,map[string]any{"stage":stage,"index":i,"kind":b.Kind,"text":b.Text,"role":b.Role,"gallery":b.Gallery,"url":b.URL,"links":b.Links,"parts":b.Parts})
  }
  return out
 }
