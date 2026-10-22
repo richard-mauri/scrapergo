@@ -5,6 +5,7 @@ package recovery
 import (
  "strings"
  "clean-article-reader/internal/article"
+ "clean-article-reader/internal/sourcehtml"
 )
 
 // OrderedMatches counts consecutive retained paragraphs corroborated by
@@ -27,7 +28,7 @@ func OrderedMatches(retained []string, candidate []article.Block) int {
 // Normalize matches whitespace and entity handling of sourcehtml.Normalize,
 // including the two-pass normalization of text assembled by legacy callers.
 func Normalize(s string) string {
- return strings.Join(strings.Fields(s)," ")
+ return sourcehtml.Normalize(s)
 }
 
 // CountWords preserves the established count: image blocks do not contribute.
