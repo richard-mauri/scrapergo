@@ -3,6 +3,9 @@ package main
 import (
     "strings"
     "testing"
+    "net/http"
+    "net/http/httptest"
+    "encoding/json"
 )
 
 const partialFixture = `<!doctype html><html><head>
@@ -37,5 +40,18 @@ func TestPartialHTMLArticleRejectsIndexAndUnmatchedCanonical(t *testing.T) {
     }
     if _, ok := partialHTMLArticle(partialFixture, "https://example.org/news/different"); ok {
         t.Fatal("canonical mismatch should disqualify excerpt")
+    }
+}
+
+func TestPartialExcerptThroughNormalExtractionPipeline(t *testing.T) {
+    response := httptest.NewRecorder()
+    writeExtractedArticle(response, partialFixture, "https://example.org/news/report")
+    if response.Code != http.StatusOK {
+        t.Fatalf("partial article rejected: HTTP %d: %s", response.Code, response.Body.String())
+    }
+    var article Article
+    if err := json.Unmarshal(response.Body.Bytes(), &article); err != nil { t.Fatal(err) }
+    if article.Method != "Partial HTML excerpt" || article.AccessNote == "" {
+        t.Fatalf("missing partial excerpt signaling: method=%q note=%q", article.Method, article.AccessNote)
     }
 }
