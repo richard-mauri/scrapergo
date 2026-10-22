@@ -20,6 +20,10 @@ type Stage interface {
 func Run(result extraction.Result, sourceHTML string, stages ...Stage) article.Article {
  document := result.Article
  document.Blocks = append([]article.Block(nil), document.Blocks...)
+ for i := range document.Blocks {
+  document.Blocks[i].Parts = append([]article.TextPart(nil), document.Blocks[i].Parts...)
+  document.Blocks[i].Links = append([]article.InlineLink(nil), document.Blocks[i].Links...)
+ }
  for _, stage := range stages {
   stage.Apply(&document, result.Evidence, sourceHTML)
  }
