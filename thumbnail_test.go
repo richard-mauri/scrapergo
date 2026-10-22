@@ -1,9 +1,9 @@
 package main
 
 import (
+ "clean-article-reader/internal/thumbnail"
 	"bytes"
-	"container/list"
-	"image"
+		"image"
 	"image/color"
 	"image/jpeg"
 	"net/http/httptest"
@@ -23,7 +23,7 @@ func TestThumbnailResizeDimensions(t *testing.T) {
 	if err := jpeg.Encode(&in, source, nil); err != nil {
 		t.Fatal(err)
 	}
-	out, err := cropAndEncodeThumbnail(in.Bytes(), 256)
+	out, err := thumbnail.CropAndEncode(in.Bytes(), 256)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,16 +55,16 @@ func TestThumbnailValidation(t *testing.T) {
 	}
 }
 func TestThumbnailCache(t *testing.T) {
-	store := thumbnailStore{items: make(map[string]*list.Element), order: list.New()}
-	store.put("one", []byte("valid"))
-	v, ok := store.get("one")
+	store := thumbnail.NewStore()
+	store.Put("one", []byte("valid"))
+	v, ok := store.Get("one")
 	if !ok || string(v) != "valid" {
 		t.Fatal("cache round-trip")
 	}
-	for i := 0; i < thumbnailCacheEntries+2; i++ {
-		store.put(strconv.Itoa(i), []byte{1})
+	for i := 0; i < thumbnail.CacheEntries+2; i++ {
+		store.Put(strconv.Itoa(i), []byte{1})
 	}
-	if store.order.Len() != thumbnailCacheEntries {
+	if store.Len() != thumbnail.CacheEntries {
 		t.Fatal("cache capacity exceeded")
 	}
 }
@@ -79,13 +79,13 @@ func TestThumbnailSourceType(t *testing.T) {
 		{[]byte("nonsense"), "unknown"},
 	}
 	for _, tc := range cases {
-		if got := thumbnailSourceType(tc.data); got != tc.want {
+		if got := thumbnail.SourceType(tc.data); got != tc.want {
 			t.Fatalf("got %q; want %q", got, tc.want)
 		}
 	}
 }
 func TestUnsupportedThumbnailFormatExplained(t *testing.T) {
-	_, err := cropAndEncodeThumbnail([]byte("\x00\x00\x00\x18ftypavif"), 256)
+	_, err := thumbnail.CropAndEncode([]byte("\x00\x00\x00\x18ftypavif"), 256)
 	if err == nil || !strings.Contains(err.Error(), "avif") {
 		t.Fatalf("expected AVIF diagnostic, got %v", err)
 	}
