@@ -93,3 +93,9 @@ func partialHTMLArticle(raw, source string) (Article, bool) {
         AccessNote: "Only a short excerpt was available in the downloaded HTML; the article may continue on the original site.",
     }, true
 }
+
+// hasPartialArticleEvidence is shared by the pre- and post-extraction index gates.
+func hasPartialArticleEvidence(raw, source string) bool {
+    _, ok := partialHTMLArticle(raw, source)
+    return ok
+}
