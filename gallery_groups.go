@@ -31,11 +31,37 @@ func groupArticleGalleryImages(a *Article, sourceHTML, baseURL string) {
   unique:=map[string]bool{}
   for _,img:=range find(n,func(x *Node)bool{return x.Tag=="img"}) {
    u:=articleImageURL(img,baseURL)
-   if u!="" && !unique[u]&&!claimed[u] {unique[u]=true;urls=append(urls,u)}
+   if u!="" && !unique[u]&&!claimed[media.Identity(u)] {unique[u]=true;urls=append(urls,u)}
   }
   if len(urls)<2||len(urls)>12 {continue}
   groups=append(groups,urls)
-  for _,u:=range urls {claimed[u]=true}
+  for _,u:=range urls {claimed[media.Identity(u)]=true}
+ }
+ // PhotoSwipe stores image slides as pswp__item elements, often alongside
+ // a separate lightbox rendition. Group only siblings within the same
+ // PhotoSwipe track and deduplicate by source-asset identity.
+ for _,track:=range find(root,func(n *Node)bool {
+  if n.Tag!="div" {return false}
+  cls:=" "+strings.ToLower(n.Attr["class"])+" "
+  return strings.Contains(cls," pswp__container ") || strings.Contains(cls," pswp__items ")
+ }) {
+  urls:=[]string{}
+  unique:=map[string]bool{}
+  for _,child:=range track.Kids {
+   if !strings.Contains(" "+strings.ToLower(child.Attr["class"])+" "," pswp__item ") {continue}
+   for _,img:=range find(child,func(n *Node)bool{return n.Tag=="img"}) {
+    u:=articleImageURL(img,baseURL)
+    key:=media.Identity(u)
+    if u!=""&&key!=""&&!unique[key]&&!claimed[key] {
+     unique[key]=true
+     urls=append(urls,u)
+     break
+    }
+   }
+  }
+  if len(urls)<2||len(urls)>12 {continue}
+  groups=append(groups,urls)
+  for _,u:=range urls {claimed[media.Identity(u)]=true}
  }
  // Match by canonical media asset identity so source and Readability
  // renditions can differ in image dimensions.
