@@ -788,7 +788,7 @@ func writeExtractedArticle(w http.ResponseWriter, raw, finalURL string) {
 	logSlateRetrievalDiagnostic(raw, finalURL)
 	// A navigation index is not a single article. Classify conservatively before
 	// Readability can flatten its menu and story cards into a false article.
-	if pageIsIndex(raw) || pageIsLanding(raw) {
+	if (pageIsIndex(raw) || pageIsLanding(raw)) && !hasPartialArticleEvidence(raw, finalURL) {
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		_ = json.NewEncoder(w).Encode(map[string]string{
 			"kind":  "page_index",
