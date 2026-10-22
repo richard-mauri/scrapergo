@@ -26,6 +26,7 @@ func assembleArticleDocument(extracted extraction.Result, sourceHTML string) Art
   plainStage("remove-player-blocks",structured.RemoveSerializedPlayerBlocks),
   plainStage("classify-contributors",classifyContributorImages),
   sourceStage("classify-source-images",classifyImagesFromSource),
+  plainStage("exclude-poststory-author-portraits",media.RemovePostEditorialAuthorPortraits),
   plainStage("reconcile-byline",reconcileContributorByline),
   plainStage("separate-contributor-header",contributors.SeparateHeader),
   sourceStage("recover-opening-figure",recoverOpeningSourceFigure),
