@@ -14,7 +14,7 @@ const partialFixture = `<!doctype html><html><head>
 <article><h1>Quarterly earnings report disappoints investors</h1>
 <figure><figcaption><p>Photograph by Example</p></figcaption></figure>
 <p>Shares declined sharply in early trading after an earnings report missed analysts' expectations. Management explained that unexpectedly high operating expenses had pressured margins, while distributors were also reducing their inventories amid weaker demand.</p>
-<p>The company said the outlook for the next quarter remains uncertain as competitors respond to shifting conditions. Additional details were not yet available in the delivered document.</p>
+<p>The company said the outlook for the next quarter remains uncertain as competitors respond to shifting conditions. Details were not yet available.</p>
 </article></body></html>`
 
 func TestPartialHTMLArticleAcceptsCorroboratedExcerpt(t *testing.T) {
