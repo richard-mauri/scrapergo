@@ -1,6 +1,7 @@
 package main
 
 import (
+ "clean-article-reader/internal/pageclassify"
  "clean-article-reader/internal/structured"
 	articlemodel "clean-article-reader/internal/article"
  sourcehtml "clean-article-reader/internal/sourcehtml"
@@ -602,7 +603,7 @@ func writeExtractedArticle(w http.ResponseWriter, raw, finalURL string) {
 	logSlateRetrievalDiagnostic(raw, finalURL)
 	// A navigation index is not a single article. Classify conservatively before
 	// Readability can flatten its menu and story cards into a false article.
-	if (pageIsIndex(raw) || pageIsLanding(raw)) && !hasPartialArticleEvidence(raw, finalURL) {
+	if (pageclassify.IsIndex(raw) || pageclassify.IsLanding(raw)) && !hasPartialArticleEvidence(raw, finalURL) {
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		_ = json.NewEncoder(w).Encode(map[string]string{
 			"kind":  "page_index",
@@ -633,7 +634,7 @@ func writeExtractedArticle(w http.ResponseWriter, raw, finalURL string) {
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": accessNotice(kind), "kind": kind, "publisher": mustHostname(finalURL), "evidence": restrictionEvidence(raw)})
 		return
 	}
-	if (extractionErr == nil && (pageIsThinPortal(raw, article.WordCount) || pageIsSparseRootLanding(raw, finalURL, article.WordCount)) || extractionErr != nil && pageIsSearchPortal(raw)) && !hasPartialArticleEvidence(raw, finalURL) {
+	if (extractionErr == nil && (pageclassify.IsThinPortal(raw, article.WordCount) || pageclassify.IsSparseRootLanding(raw, finalURL, article.WordCount)) || extractionErr != nil && pageclassify.IsSearchPortal(raw)) && !hasPartialArticleEvidence(raw, finalURL) {
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		_ = json.NewEncoder(w).Encode(map[string]string{
 			"kind":  "page_index",
