@@ -82,7 +82,8 @@ func diagnosticImageTrace(w http.ResponseWriter,r *http.Request) {
   input.URL=final
  }
  cleaned:=stripEmbeddedMedia(input.HTML)
- article,err:=extractWithReadability(cleaned,input.URL)
+ extracted,err:=extractWithEvidence(cleaned,input.URL)
+ article:=extracted.Article
  if err!=nil{http.Error(w,"extraction failed",422);return}
  stages:=[]traceImage{}
  opening:=[]map[string]any{}
@@ -102,8 +103,7 @@ func diagnosticImageTrace(w http.ResponseWriter,r *http.Request) {
  separateContributorHeader(&article)
  stages=append(stages,traceImageBlocks("classified",article.Blocks)...)
  opening=append(opening,traceOpeningBlocks("classified",article.Blocks)...)
- sourceLead:=""
- if base,err:=url.Parse(input.URL);err==nil{sourceLead=resolveImageURL(meta(parseHTML(cleaned),"og:image","twitter:image"),base)}
+ sourceLead:=extracted.Evidence.MetadataImageURL
  recoverOpeningSourceFigure(&article,cleaned,input.URL)
  normalizeArticleDocument(&article,sourceLead)
  stages=append(stages,traceImageBlocks("normalized",article.Blocks)...)
