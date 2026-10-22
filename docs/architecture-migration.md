@@ -74,3 +74,7 @@ The source-tree parser, traversal, text normalization and metadata helpers have 
 ## Phase 14: injected HTTP presentation adapter
 
 `internal/httpapi` now owns the image-metadata HTTP adapter and ordered image-candidate response. The application injects its existing article API handler, preserving access policy, extraction behavior, POST-only restriction, cache headers and error status/JSON behavior. The root imageMetadata and articleImageCandidates functions forward for compatibility. This is a first HTTP-boundary migration; article retrieval and primary /api/read handling still need independent service ownership. Dedicated tests verify the response contract, duplicate candidates, method restrictions and propagated errors.
+
+## Phase 15: primary article-read HTTP adapter
+
+The `/api/read` HTTP request and response contract now lives in `internal/httpapi.ReadHandler`. The executable injects the existing Google News resolver, secured downloader, publisher access-error classifier, hostname formatter and `writeExtractedArticle` assembly/response function. The adapter retains POST-only validation, the 4096-byte request limit, status/JSON error contracts, cache headers and request logging. No URL security checks, retrieval transport or content extraction policies are replicated in the HTTP package. `api` remains a small compatibility wrapper; primary article application-service ownership and wrapper pruning remain later work. Regression tests verify successful handoff, invalid methods/JSON and publisher-access error responses.

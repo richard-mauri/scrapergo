@@ -2,6 +2,7 @@ package main
 
 import (
 	articlemodel "clean-article-reader/internal/article"
+ "clean-article-reader/internal/httpapi"
  sourcehtml "clean-article-reader/internal/sourcehtml"
 	"context"
 	_ "embed"
@@ -609,41 +610,13 @@ func publisherAccessMessage(err error) (string, bool) {
 }
 
 func api(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
-		http.Error(w, "POST required", 405)
-		return
-	}
-	r.Body = http.MaxBytesReader(w, r.Body, 4096)
-	var in struct {
-		URL string `json:"url"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
-		http.Error(w, "Invalid request JSON", 400)
-		return
-	}
-	address, err := resolveGoogleNewsURL(r.Context(), in.URL)
-	if err != nil {
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		w.Header().Set("Cache-Control", "no-store")
-		w.WriteHeader(422)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
-		return
-	}
-	log.Printf("resolve publisher=%s google_news=%t", mustHostname(address), strings.Contains(in.URL, "news.google.com/"))
-	raw, finalURL, err := download(r.Context(), address)
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.Header().Set("Cache-Control", "no-store")
-	if err != nil {
-		if message, denied := publisherAccessMessage(err); denied {
-			w.WriteHeader(http.StatusUnprocessableEntity)
-			_ = json.NewEncoder(w).Encode(map[string]string{"error": message, "kind": "publisher_access_denied", "url": address})
-			return
-		}
-		w.WriteHeader(http.StatusUnprocessableEntity)
-		_ = json.NewEncoder(w).Encode(map[string]string{"error": err.Error(), "kind": "access_error"})
-		return
-	}
-	writeExtractedArticle(w, raw, finalURL)
+ httpapi.ReadHandler(httpapi.ReadDependencies{
+  Resolve: resolveGoogleNewsURL,
+  Download: download,
+  PublisherAccessMessage: publisherAccessMessage,
+  Hostname: mustHostname,
+  WriteExtracted: writeExtractedArticle,
+ }).ServeHTTP(w,r)
 }
 
 // writeExtractedArticle is shared by normal retrieval and diagnostic HTML submission.
