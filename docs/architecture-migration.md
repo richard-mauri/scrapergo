@@ -90,3 +90,7 @@ The final architecture inventory and outstanding-debt list are maintained in [ar
 ## Phase 18: remove root media/contributor compatibility shims
 
 Deleted `image_dedupe.go` and `contributor_header.go`, which contained only root-package forwarding functions. Updated affected root regression tests and assembly-equivalence tests to invoke `internal/media.Deduplicate` and `internal/contributors.SeparateHeader` directly, matching production stage wiring. No new compatibility facade or callback injection was introduced. This is intentionally a narrow first deletion PR; source-HTML adapters that still perform parsing or transformation are not mere wrappers and must be migrated with their owning subsystem.
+
+## Phase 19: direct structured media cleanup migration
+
+Removed the root implementations of embedded media DOM stripping and serialized player-block pruning. `internal/structured` now owns `StripEmbeddedMedia` and `RemoveSerializedPlayerBlocks` along with the shared media-element recognition logic. Main extraction, diagnostic image tracing, assembly, and regression tests call these package functions directly; no compatibility wrappers or injected helper callbacks were created. The other source-dependent recovery algorithms remain root-owned pending separate cohesive migrations. Application version and network retrieval policies remain unchanged.
