@@ -44,7 +44,7 @@ func articleImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	rec := newResponseCapture()
-	imageMetadata(rec, req)
+	newArticleMetadataHandler(newArticleReadHandler()).ServeHTTP(rec, req)
 	if rec.status != http.StatusOK {
 		w.Header().Set("X-Image-Failure-Stage", "metadata")
 		http.Error(w, "article image lookup failed", http.StatusBadGateway)
