@@ -1,8 +1,8 @@
 package main
 
 import (
-	"html"
-	"net/url"
+		"net/url"
+ "clean-article-reader/internal/structured"
 	"regexp"
 	"strconv"
 	"strings"
@@ -52,59 +52,9 @@ func serializedCaptionImages(raw string, base *url.URL) map[string]string {
 	return result
 }
 
+// Preserve legacy entry point while structured conversion is package-owned.
 func semanticTextBlock(n *Node, base *url.URL) Block {
-	var parts []TextPart
-	var walk func(*Node, bool, bool, string)
-	walk = func(x *Node, bold, italic bool, link string) {
-		if blockedTags[x.Tag] {
-			return
-		}
-		if x.Tag == "br" {
-			parts = append(parts, TextPart{Text: "\n"})
-			return
-		}
-		if x.Tag == "#text" {
-			v := html.UnescapeString(x.Text)
-			if v != "" {
-				parts = append(parts, TextPart{Text: v, Bold: bold, Italic: italic, URL: link})
-			}
-			return
-		}
-		bold = bold || x.Tag == "strong" || x.Tag == "b"
-		italic = italic || x.Tag == "em" || x.Tag == "i"
-		if x.Tag == "a" {
-			if u := resolveImageURL(x.Attr["href"], base); u != "" && linkableDocument(u) {
-				link = u
-			}
-		}
-		for _, child := range x.Kids {
-			walk(child, bold, italic, link)
-		}
-	}
-	walk(n, false, false, "")
-	// Merge runs with the same formatting and normalize whitespace without
-	// flattening newlines that separate independent story facts.
-	var compact []TextPart
-	for _, part := range parts {
-		part.Text = strings.ReplaceAll(part.Text, "\r", "")
-		part.Text = regexp.MustCompile(`[\t ]+`).ReplaceAllString(part.Text, " ")
-		if part.Text == "" {
-			continue
-		}
-		if len(compact) > 0 && compact[len(compact)-1].Bold == part.Bold && compact[len(compact)-1].Italic == part.Italic && compact[len(compact)-1].URL == part.URL {
-			compact[len(compact)-1].Text += part.Text
-		} else {
-			compact = append(compact, part)
-		}
-	}
-	var raw strings.Builder
-	for _, part := range compact {
-		raw.WriteString(part.Text)
-	}
-	text := strings.TrimSpace(raw.String())
-	// Reconstitute runs against normalized outer whitespace. The rendering
-	// path uses the original part stream, which retains authorial line breaks.
-	return Block{Kind: n.Tag, Text: text, Parts: compact}
+ return structured.TextBlock(n,base,resolveImageURL,linkableDocument)
 }
 
 func nestedProse(n, scope *Node) bool {
