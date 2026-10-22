@@ -1,6 +1,8 @@
 package main
 
-import "testing"
+import ("testing"
+ "clean-article-reader/internal/media"
+)
 
 func TestDeduplicateHeroAndInlineImages(t *testing.T) {
 	a := &Article{ImageURL: "https://images.example.org/content/photo-1200x800.jpg?width=1200", Blocks: []Block{
@@ -12,7 +14,7 @@ func TestDeduplicateHeroAndInlineImages(t *testing.T) {
 		{Kind: "p", Text: "Second photograph credit"},
 		{Kind: "img", URL: "https://images.example.org/content/third.jpg"},
 	}}
-	deduplicateArticleImages(a)
+	media.Deduplicate(a)
 	if len(a.Blocks) != 5 {
 		t.Fatalf("expected 5 blocks including 2 distinct inline photos, got %#v", a.Blocks)
 	}
@@ -25,7 +27,7 @@ func TestDeduplicateHeroAndInlineImages(t *testing.T) {
 }
 func TestDifferentImagesRemain(t *testing.T) {
 	a := &Article{Blocks: []Block{{Kind: "img", URL: "https://img.example.com/a.jpg"}, {Kind: "img", URL: "https://img.example.com/b.jpg"}}}
-	deduplicateArticleImages(a)
+	media.Deduplicate(a)
 	if len(a.Blocks) != 2 {
 		t.Fatal("distinct photographs were removed")
 	}
