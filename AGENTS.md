@@ -1,3 +1,7 @@
+# CURRENT WORK — 2026-10-22: source gallery preservation
+
+Merged PR #35 is the baseline (author biography portrait suppression, BMW lead image deduplication fix), following merged PR #34 (figure placement). Current short-lived draft branch `feature/source-gallery-groups` groups editorial images only when the source HTML contains explicit gallery/carousel/slideshow container evidence; individual figures are not grouped by proximity. Gallery membership is carried on Article.Block.Gallery and rendered in a responsive two-column grid, preventing intervening recovered paragraphs from splitting the image set. Validate BMW original lead, front/rear grouped photos, Beth Mole byline and suppressed author portrait, NPR contributors, and CNN editorial images. Only owner merges after CI and Safari acceptance. Source of truth: latest merged `main` for next PR. No appVersion bump or extra handoff files.
+
 # CURRENT AUTHORITATIVE HANDOFF — 2026-10-22
 
 ScraperGo v0.2.85. GitHub `main` is authoritative for each iteration; verify previous PR merged, create a new short-lived draft branch from latest `main`, run GitHub Actions tests and build, and only then offer owner Mac/Safari acceptance. The owner alone merges; do not tag, release or bump appVersion during development. This section supersedes historical instructions below mentioning `dev`, `rewrite/structured-articles` or prior draft PRs. Do not introduce root compatibility facades, callback shims or parallel handoff documents.
