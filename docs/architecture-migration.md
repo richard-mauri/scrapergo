@@ -122,3 +122,7 @@ Moved all five page classifiers (index, marketing landing, search portal, thin p
 ## Phase 26: partial-excerpt extraction with shared source policies
 
 Moved complete short-article excerpt recognition and extraction from root `partial_html_article.go` to `internal/extraction.PartialHTMLArticle` / `HasPartialArticleEvidence`, deleting the original file. To avoid duplicating policy or passing callbacks into root, moved the shared advertising-text exclusion predicate into `internal/extraction` and source URL resolution into `internal/sourcehtml`. Updated production callers and tests to reference their package owners directly, and removed the original root policy implementations. This does not fetch additional content or bypass access controls. No version, HTTP, or runtime hosting changes.
+
+## Figure anchor regression: unmatched Readability prose
+
+Source paragraph alignment in `positionArticleFigures` now advances only on a confirmed match with a retained text block. Missing or rewritten source paragraphs no longer exhaust the insertion cursor, which previously could push an opening editorial figure to the end of the document. Added source-order regression fixtures modeled on the Uberblok opening magnifying-glass figure and a later illustration; no publisher-specific condition or image re-ranking. This is a behavioral bug fix separate from the extraction package migration.
