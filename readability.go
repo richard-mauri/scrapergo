@@ -1,6 +1,7 @@
 package main
 
 import (
+ "clean-article-reader/internal/extraction"
  "clean-article-reader/internal/sourcehtml"
  "clean-article-reader/internal/links"
 	"bytes"
@@ -28,7 +29,7 @@ func extractWithReadability(raw, source string) (Article, error) {
 			count := 0
 			for _, chunk := range chunks {
 				line := normalize(chunk)
-				if line == "" || sentenceAdRE.MatchString(line) {
+				if line == "" || extraction.IsAdvertisingText(line) {
 					continue
 				}
 				blocks = append(blocks, Block{Kind: "p", Text: line})
@@ -94,7 +95,7 @@ func extractWithReadability(raw, source string) (Article, error) {
 		fallback.Method = "Legacy extractor fallback"
 		return fallback, nil
 	}
-	if partial, ok := partialHTMLArticle(raw, source); ok {
+	if partial, ok := extraction.PartialHTMLArticle(raw, source); ok {
 		return partial, nil
 	}
 	if parseErr != nil {
