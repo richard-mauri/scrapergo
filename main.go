@@ -1,6 +1,7 @@
 package main
 
 import (
+	articlemodel "clean-article-reader/internal/article"
 	"context"
 	_ "embed"
 	"encoding/json"
@@ -32,37 +33,13 @@ var tannerJPG []byte
 
 const maxHTML = 5 << 20
 
-type InlineLink struct {
-	Text string `json:"text"`
-	URL  string `json:"url"`
-}
-type TextPart struct {
-	Text   string `json:"text"`
-	Bold   bool   `json:"bold,omitempty"`
-	Italic bool   `json:"italic,omitempty"`
-	URL    string `json:"url,omitempty"`
-}
-type Block struct {
-	Parts []TextPart   `json:"parts,omitempty"`
-	Kind  string       `json:"kind"`
-    Role string `json:"role,omitempty"`
-	Links []InlineLink `json:"links,omitempty"`
-	Text  string       `json:"text"`
-	URL   string       `json:"url,omitempty"`
-}
-type Article struct {
-	Title      string  `json:"title"`
-	Byline     string  `json:"byline,omitempty"`
-	Published  string  `json:"published,omitempty"`
-	Site       string  `json:"site,omitempty"`
-	URL        string  `json:"url"`
-	Blocks     []Block `json:"blocks"`
-	WordCount  int     `json:"wordCount"`
-	ImageURL   string  `json:"imageUrl,omitempty"`
-	Method     string  `json:"method,omitempty"`
-	AccessNote string  `json:"accessNote,omitempty"`
-	AccessType string  `json:"accessType,omitempty"`
-}
+// Compatibility aliases keep existing extraction and rendering callers unchanged
+// as the canonical article model moves behind an importable package boundary.
+type InlineLink = articlemodel.InlineLink
+type TextPart = articlemodel.TextPart
+type Block = articlemodel.Block
+type Article = articlemodel.Article
+
 type Node struct {
 	Tag    string
 	Attr   map[string]string
