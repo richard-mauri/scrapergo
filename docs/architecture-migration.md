@@ -106,3 +106,7 @@ Moved the complete `linkableDocument` URL-and-filetype eligibility policy from t
 ## Phase 22: link identity ownership and wrapper deletion
 
 Moved the complete semantic paragraph identity implementation out of `semantic_links.go` and into `internal/links.SemanticKey`. Existing selected-HTML link reconciliation now calls that implementation directly. Removed the obsolete root `linkTextKey` forwarding function; `internal/links.TextKey` remains the canonical policy. Added package-local semantic matching tests. No compatibility adapters or changes to extraction URL and network policy.
+
+## Phase 23: cohesive thumbnail processing ownership
+
+Moved thumbnail dimension limits, image sniffing, bounded pixel decoding/crop/JPEG encoding, cache keys, and TTL/LRU cache implementation from root `thumbnail.go` to `internal/thumbnail`. The root file now owns only the HTTP orchestration that enforces existing public URL validation and calls the existing secured article image endpoint. No security callback, root forwarding shim, or duplication of the cache/codec policies was introduced; regression tests now use the package-owned processor and cache directly. No version or routing changes.
