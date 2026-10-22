@@ -102,3 +102,7 @@ The production image-delivery endpoint and root HTTP tests now invoke the applic
 ## Phase 21: canonical document-link eligibility
 
 Moved the complete `linkableDocument` URL-and-filetype eligibility policy from the root Readability implementation into `internal/links.IsDocumentURL`; removed the root implementation and updated root Readability and structured-text calls directly. Added package-local policy regression tests. No new compatibility wrapper or extra callback parameter was introduced. The rest of Readability/extraction, source image URLs and network validation are unchanged. Continued extraction migration must move cohesive dependencies rather than cloning root policy.
+
+## Phase 22: link identity ownership and wrapper deletion
+
+Moved the complete semantic paragraph identity implementation out of `semantic_links.go` and into `internal/links.SemanticKey`. Existing selected-HTML link reconciliation now calls that implementation directly. Removed the obsolete root `linkTextKey` forwarding function; `internal/links.TextKey` remains the canonical policy. Added package-local semantic matching tests. No compatibility adapters or changes to extraction URL and network policy.
