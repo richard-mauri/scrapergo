@@ -1,6 +1,7 @@
 package main
 
 import (
+ "clean-article-reader/internal/structured"
  "encoding/json"
  "clean-article-reader/internal/media"
  "clean-article-reader/internal/contributors"
@@ -23,7 +24,7 @@ func TestAssembleArticleDocumentMatchesExistingPipeline(t *testing.T) {
  media.Deduplicate(&expected)
  recoverMissingArticleLinks(&expected,raw,sourceURL)
  recoverAuthorPortrait(&expected,raw,sourceURL)
- removeSerializedPlayerBlocks(&expected)
+ structured.RemoveSerializedPlayerBlocks(&expected)
  classifyContributorImages(&expected)
  classifyImagesFromSource(&expected,raw,sourceURL)
  reconcileContributorByline(&expected)
