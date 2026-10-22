@@ -118,3 +118,7 @@ Moved Google News URL identification, legacy encoded destination parsing, RPC re
 ## Phase 25: page classification and shared source-noise ownership
 
 Moved all five page classifiers (index, marketing landing, search portal, thin portal, sparse-root landing) out of root `page_type.go` to `internal/pageclassify`. Moved the shared noisy source-region detection (including its promotional-tag policy) out of `main.go` into `internal/sourcehtml`, so both page classification and root extraction/recovery call the same package-owned implementation directly. Removed both original implementations, updated callers and regression tests, and introduced no wrapper or callback adapter. The old parser and data models are reused, not duplicated. Application version and network access gates are unchanged.
+
+## Phase 26: partial-excerpt extraction with shared source policies
+
+Moved complete short-article excerpt recognition and extraction from root `partial_html_article.go` to `internal/extraction.PartialHTMLArticle` / `HasPartialArticleEvidence`, deleting the original file. To avoid duplicating policy or passing callbacks into root, moved the shared advertising-text exclusion predicate into `internal/extraction` and source URL resolution into `internal/sourcehtml`. Updated production callers and tests to reference their package owners directly, and removed the original root policy implementations. This does not fetch additional content or bypass access controls. No version, HTTP, or runtime hosting changes.
