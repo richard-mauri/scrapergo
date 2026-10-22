@@ -54,12 +54,12 @@ func PartialHTMLArticle(raw, source string) (article.Article, bool) {
     }
     var best []article.Block
     bestCount := 0
-    for _, article := range sourcehtml.Find(root, func(n *sourcehtml.Node) bool { return n.Tag == "article" }) {
+    for _, articleNode := range sourcehtml.Find(root, func(n *sourcehtml.Node) bool { return n.Tag == "article" }) {
         blocks := make([]article.Block, 0, 8)
         words := 0
-        for _, p := range sourcehtml.Find(article, func(n *sourcehtml.Node) bool { return n.Tag == "p" }) {
+        for _, p := range sourcehtml.Find(articleNode, func(n *sourcehtml.Node) bool { return n.Tag == "p" }) {
             excluded := false
-            for ancestor := p.Parent; ancestor != nil && ancestor != article; ancestor = ancestor.Parent {
+            for ancestor := p.Parent; ancestor != nil && ancestor != articleNode; ancestor = ancestor.Parent {
                 if ancestor.Tag == "figure" || ancestor.Tag == "figcaption" ||
                     ancestor.Tag == "nav" || ancestor.Tag == "footer" || ancestor.Tag == "aside" {
                     excluded = true
