@@ -781,18 +781,7 @@ func writeExtractedArticle(w http.ResponseWriter, raw, finalURL string) {
 	extracted, extractionErr := extractWithEvidence(cleanedArticleHTML, finalURL)
 	article := extracted.Article
 	if extractionErr == nil {
-		recoverArticlePhotographs(&article, cleanedArticleHTML, finalURL)
-		deduplicateArticleImages(&article)
-		recoverMissingArticleLinks(&article, cleanedArticleHTML, finalURL)
-        recoverAuthorPortrait(&article, cleanedArticleHTML, finalURL)
-        sourceLead := extracted.Evidence.MetadataImageURL
-        removeSerializedPlayerBlocks(&article)
-        classifyContributorImages(&article)
-        classifyImagesFromSource(&article, cleanedArticleHTML, finalURL)
-        reconcileContributorByline(&article)
-        separateContributorHeader(&article)
-        recoverOpeningSourceFigure(&article, cleanedArticleHTML, finalURL)
-        normalizeArticleDocument(&article, sourceLead)
+		article = assembleArticleDocument(extracted, cleanedArticleHTML)
 		logSlateExtractionDiagnostic(article.Blocks, finalURL)
 	}
 	if kind != "" {
