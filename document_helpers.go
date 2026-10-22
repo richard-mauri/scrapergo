@@ -1,6 +1,7 @@
 package main
 
 import (
+ "clean-article-reader/internal/links"
 		"net/url"
  "clean-article-reader/internal/structured"
 	"regexp"
@@ -54,7 +55,7 @@ func serializedCaptionImages(raw string, base *url.URL) map[string]string {
 
 // Preserve legacy entry point while structured conversion is package-owned.
 func semanticTextBlock(n *Node, base *url.URL) Block {
- return structured.TextBlock(n,base,resolveImageURL,linkableDocument)
+ return structured.TextBlock(n,base,resolveImageURL,links.IsDocumentURL)
 }
 
 func nestedProse(n, scope *Node) bool {
