@@ -1,28 +1,32 @@
 package main
 
-import extractionmodel "clean-article-reader/internal/extraction"
+import (
+ "clean-article-reader/internal/article"
+ "clean-article-reader/internal/assembly"
+ "clean-article-reader/internal/extraction"
+)
 
-// assembleArticleDocument is the sole production orchestration point for
-// article reconciliation. Transform order is intentionally unchanged: media
-// recovery, link repair, contributor identification, and normalization are
-// order-sensitive in the v0.2.85 article contract.
-//
-// This initial boundary does not yet isolate individual transformations into
-// packages. Their ownership can be migrated independently once representative
-// source fixtures have been frozen.
-func assembleArticleDocument(extracted extractionmodel.Result, sourceHTML string) Article {
- article := extracted.Article
- sourceURL := extracted.Evidence.SourceURL
- recoverArticlePhotographs(&article, sourceHTML, sourceURL)
- deduplicateArticleImages(&article)
- recoverMissingArticleLinks(&article, sourceHTML, sourceURL)
- recoverAuthorPortrait(&article, sourceHTML, sourceURL)
- removeSerializedPlayerBlocks(&article)
- classifyContributorImages(&article)
- classifyImagesFromSource(&article, sourceHTML, sourceURL)
- reconcileContributorByline(&article)
- separateContributorHeader(&article)
- recoverOpeningSourceFigure(&article, sourceHTML, sourceURL)
- normalizeArticleDocument(&article, extracted.Evidence.MetadataImageURL)
- return article
+// assembleArticleDocument coordinates document transformations under a shared
+// stage contract. The v0.2.85 processing order remains unchanged.
+func assembleArticleDocument(extracted extraction.Result, sourceHTML string) Article {
+ sourceStage := func(name string, fn func(*Article, string, string)) assembly.Stage {
+  return assembly.StageFunc{StageName:name, Transform:func(a *article.Article,e extraction.SourceEvidence,html string){fn(a,html,e.SourceURL)}}
+ }
+ plainStage := func(name string,fn func(*Article)) assembly.Stage {
+  return assembly.StageFunc{StageName:name,Transform:func(a *article.Article,_ extraction.SourceEvidence,_ string){fn(a)}}
+ }
+ stages := []assembly.Stage{
+  sourceStage("recover-photographs",recoverArticlePhotographs),
+  plainStage("deduplicate-images",deduplicateArticleImages),
+  sourceStage("recover-links",recoverMissingArticleLinks),
+  sourceStage("recover-author-portrait",recoverAuthorPortrait),
+  plainStage("remove-player-blocks",removeSerializedPlayerBlocks),
+  plainStage("classify-contributors",classifyContributorImages),
+  sourceStage("classify-source-images",classifyImagesFromSource),
+  plainStage("reconcile-byline",reconcileContributorByline),
+  plainStage("separate-contributor-header",separateContributorHeader),
+  sourceStage("recover-opening-figure",recoverOpeningSourceFigure),
+  assembly.StageFunc{StageName:"normalize",Transform:func(a *article.Article,e extraction.SourceEvidence,_ string){normalizeArticleDocument(a,e.MetadataImageURL)}},
+ }
+ return assembly.Run(extracted,sourceHTML,stages...)
 }
