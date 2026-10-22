@@ -90,7 +90,7 @@ func partialHTMLArticle(raw, source string) (Article, bool) {
     return Article{
         Title: title, URL: source, Blocks: best, WordCount: bestCount,
         ImageURL: img, Method: "Partial HTML excerpt",
-        AccessNote: "Only a short excerpt was available in the downloaded HTML; the article may continue on the original site.",
+        AccessNote: "Only an excerpt was available to ScraperGo. The original website may require cookie consent, registration, or a subscription to display the complete article. Open the original article to continue reading.",
     }, true
 }
 
