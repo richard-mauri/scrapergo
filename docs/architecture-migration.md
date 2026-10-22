@@ -98,3 +98,7 @@ Removed the root implementations of embedded media DOM stripping and serialized 
 ## Phase 20: delete image-metadata root compatibility entry points
 
 The production image-delivery endpoint and root HTTP tests now invoke the application-wired `internal/httpapi.ImageMetadataHandler` directly via `newArticleMetadataHandler`, rather than a package-main `imageMetadata` forwarding function. Deleted `image_metadata.go`, including its redundant `articleImageCandidates` forwarder. The actual HTTP response and image-candidate selection remain owned by `internal/httpapi`; this change adds no replacement wrappers or duplicate image policy. Full migration of page selection and partial-excerpt extraction is deferred until shared URL and editorial policy can move with their actual owners.
+
+## Phase 21: canonical document-link eligibility
+
+Moved the complete `linkableDocument` URL-and-filetype eligibility policy from the root Readability implementation into `internal/links.IsDocumentURL`; removed the root implementation and updated root Readability and structured-text calls directly. Added package-local policy regression tests. No new compatibility wrapper or extra callback parameter was introduced. The rest of Readability/extraction, source image URLs and network validation are unchanged. Continued extraction migration must move cohesive dependencies rather than cloning root policy.
