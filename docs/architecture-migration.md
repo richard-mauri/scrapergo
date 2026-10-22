@@ -110,3 +110,7 @@ Moved the complete semantic paragraph identity implementation out of `semantic_l
 ## Phase 23: cohesive thumbnail processing ownership
 
 Moved thumbnail dimension limits, image sniffing, bounded pixel decoding/crop/JPEG encoding, cache keys, and TTL/LRU cache implementation from root `thumbnail.go` to `internal/thumbnail`. The root file now owns only the HTTP orchestration that enforces existing public URL validation and calls the existing secured article image endpoint. No security callback, root forwarding shim, or duplication of the cache/codec policies was introduced; regression tests now use the package-owned processor and cache directly. No version or routing changes.
+
+## Phase 24: Google News protocol boundary
+
+Moved Google News URL identification, legacy encoded destination parsing, RPC request serialization, RPC frame parsing and signature/timestamp expressions into `internal/googlenews`. The root resolver now uses those functions directly while retaining outbound network transport, redirect limits and the existing `validatedURL` safety checks in the application. Tests call the new package directly. There are no forwarding compatibility methods or new callback-injected security dependencies. No change to v0.2.85 or existing HTTP response handling.
