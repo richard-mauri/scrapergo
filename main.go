@@ -24,7 +24,7 @@ import (
 )
 
 // ScraperGo application version is defined once and shared by all presentation paths.
-const appVersion = "0.2.83"
+const appVersion = "0.2.84"
 const sampleURL = "https://247wallst.com/investing/2026/10/16/taiwan-is-planning-4-billion-industrial-parks-in-texas-for-nvidias-suppliers/"
 
 //go:embed tanner.jpg
@@ -788,7 +788,7 @@ func writeExtractedArticle(w http.ResponseWriter, raw, finalURL string) {
 	logSlateRetrievalDiagnostic(raw, finalURL)
 	// A navigation index is not a single article. Classify conservatively before
 	// Readability can flatten its menu and story cards into a false article.
-	if pageIsIndex(raw) || pageIsLanding(raw) {
+	if (pageIsIndex(raw) || pageIsLanding(raw)) && !hasPartialArticleEvidence(raw, finalURL) {
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		_ = json.NewEncoder(w).Encode(map[string]string{
 			"kind":  "page_index",
@@ -831,7 +831,7 @@ func writeExtractedArticle(w http.ResponseWriter, raw, finalURL string) {
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": accessNotice(kind), "kind": kind, "publisher": mustHostname(finalURL), "evidence": restrictionEvidence(raw)})
 		return
 	}
-	if extractionErr == nil && (pageIsThinPortal(raw, article.WordCount) || pageIsSparseRootLanding(raw, finalURL, article.WordCount)) || extractionErr != nil && pageIsSearchPortal(raw) {
+	if (extractionErr == nil && (pageIsThinPortal(raw, article.WordCount) || pageIsSparseRootLanding(raw, finalURL, article.WordCount)) || extractionErr != nil && pageIsSearchPortal(raw)) && !hasPartialArticleEvidence(raw, finalURL) {
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		_ = json.NewEncoder(w).Encode(map[string]string{
 			"kind":  "page_index",
