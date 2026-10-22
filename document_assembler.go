@@ -34,4 +34,7 @@ func articleAssemblyStages() []assembly.Stage {
  }
 
 }
-\nfunc assembleArticleDocument(extracted extraction.Result, sourceHTML string) Article {\n return assembly.Run(extracted,sourceHTML,articleAssemblyStages()...)\n}\n
+
+func assembleArticleDocument(extracted extraction.Result, sourceHTML string) Article {
+ return assembly.Run(extracted,sourceHTML,articleAssemblyStages()...)
+}
