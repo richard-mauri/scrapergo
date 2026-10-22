@@ -10,12 +10,12 @@ import (
 
 func TestImageMetadataMethodAndBadInput(t *testing.T) {
 	get := httptest.NewRecorder()
-	imageMetadata(get, httptest.NewRequest(http.MethodGet, "/api/image-metadata", nil))
+	newArticleMetadataHandler(newArticleReadHandler()).ServeHTTP(get, httptest.NewRequest(http.MethodGet, "/api/image-metadata", nil))
 	if get.Code != http.StatusMethodNotAllowed {
 		t.Fatalf("GET: %d", get.Code)
 	}
 	post := httptest.NewRecorder()
-	imageMetadata(post, httptest.NewRequest(http.MethodPost, "/api/image-metadata", strings.NewReader("{")))
+	newArticleMetadataHandler(newArticleReadHandler()).ServeHTTP(post, httptest.NewRequest(http.MethodPost, "/api/image-metadata", strings.NewReader("{")))
 	if post.Code != http.StatusBadRequest {
 		t.Fatalf("malformed JSON: %d", post.Code)
 	}
