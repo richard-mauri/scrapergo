@@ -34,3 +34,14 @@ func TestImageTraceStagesAndSourceContainers(t *testing.T) {
  if !container {t.Fatal("source image container context missing")}
  if !ancestry {t.Fatal("source image ancestor chain missing")}
 }
+
+func TestMissingSourceImageReportDistinguishesAbsentLeadFromRenditions(t *testing.T) {
+ source:=[]traceImage{
+  {Stage:"source-dom",URL:"https://example.org/lead.jpg",SourceIdentity:"lead"},
+  {Stage:"source-dom",URL:"https://example.org/inline-1024x768.jpg",SourceIdentity:"inline"},
+  {Stage:"source-dom",URL:"https://example.org/inline.jpg",SourceIdentity:"inline"},
+ }
+ final:=[]traceImage{{Stage:"assembled-final",URL:"https://example.org/inline.jpg",SourceIdentity:"inline"}}
+ missing:=missingSourceImageReport(source,final)
+ if len(missing)!=1||missing[0].URL!="https://example.org/lead.jpg" {t.Fatalf("missing lead comparison: %+v",missing)}
+}

@@ -63,6 +63,27 @@ func traceOpeningBlocks(stage string, blocks []Block) []map[string]any {
  return out
 }
 
+
+// missingSourceImageReport compares original HTML images with the assembled
+// article using rendition-aware identities. The output is diagnostic only:
+// source images may include logos, ads and navigation, so it cannot justify
+// automatically inserting every missing URL into the article.
+func missingSourceImageReport(source, assembled []traceImage) []traceImage {
+ present:=map[string]bool{}
+ for _,im:=range assembled {
+  if im.Stage=="assembled-final" {present[im.SourceIdentity]=true}
+ }
+ missing:=[]traceImage{}
+ seen:=map[string]bool{}
+ for _,im:=range source {
+  key:=im.SourceIdentity
+  if key==""||present[key]||seen[key] {continue}
+  seen[key]=true
+  missing=append(missing,im)
+ }
+ return missing
+}
+
 // diagnosticImageTrace is read-only and restricted to direct loopback peers.
 // It traces the same transformations as writeExtractedArticle, without
 // returning raw publisher HTML, credentials, or making asset requests.
@@ -117,6 +138,9 @@ func diagnosticImageTrace(w http.ResponseWriter,r *http.Request) {
    opening=append(opening,traceOpeningBlocks("normalized",article.Blocks)...)
   }
  }
+ finalImages:=traceImageBlocks("assembled-final",article.Blocks)
+ stages=append(stages,finalImages...)
+ missing:=missingSourceImageReport(sourceImageTrace(cleaned,input.URL),finalImages)
  sourceLead:=extracted.Evidence.MetadataImageURL
- _=json.NewEncoder(w).Encode(map[string]any{"url":input.URL,"sourceMetadataImage":sourceLead,"selectedImage":article.ImageURL,"byline":article.Byline,"images":stages,"openingBlocks":opening})
+ _=json.NewEncoder(w).Encode(map[string]any{"url":input.URL,"sourceMetadataImage":sourceLead,"selectedImage":article.ImageURL,"byline":article.Byline,"images":stages,"openingBlocks":opening,"sourceImagesAbsentFromArticle":missing})
 }
