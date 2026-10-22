@@ -1,6 +1,7 @@
 package main
 
 import (
+ "clean-article-reader/internal/structured"
  "clean-article-reader/internal/media"
  "clean-article-reader/internal/contributors"
  "encoding/json"
@@ -83,7 +84,7 @@ func diagnosticImageTrace(w http.ResponseWriter,r *http.Request) {
   input.HTML=raw
   input.URL=final
  }
- cleaned:=stripEmbeddedMedia(input.HTML)
+ cleaned:=structured.StripEmbeddedMedia(input.HTML)
  extracted,err:=extractWithEvidence(cleaned,input.URL)
  article:=extracted.Article
  if err!=nil{http.Error(w,"extraction failed",422);return}
@@ -98,7 +99,7 @@ func diagnosticImageTrace(w http.ResponseWriter,r *http.Request) {
  recoverAuthorPortrait(&article,cleaned,input.URL)
  stages=append(stages,traceImageBlocks("recovered",article.Blocks)...)
  opening=append(opening,traceOpeningBlocks("recovered",article.Blocks)...)
- removeSerializedPlayerBlocks(&article)
+ structured.RemoveSerializedPlayerBlocks(&article)
  classifyContributorImages(&article)
  classifyImagesFromSource(&article,cleaned,input.URL)
  reconcileContributorByline(&article)

@@ -1,6 +1,7 @@
 package main
 
 import (
+ "clean-article-reader/internal/structured"
  "os"
  "strings"
  "testing"
@@ -11,7 +12,7 @@ import (
 func TestFrozenStructuralLeadContract(t *testing.T) {
  raw,err:=os.ReadFile("testdata/structural_lead_contract.html")
  if err!=nil {t.Fatal(err)}
- cleaned:=stripEmbeddedMedia(string(raw))
+ cleaned:=structured.StripEmbeddedMedia(string(raw))
  extracted,err:=extractWithEvidence(cleaned,"https://news.example.test/report")
  if err!=nil {t.Fatalf("extract fixture: %v",err)}
  if extracted.Article.WordCount<60 {t.Fatalf("unexpectedly short extraction: %d",extracted.Article.WordCount)}
