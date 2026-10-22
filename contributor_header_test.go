@@ -1,6 +1,6 @@
 package main
 
-import ("testing";"strings")
+import ("testing";"strings";"clean-article-reader/internal/contributors")
 
 func TestNPRHeaderSeparationPreservesEditorialImages(t *testing.T) {
  linked:=func(name string) Block{return Block{Kind:"p",Text:name,Links:[]InlineLink{{Text:name,URL:"https://www.npr.org/people/123"}}}}
@@ -17,7 +17,7 @@ func TestNPRHeaderSeparationPreservesEditorialImages(t *testing.T) {
   {Kind:"p",Text:"The actual reporting begins here."},
   {Kind:"img",Role:"editorial",URL:nprWestBankInline,Text:"Olive harvesting"},
  }}
- separateContributorHeader(&a)
+ contributors.SeparateHeader(&a)
  if a.Byline!="Ruth Sherlock, Samantha Balaban, Nuha Musleh, Daniel Estrin" {t.Fatalf("byline=%q",a.Byline)}
  for _,b:=range a.Blocks {if b.Role=="author"||b.Text=="By"||b.Text==","||b.Text=="Daniel Estrin"{t.Fatalf("header fragment remains: %+v",b)}}
  editorial:=0
@@ -27,6 +27,6 @@ func TestNPRHeaderSeparationPreservesEditorialImages(t *testing.T) {
 }
 func TestNoConfirmedEditorialBoundaryLeavesContentUntouched(t *testing.T){
  a:=Article{Blocks:[]Block{{Kind:"p",Text:"By"},{Kind:"p",Text:"Alice"},{Kind:"p",Text:strings.Repeat("Real article content. ",10)}}}
- separateContributorHeader(&a)
+ contributors.SeparateHeader(&a)
  if len(a.Blocks)!=3{t.Fatalf("no source boundary should leave content intact %+v",a.Blocks)}
 }
