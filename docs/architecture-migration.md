@@ -114,3 +114,7 @@ Moved thumbnail dimension limits, image sniffing, bounded pixel decoding/crop/JP
 ## Phase 24: Google News protocol boundary
 
 Moved Google News URL identification, legacy encoded destination parsing, RPC request serialization, RPC frame parsing and signature/timestamp expressions into `internal/googlenews`. The root resolver now uses those functions directly while retaining outbound network transport, redirect limits and the existing `validatedURL` safety checks in the application. Tests call the new package directly. There are no forwarding compatibility methods or new callback-injected security dependencies. No change to v0.2.85 or existing HTTP response handling.
+
+## Phase 25: page classification and shared source-noise ownership
+
+Moved all five page classifiers (index, marketing landing, search portal, thin portal, sparse-root landing) out of root `page_type.go` to `internal/pageclassify`. Moved the shared noisy source-region detection (including its promotional-tag policy) out of `main.go` into `internal/sourcehtml`, so both page classification and root extraction/recovery call the same package-owned implementation directly. Removed both original implementations, updated callers and regression tests, and introduced no wrapper or callback adapter. The old parser and data models are reused, not duplicated. Application version and network access gates are unchanged.
