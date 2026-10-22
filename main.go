@@ -2,7 +2,6 @@ package main
 
 import (
 	articlemodel "clean-article-reader/internal/article"
- "clean-article-reader/internal/httpapi"
  sourcehtml "clean-article-reader/internal/sourcehtml"
 	"context"
 	_ "embed"
@@ -610,13 +609,7 @@ func publisherAccessMessage(err error) (string, bool) {
 }
 
 func api(w http.ResponseWriter, r *http.Request) {
- httpapi.ReadHandler(httpapi.ReadDependencies{
-  Resolve: resolveGoogleNewsURL,
-  Download: download,
-  PublisherAccessMessage: publisherAccessMessage,
-  Hostname: mustHostname,
-  WriteExtracted: writeExtractedArticle,
- }).ServeHTTP(w,r)
+ newArticleReadHandler().ServeHTTP(w,r)
 }
 
 // writeExtractedArticle is shared by normal retrieval and diagnostic HTML submission.
@@ -839,9 +832,10 @@ func main() {
 		os.Exit(2)
 	}
 	mux := http.NewServeMux()
-	mux.HandleFunc("/api/read", api)
+	readHandler := newArticleReadHandler()
+	mux.Handle("/api/read", readHandler)
 	mux.HandleFunc("/api/classify", classifyArticle)
-	mux.HandleFunc("/api/image-metadata", imageMetadata)
+	mux.Handle("/api/image-metadata", newArticleMetadataHandler(readHandler))
 	mux.HandleFunc("/api/article-image", articleImage)
 	mux.HandleFunc("/api/thumbnail", articleThumbnail)
 	mux.HandleFunc("/api/diagnostic/extract", diagnosticExtract)
