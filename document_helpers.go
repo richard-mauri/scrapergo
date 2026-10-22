@@ -56,7 +56,7 @@ func serializedCaptionImages(raw string, base *url.URL) map[string]string {
 
 // Preserve legacy entry point while structured conversion is package-owned.
 func semanticTextBlock(n *Node, base *url.URL) Block {
- return structured.TextBlock(n,base,resolveImageURL,links.IsDocumentURL)
+ return structured.TextBlock(n,base,sourcehtml.ResolveURL,links.IsDocumentURL)
 }
 
 func nestedProse(n, scope *Node) bool {
