@@ -1,6 +1,7 @@
 package main
 
 import (
+ "clean-article-reader/internal/sourcehtml"
 	"net/url"
 	"strings"
 )
@@ -31,7 +32,7 @@ func recoverLeadingParagraphs(raw string, blocks []Block, base *url.URL) []Block
 	// avoiding coincidental matches in summaries or recommendation widgets.
 	for _, p := range find(root, func(n *Node) bool { return n.Tag == "p" }) {
 		t := normalize(textOf(p))
-		if len(t) >= 65 && (strings.HasPrefix(first, t) || strings.HasPrefix(t, first)) && !inNoisy(p, nil) {
+		if len(t) >= 65 && (strings.HasPrefix(first, t) || strings.HasPrefix(t, first)) && !sourcehtml.InNoisy(p, nil) {
 			anchor = p
 			break
 		}
@@ -65,7 +66,7 @@ func recoverLeadingParagraphs(raw string, blocks []Block, base *url.URL) []Block
 		if p == anchor {
 			break
 		}
-		if inNoisy(p, scope) || promotionalAncestor(p, scope) || promotionalRegion(p) || nestedProse(p, scope) {
+		if sourcehtml.InNoisy(p, scope) || promotionalAncestor(p, scope) || promotionalRegion(p) || nestedProse(p, scope) {
 			continue
 		}
 		t := normalize(textOf(p))
