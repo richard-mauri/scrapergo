@@ -1,6 +1,6 @@
-# CURRENT WORK — PR #37 (2026-10-22)
+# CURRENT WORK — PR #38 (2026-10-22)
 
-PR #36 confirmed merged into main after owner verified the BMW image pair side-by-side. New branch fix/gallery-horizontal-layout-evidence starts from merged main, keeps app v0.2.85. Focus: narrow generic gallery layout recognition so inline CSS `display:flex; flex-direction:column` with unrelated photos is not falsely grouped; explicitly horizontal inline flex layouts still group. Tests cover both orientations. Existing document/lead/caption semantics and launcher configuration unchanged. Keep PR draft pending CI and owner acceptance. Only owner merges. The section below remains historical background, not an active status report.
+PR #37 is confirmed merged. This branch `refactor/selected-link-assignment` begins from current main, v0.2.85 unchanged. Scope: move one-to-one matching of Readability-selected inline-link parts into `internal/links`, leaving HTML tree parsing and inline markup extraction in the root adapter. Preserve existing behavior, paragraph order, and no new network requests. New internal link matching tests. PR remains draft until CI and owner review; owner alone merges. No additional handoff files.
 
 # CURRENT AUTHORITATIVE HANDOFF — 2026-10-22
 
