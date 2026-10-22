@@ -1,6 +1,7 @@
 package main
 
 import (
+ "clean-article-reader/internal/links"
 	"net/url"
 	"strings"
 	"testing"
@@ -18,10 +19,10 @@ func TestArticleInlineLinkRouting(t *testing.T) {
 	}
 }
 func TestLinkableDocuments(t *testing.T) {
-	if linkableDocument("https://example.com/report.pdf") || linkableDocument("javascript:alert(1)") {
+	if links.IsDocumentURL("https://example.com/report.pdf") || links.IsDocumentURL("javascript:alert(1)") {
 		t.Fatal("unsafe document routing")
 	}
-	if !linkableDocument("https://example.com/news/related") {
+	if !links.IsDocumentURL("https://example.com/news/related") {
 		t.Fatal("article routing disabled")
 	}
 }

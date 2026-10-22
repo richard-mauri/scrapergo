@@ -1,6 +1,7 @@
 package main
 
 import (
+ "clean-article-reader/internal/links"
 	"bytes"
 	"fmt"
 	"net/url"
@@ -169,7 +170,7 @@ func attachInlineLinks(blocks []Block, cleaned string, base *url.URL) {
 			continue
 		}
 		destination := resolveImageURL(anchor.Attr["href"], base)
-		if destination == "" || !linkableDocument(destination) {
+		if destination == "" || !links.IsDocumentURL(destination) {
 			continue
 		}
 		for i := range blocks {
@@ -180,24 +181,6 @@ func attachInlineLinks(blocks []Block, cleaned string, base *url.URL) {
 			break
 		}
 	}
-}
-
-func linkableDocument(destination string) bool {
-	u, err := url.Parse(destination)
-	if err != nil || (u.Scheme != "https" && u.Scheme != "http") || u.Hostname() == "" || u.User != nil {
-		return false
-	}
-	switch strings.ToLower(strings.TrimSpace(u.Path[strings.LastIndex(u.Path, "/")+1:])) {
-	case "":
-		return true
-	}
-	name := strings.ToLower(u.Path)
-	for _, suffix := range []string{".pdf", ".zip", ".gz", ".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".mp4", ".mp3", ".mov", ".avi", ".doc", ".docx", ".xls", ".xlsx"} {
-		if strings.HasSuffix(name, suffix) {
-			return false
-		}
-	}
-	return true
 }
 
 func positionArticleFigures(blocks []Block, cleaned string, base *url.URL) []Block {
