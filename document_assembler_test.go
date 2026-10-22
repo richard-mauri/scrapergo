@@ -2,6 +2,8 @@ package main
 
 import (
  "encoding/json"
+ "clean-article-reader/internal/media"
+ "clean-article-reader/internal/contributors"
  "testing"
 
  extractionmodel "clean-article-reader/internal/extraction"
@@ -18,14 +20,14 @@ func TestAssembleArticleDocumentMatchesExistingPipeline(t *testing.T) {
  }
  expected := input.Article
  recoverArticlePhotographs(&expected,raw,sourceURL)
- deduplicateArticleImages(&expected)
+ media.Deduplicate(&expected)
  recoverMissingArticleLinks(&expected,raw,sourceURL)
  recoverAuthorPortrait(&expected,raw,sourceURL)
  removeSerializedPlayerBlocks(&expected)
  classifyContributorImages(&expected)
  classifyImagesFromSource(&expected,raw,sourceURL)
  reconcileContributorByline(&expected)
- separateContributorHeader(&expected)
+ contributors.SeparateHeader(&expected)
  recoverOpeningSourceFigure(&expected,raw,sourceURL)
  normalizeArticleDocument(&expected,input.Evidence.MetadataImageURL)
 

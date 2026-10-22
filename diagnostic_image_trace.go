@@ -1,6 +1,8 @@
 package main
 
 import (
+ "clean-article-reader/internal/media"
+ "clean-article-reader/internal/contributors"
  "encoding/json"
  "io"
  "net"
@@ -91,7 +93,7 @@ func diagnosticImageTrace(w http.ResponseWriter,r *http.Request) {
  stages=append(stages,sourceImageTrace(cleaned,input.URL)...)
  stages=append(stages,traceImageBlocks("readability",article.Blocks)...)
  recoverArticlePhotographs(&article,cleaned,input.URL)
- deduplicateArticleImages(&article)
+ media.Deduplicate(&article)
  recoverMissingArticleLinks(&article,cleaned,input.URL)
  recoverAuthorPortrait(&article,cleaned,input.URL)
  stages=append(stages,traceImageBlocks("recovered",article.Blocks)...)
@@ -100,7 +102,7 @@ func diagnosticImageTrace(w http.ResponseWriter,r *http.Request) {
  classifyContributorImages(&article)
  classifyImagesFromSource(&article,cleaned,input.URL)
  reconcileContributorByline(&article)
- separateContributorHeader(&article)
+ contributors.SeparateHeader(&article)
  stages=append(stages,traceImageBlocks("classified",article.Blocks)...)
  opening=append(opening,traceOpeningBlocks("classified",article.Blocks)...)
  sourceLead:=extracted.Evidence.MetadataImageURL
