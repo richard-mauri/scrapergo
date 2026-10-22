@@ -94,3 +94,7 @@ Deleted `image_dedupe.go` and `contributor_header.go`, which contained only root
 ## Phase 19: direct structured media cleanup migration
 
 Removed the root implementations of embedded media DOM stripping and serialized player-block pruning. `internal/structured` now owns `StripEmbeddedMedia` and `RemoveSerializedPlayerBlocks` along with the shared media-element recognition logic. Main extraction, diagnostic image tracing, assembly, and regression tests call these package functions directly; no compatibility wrappers or injected helper callbacks were created. The other source-dependent recovery algorithms remain root-owned pending separate cohesive migrations. Application version and network retrieval policies remain unchanged.
+
+## Phase 20: delete image-metadata root compatibility entry points
+
+The production image-delivery endpoint and root HTTP tests now invoke the application-wired `internal/httpapi.ImageMetadataHandler` directly via `newArticleMetadataHandler`, rather than a package-main `imageMetadata` forwarding function. Deleted `image_metadata.go`, including its redundant `articleImageCandidates` forwarder. The actual HTTP response and image-candidate selection remain owned by `internal/httpapi`; this change adds no replacement wrappers or duplicate image policy. Full migration of page selection and partial-excerpt extraction is deferred until shared URL and editorial policy can move with their actual owners.
