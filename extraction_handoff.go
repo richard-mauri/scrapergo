@@ -1,6 +1,7 @@
 package main
 
 import (
+ "clean-article-reader/internal/sourcehtml"
  "net/url"
 
  extractionmodel "clean-article-reader/internal/extraction"
@@ -14,7 +15,7 @@ func extractWithEvidence(raw, source string) (extractionmodel.Result, error) {
  if err != nil { return extractionmodel.Result{}, err }
  result := extractionmodel.Result{Article: article, Evidence: extractionmodel.SourceEvidence{SourceURL: source}}
  if base, err := url.Parse(source); err == nil {
-  result.Evidence.MetadataImageURL = resolveImageURL(meta(parseHTML(raw), "og:image", "twitter:image"), base)
+  result.Evidence.MetadataImageURL = sourcehtml.ResolveURL(meta(parseHTML(raw), "og:image", "twitter:image"), base)
  }
  return result, nil
 }
