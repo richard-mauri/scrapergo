@@ -44,7 +44,6 @@ type Article = articlemodel.Article
 
 type Node = sourcehtml.Node
 
-var promotRE = regexp.MustCompile(`(?i)(advertis|sponsor|promo|newsletter|signup|sign-up|subscribe|paywall|related|recommended|trending|most-read|share[-_ ]|social|ticker|stock[-_ ]?quote|market[-_ ]?data|author[-_ ]?bio|affiliate|outbrain|taboola|comments|breadcrumb|sidebar|sticky|modal|popup|cookie|footer|navigation|nav-menu|more-content|continue-reading|biggest-winner|biggest-loser)`)
 var sentenceAdRE = regexp.MustCompile(`(?i)(enter your email|free report|stocks to buy right now|our analysts combed|click here to|grab your free|sign up for|subscribe to|advertisement|read more:|get our free|limited.time offer)`)
 var blockedTags = sourcehtml.BlockedTags
 var wsRE = regexp.MustCompile(`\s+`)
@@ -54,21 +53,6 @@ func parseHTML(raw string) *Node { return sourcehtml.Parse(raw) }
 func find(root *Node, test func(*Node) bool) []*Node { return sourcehtml.Find(root,test) }
 func textOf(n *Node) string { return sourcehtml.Text(n) }
 func meta(root *Node, keys ...string) string { return sourcehtml.Meta(root, keys...) }
-func noisy(n *Node) bool {
-	if blockedTags[n.Tag] {
-		return true
-	}
-	s := n.Attr["class"] + " " + n.Attr["id"] + " " + n.Attr["role"] + " " + n.Attr["aria-label"]
-	return promotRE.MatchString(s)
-}
-func inNoisy(n, stop *Node) bool {
-	for p := n; p != nil && p != stop; p = p.Parent {
-		if noisy(p) {
-			return true
-		}
-	}
-	return false
-}
 func articleImageURL(n *Node, baseURL string) string {
 	if n.Tag != "img" {
 		return ""
@@ -152,7 +136,7 @@ func extractBlocks(root *Node, bases ...string) []Block {
 	var blocks []Block
 	var walk func(*Node)
 	walk = func(n *Node) {
-		if noisy(n) {
+		if sourcehtml.Noisy(n) {
 			return
 		}
 		if n.Tag == "img" {
@@ -214,7 +198,7 @@ func chooseArticle(root *Node) *Node {
 	}
 	var ranked []scored
 	for _, n := range candidates {
-		if noisy(n) {
+		if sourcehtml.Noisy(n) {
 			continue
 		}
 		blocks := extractBlocks(n)
@@ -265,7 +249,7 @@ func recoverArticlePhotographs(a *Article, raw, baseURL string) {
 	type candidate struct{ url, alt, near string }
 	var found []candidate
 	for _, n := range find(root, func(n *Node) bool { return n.Tag == "img" }) {
-		if inNoisy(n, nil) {
+		if sourcehtml.InNoisy(n, nil) {
 			continue
 		}
 		editorial := false
