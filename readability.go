@@ -193,11 +193,18 @@ func positionArticleFigures(blocks []Block, cleaned string, base *url.URL) []Blo
 			if inFigure {
 				continue
 			}
-			for paragraph < len(blocks) && !strings.Contains(blocks[paragraph].Text, txt) && !strings.Contains(txt, blocks[paragraph].Text) {
-				paragraph++
-			}
-			if paragraph < len(blocks) {
-				paragraph++
+			// A source paragraph omitted or rewritten by Readability must not
+			// consume the entire block cursor and push later images to the end.
+			// Advance only when a retained prose block really matches.
+			for next := paragraph; next < len(blocks); next++ {
+				if blocks[next].Kind == "img" || blocks[next].Kind == "topic-link" {
+					continue
+				}
+				candidate := normalize(blocks[next].Text)
+				if candidate != "" && (strings.Contains(candidate, txt) || strings.Contains(txt, candidate)) {
+					paragraph = next + 1
+					break
+				}
 			}
 			continue
 		}
