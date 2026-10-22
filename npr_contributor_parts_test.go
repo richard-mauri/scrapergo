@@ -1,6 +1,8 @@
 package main
 
-import "testing"
+import ("testing"
+"clean-article-reader/internal/contributors"
+)
 
 func TestNPRContributorPartsHeaderSeparation(t *testing.T) {
  name:=func(s string) Block{return Block{Kind:"p",Text:s,Parts:[]TextPart{{Text:s,URL:"https://www.npr.org/people/example"}}}}
@@ -18,13 +20,13 @@ func TestNPRContributorPartsHeaderSeparation(t *testing.T) {
   {Kind:"p",Text:"Article begins here."},
   {Kind:"img",Role:"editorial",URL:nprWestBankInline,Text:"Olive harvesting"},
  }}
- separateContributorHeader(&a)
+ contributors.SeparateHeader(&a)
  if a.Byline!="Ruth Sherlock, Samantha Balaban, Nuha Musleh, Daniel Estrin" {t.Fatalf("wrong byline %q",a.Byline)}
  if len(a.Blocks)!=6 {t.Fatalf("unexpected remaining blocks %+v",a.Blocks)}
  if a.Blocks[0].Text!="Middle East"||a.Blocks[1].Text!="Brad Lander West Bank"||a.Blocks[2].Text!="Download"||a.Blocks[3].URL!=nprWestBankFirst||a.Blocks[5].URL!=nprWestBankInline{t.Fatalf("editorial body damaged %+v",a.Blocks)}
 }
 func TestNoBylineHeaderDoesNotConsumeEditorialLinks(t *testing.T){
  a:=Article{Blocks:[]Block{{Kind:"p",Text:"Opening words"},{Kind:"p",Text:"Linked article",Parts:[]TextPart{{Text:"Linked article",URL:"https://example.org"}}},{Kind:"img",Role:"editorial",URL:"https://example.org/scene.jpg"}}}
- separateContributorHeader(&a)
+ contributors.SeparateHeader(&a)
  if len(a.Blocks)!=3 {t.Fatalf("unexpected removal %+v",a.Blocks)}
 }
