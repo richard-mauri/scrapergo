@@ -1,6 +1,8 @@
-package main
+package extraction
 
 import (
+ "clean-article-reader/internal/sourcehtml"
+ "clean-article-reader/internal/article"
     "net/url"
     "strings"
 )
@@ -9,21 +11,21 @@ import (
 // It is not a publisher adapter: it requires corroborating page metadata,
 // a matching headline, and coherent prose within an article element.
 // It never fetches additional content or attempts to defeat access controls.
-func partialHTMLArticle(raw, source string) (Article, bool) {
+func PartialHTMLArticle(raw, source string) (article.Article, bool) {
     base, err := url.Parse(source)
     if err != nil || base.Hostname() == "" || (base.Scheme != "https" && base.Scheme != "http") {
-        return Article{}, false
+        return article.Article{}, false
     }
-    root := parseHTML(raw)
-    if !strings.EqualFold(strings.TrimSpace(meta(root, "og:type")), "article") {
-        return Article{}, false
+    root := sourcehtml.Parse(raw)
+    if !strings.EqualFold(strings.TrimSpace(sourcehtml.Meta(root, "og:type")), "article") {
+        return article.Article{}, false
     }
-    title := normalize(meta(root, "og:title", "twitter:title"))
+    title := sourcehtml.Normalize(sourcehtml.Meta(root, "og:title", "twitter:title"))
     if len(title) < 12 {
-        return Article{}, false
+        return article.Article{}, false
     }
     canonicalMatches := false
-    for _, n := range find(root, func(n *Node) bool { return n.Tag == "link" }) {
+    for _, n := range sourcehtml.Find(root, func(n *sourcehtml.Node) bool { return n.Tag == "link" }) {
         if !strings.EqualFold(n.Attr["rel"], "canonical") {
             continue
         }
@@ -36,11 +38,11 @@ func partialHTMLArticle(raw, source string) (Article, bool) {
         break
     }
     if !canonicalMatches {
-        return Article{}, false
+        return article.Article{}, false
     }
     headlineMatches := false
-    for _, h := range find(root, func(n *Node) bool { return n.Tag == "h1" }) {
-        headline := strings.ToLower(normalize(textOf(h)))
+    for _, h := range sourcehtml.Find(root, func(n *sourcehtml.Node) bool { return n.Tag == "h1" }) {
+        headline := strings.ToLower(sourcehtml.Normalize(sourcehtml.Text(h)))
         titleKey := strings.ToLower(title)
         if len(headline) >= 12 && (strings.Contains(titleKey, headline) || strings.Contains(headline, titleKey)) {
             headlineMatches = true
@@ -48,16 +50,16 @@ func partialHTMLArticle(raw, source string) (Article, bool) {
         }
     }
     if !headlineMatches {
-        return Article{}, false
+        return article.Article{}, false
     }
-    var best []Block
+    var best []article.Block
     bestCount := 0
-    for _, article := range find(root, func(n *Node) bool { return n.Tag == "article" }) {
-        blocks := make([]Block, 0, 8)
+    for _, articleNode := range sourcehtml.Find(root, func(n *sourcehtml.Node) bool { return n.Tag == "article" }) {
+        blocks := make([]article.Block, 0, 8)
         words := 0
-        for _, p := range find(article, func(n *Node) bool { return n.Tag == "p" }) {
+        for _, p := range sourcehtml.Find(articleNode, func(n *sourcehtml.Node) bool { return n.Tag == "p" }) {
             excluded := false
-            for ancestor := p.Parent; ancestor != nil && ancestor != article; ancestor = ancestor.Parent {
+            for ancestor := p.Parent; ancestor != nil && ancestor != articleNode; ancestor = ancestor.Parent {
                 if ancestor.Tag == "figure" || ancestor.Tag == "figcaption" ||
                     ancestor.Tag == "nav" || ancestor.Tag == "footer" || ancestor.Tag == "aside" {
                     excluded = true
@@ -67,11 +69,11 @@ func partialHTMLArticle(raw, source string) (Article, bool) {
             if excluded {
                 continue
             }
-            line := normalize(textOf(p))
-            if len(line) < 12 || sentenceAdRE.MatchString(line) {
+            line := sourcehtml.Normalize(sourcehtml.Text(p))
+            if len(line) < 12 || IsAdvertisingText(line) {
                 continue
             }
-            blocks = append(blocks, Block{Kind: "p", Text: line})
+            blocks = append(blocks, article.Block{Kind: "p", Text: line})
             words += len(strings.Fields(line))
             if len(blocks) >= 32 {
                 break
@@ -84,10 +86,10 @@ func partialHTMLArticle(raw, source string) (Article, bool) {
     // This path is deliberately limited to substantial *partial* excerpts.
     // Full articles continue to use Readability/structured recovery.
     if bestCount < 30 || bestCount >= 60 {
-        return Article{}, false
+        return article.Article{}, false
     }
-    img := resolveImageURL(meta(root, "og:image", "twitter:image"), base)
-    return Article{
+    img := sourcehtml.ResolveURL(sourcehtml.Meta(root, "og:image", "twitter:image"), base)
+    return article.Article{
         Title: title, URL: source, Blocks: best, WordCount: bestCount,
         ImageURL: img, Method: "Partial HTML excerpt",
         AccessNote: "Only an excerpt was available to ScraperGo. The original website may require cookie consent, registration, or a subscription to display the complete article. Open the original article to continue reading.",
@@ -95,7 +97,7 @@ func partialHTMLArticle(raw, source string) (Article, bool) {
 }
 
 // hasPartialArticleEvidence is shared by the pre- and post-extraction index gates.
-func hasPartialArticleEvidence(raw, source string) bool {
-    _, ok := partialHTMLArticle(raw, source)
+func HasPartialArticleEvidence(raw, source string) bool {
+    _, ok := PartialHTMLArticle(raw, source)
     return ok
 }

@@ -1,6 +1,8 @@
 package main
 
 import (
+ "clean-article-reader/internal/extraction"
+ "clean-article-reader/internal/sourcehtml"
  "clean-article-reader/internal/links"
 	"bytes"
 	"fmt"
@@ -27,7 +29,7 @@ func extractWithReadability(raw, source string) (Article, error) {
 			count := 0
 			for _, chunk := range chunks {
 				line := normalize(chunk)
-				if line == "" || sentenceAdRE.MatchString(line) {
+				if line == "" || extraction.IsAdvertisingText(line) {
 					continue
 				}
 				blocks = append(blocks, Block{Kind: "p", Text: line})
@@ -50,9 +52,9 @@ func extractWithReadability(raw, source string) (Article, error) {
 				if title == "" {
 					title = "Untitled article"
 				}
-				img := resolveImageURL(parsed.ImageURL(), u)
+				img := sourcehtml.ResolveURL(parsed.ImageURL(), u)
 				if img == "" {
-					img = resolveImageURL(meta(parseHTML(raw), "og:image", "twitter:image"), u)
+					img = sourcehtml.ResolveURL(meta(parseHTML(raw), "og:image", "twitter:image"), u)
 				}
 				var cleanHTML bytes.Buffer
 				if parsed.RenderHTML(&cleanHTML) == nil {
@@ -93,32 +95,13 @@ func extractWithReadability(raw, source string) (Article, error) {
 		fallback.Method = "Legacy extractor fallback"
 		return fallback, nil
 	}
-	if partial, ok := partialHTMLArticle(raw, source); ok {
+	if partial, ok := extraction.PartialHTMLArticle(raw, source); ok {
 		return partial, nil
 	}
 	if parseErr != nil {
 		return fallback, fmt.Errorf("Readability: %v; legacy extractor: %w", parseErr, fallbackErr)
 	}
 	return fallback, fallbackErr
-}
-
-func resolveImageURL(raw string, base *url.URL) string {
-	raw = strings.TrimSpace(raw)
-	if raw == "" {
-		return ""
-	}
-	u, err := url.Parse(raw)
-	if err != nil {
-		return ""
-	}
-	resolved := base.ResolveReference(u)
-	if resolved.Scheme != "http" && resolved.Scheme != "https" {
-		return ""
-	}
-	if resolved.Hostname() == "" || resolved.User != nil {
-		return ""
-	}
-	return resolved.String()
 }
 
 func articleImages(cleaned string, base *url.URL) []Block {
@@ -133,7 +116,7 @@ func articleImages(cleaned string, base *url.URL) []Block {
 		if src == "" {
 			src = n.Attr["data-original"]
 		}
-		link := resolveImageURL(src, base)
+		link := sourcehtml.ResolveURL(src, base)
 		if link == "" || seen[link] {
 			continue
 		}
@@ -169,7 +152,7 @@ func attachInlineLinks(blocks []Block, cleaned string, base *url.URL) {
 		if label == "" {
 			continue
 		}
-		destination := resolveImageURL(anchor.Attr["href"], base)
+		destination := sourcehtml.ResolveURL(anchor.Attr["href"], base)
 		if destination == "" || !links.IsDocumentURL(destination) {
 			continue
 		}
@@ -247,7 +230,7 @@ func positionArticleFigures(blocks []Block, cleaned string, base *url.URL) []Blo
 
 func imageFromNode(n *Node, base *url.URL) string {
 	for _, attr := range []string{"src", "data-src", "data-original"} {
-		if link := resolveImageURL(n.Attr[attr], base); link != "" {
+		if link := sourcehtml.ResolveURL(n.Attr[attr], base); link != "" {
 			return link
 		}
 	}

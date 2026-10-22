@@ -1,6 +1,7 @@
 package main
 
 import (
+ "clean-article-reader/internal/extraction"
  "clean-article-reader/internal/sourcehtml"
 	"net/url"
  "clean-article-reader/internal/recovery"
@@ -93,7 +94,7 @@ func editorialContinuityBlocks(scope *Node, base *url.URL) []Block {
 				return
 			}
 			b := semanticTextBlock(n, base)
-			if len(b.Text) < 25 || (sentenceAdRE.MatchString(b.Text) && len(strings.Fields(b.Text)) < 12) || seenText[normalize(b.Text)] {
+			if len(b.Text) < 25 || (extraction.IsAdvertisingText(b.Text) && len(strings.Fields(b.Text)) < 12) || seenText[normalize(b.Text)] {
 				return
 			}
 			seenText[normalize(b.Text)] = true
@@ -237,7 +238,7 @@ func recoverAnchoredEditorialTail(root *Node, selected []Block, base *url.URL) [
 			}
 			b := semanticTextBlock(n, base)
 			k := normalize(b.Text)
-			if len(k) < 25 || (sentenceAdRE.MatchString(k) && len(strings.Fields(k)) < 12) || existing[k] {
+			if len(k) < 25 || (extraction.IsAdvertisingText(k) && len(strings.Fields(k)) < 12) || existing[k] {
 				return
 			}
 			existing[k] = true
@@ -296,7 +297,7 @@ func hasEditorialChildOutsideNoise(scope *Node) bool {
 				break
 			}
 		}
-		if !blocked && !sentenceAdRE.MatchString(normalize(textOf(p))) {
+		if !blocked && !extraction.IsAdvertisingText(normalize(textOf(p))) {
 			return true
 		}
 	}

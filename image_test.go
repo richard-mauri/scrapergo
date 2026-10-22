@@ -1,6 +1,7 @@
 package main
 
 import (
+ "clean-article-reader/internal/sourcehtml"
 	"net/url"
 	"strings"
 	"testing"
@@ -8,10 +9,10 @@ import (
 
 func TestImageURLResolution(t *testing.T) {
 	base, _ := url.Parse("https://example.com/a/b")
-	if got := resolveImageURL("/large.jpg", base); got != "https://example.com/large.jpg" {
+	if got := sourcehtml.ResolveURL("/large.jpg", base); got != "https://example.com/large.jpg" {
 		t.Fatal(got)
 	}
-	if got := resolveImageURL("javascript:alert(1)", base); got != "" {
+	if got := sourcehtml.ResolveURL("javascript:alert(1)", base); got != "" {
 		t.Fatal(got)
 	}
 }

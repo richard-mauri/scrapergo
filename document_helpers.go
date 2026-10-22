@@ -1,6 +1,7 @@
 package main
 
 import (
+ "clean-article-reader/internal/sourcehtml"
  "clean-article-reader/internal/links"
 		"net/url"
  "clean-article-reader/internal/structured"
@@ -43,7 +44,7 @@ func serializedCaptionImages(raw string, base *url.URL) map[string]string {
 		if err1 != nil || err2 != nil {
 			continue
 		}
-		link := resolveImageURL(picture, base)
+		link := sourcehtml.ResolveURL(picture, base)
 		caption = normalize(caption)
 		if link == "" || caption == "" {
 			continue
@@ -55,7 +56,7 @@ func serializedCaptionImages(raw string, base *url.URL) map[string]string {
 
 // Preserve legacy entry point while structured conversion is package-owned.
 func semanticTextBlock(n *Node, base *url.URL) Block {
- return structured.TextBlock(n,base,resolveImageURL,links.IsDocumentURL)
+ return structured.TextBlock(n,base,sourcehtml.ResolveURL,links.IsDocumentURL)
 }
 
 func nestedProse(n, scope *Node) bool {

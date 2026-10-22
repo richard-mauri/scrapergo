@@ -23,7 +23,7 @@ func recoverMissingArticleLinks(a *Article, raw, source string) {
   for _,anchor:=range anchors {
    record.Anchors=append(record.Anchors,links.Anchor{
     Text:normalize(textOf(anchor)),
-    URL:resolveImageURL(anchor.Attr["href"],base),
+    URL:sourcehtml.ResolveURL(anchor.Attr["href"],base),
    })
   }
   evidence=append(evidence,record)

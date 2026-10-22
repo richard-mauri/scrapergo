@@ -1,6 +1,7 @@
 package main
 
 import (
+ "clean-article-reader/internal/sourcehtml"
 	"net/url"
 	"regexp"
 	"strings"
@@ -114,7 +115,7 @@ func contextualLinkSection(n *Node, base *url.URL) (string, []Block, bool) {
 	seen := map[string]bool{}
 	for _, a := range find(cluster, func(x *Node) bool { return x.Tag == "a" }) {
 		label := normalize(textOf(a))
-		href := resolveImageURL(a.Attr["href"], base)
+		href := sourcehtml.ResolveURL(a.Attr["href"], base)
 		if label == "" || len(label) > 70 || href == "" || seen[href] {
 			continue
 		}

@@ -1,6 +1,7 @@
 package main
 
 import (
+ "clean-article-reader/internal/extraction"
  "clean-article-reader/internal/sourcehtml"
 	"net/url"
 )
@@ -83,7 +84,7 @@ func recoverStructuredDocument(raw string, reader []Block, base *url.URL) ([]Blo
 				return
 			}
 			b := semanticTextBlock(n, base)
-			if b.Text == "" || sentenceAdRE.MatchString(b.Text) {
+			if b.Text == "" || extraction.IsAdvertisingText(b.Text) {
 				return
 			}
 			if url := photos[normalize(b.Text)]; url != "" && !used[url] {

@@ -1,6 +1,7 @@
 package main
 
 import (
+ "clean-article-reader/internal/extraction"
  "clean-article-reader/internal/pageclassify"
  "clean-article-reader/internal/structured"
 	articlemodel "clean-article-reader/internal/article"
@@ -45,7 +46,6 @@ type Article = articlemodel.Article
 
 type Node = sourcehtml.Node
 
-var sentenceAdRE = regexp.MustCompile(`(?i)(enter your email|free report|stocks to buy right now|our analysts combed|click here to|grab your free|sign up for|subscribe to|advertisement|read more:|get our free|limited.time offer)`)
 var blockedTags = sourcehtml.BlockedTags
 var wsRE = regexp.MustCompile(`\s+`)
 
@@ -166,7 +166,7 @@ func extractBlocks(root *Node, bases ...string) []Block {
 				return
 			}
 			txt := textOf(n)
-			if len(txt) > 0 && !sentenceAdRE.MatchString(txt) && !(n.Tag == "p" && len(txt) < 25 && len(find(n, func(child *Node) bool { return child.Tag == "a" })) == 0) {
+			if len(txt) > 0 && !extraction.IsAdvertisingText(txt) && !(n.Tag == "p" && len(txt) < 25 && len(find(n, func(child *Node) bool { return child.Tag == "a" })) == 0) {
 				blocks = append(blocks, Block{Kind: n.Tag, Text: txt, Parts: inlineTextParts(n, baseURL)})
 			}
 			return
@@ -358,7 +358,7 @@ func jsonLDArticle(raw string) []Block {
 			out := make([]Block, 0, len(parts))
 			for _, part := range parts {
 				txt := normalize(regexp.MustCompile(`<[^>]*>`).ReplaceAllString(part, " "))
-				if len(txt) > 25 && !sentenceAdRE.MatchString(txt) {
+				if len(txt) > 25 && !extraction.IsAdvertisingText(txt) {
 					out = append(out, Block{Kind: "p", Text: txt})
 				}
 			}
@@ -603,7 +603,7 @@ func writeExtractedArticle(w http.ResponseWriter, raw, finalURL string) {
 	logSlateRetrievalDiagnostic(raw, finalURL)
 	// A navigation index is not a single article. Classify conservatively before
 	// Readability can flatten its menu and story cards into a false article.
-	if (pageclassify.IsIndex(raw) || pageclassify.IsLanding(raw)) && !hasPartialArticleEvidence(raw, finalURL) {
+	if (pageclassify.IsIndex(raw) || pageclassify.IsLanding(raw)) && !extraction.HasPartialArticleEvidence(raw, finalURL) {
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		_ = json.NewEncoder(w).Encode(map[string]string{
 			"kind":  "page_index",
@@ -634,7 +634,7 @@ func writeExtractedArticle(w http.ResponseWriter, raw, finalURL string) {
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": accessNotice(kind), "kind": kind, "publisher": mustHostname(finalURL), "evidence": restrictionEvidence(raw)})
 		return
 	}
-	if (extractionErr == nil && (pageclassify.IsThinPortal(raw, article.WordCount) || pageclassify.IsSparseRootLanding(raw, finalURL, article.WordCount)) || extractionErr != nil && pageclassify.IsSearchPortal(raw)) && !hasPartialArticleEvidence(raw, finalURL) {
+	if (extractionErr == nil && (pageclassify.IsThinPortal(raw, article.WordCount) || pageclassify.IsSparseRootLanding(raw, finalURL, article.WordCount)) || extractionErr != nil && pageclassify.IsSearchPortal(raw)) && !extraction.HasPartialArticleEvidence(raw, finalURL) {
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		_ = json.NewEncoder(w).Encode(map[string]string{
 			"kind":  "page_index",

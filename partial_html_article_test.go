@@ -1,6 +1,7 @@
 package main
 
 import (
+ "clean-article-reader/internal/extraction"
     "strings"
     "testing"
     "net/http"
@@ -21,7 +22,7 @@ const partialFixture = `<!doctype html><html><head>
 </article></body></html>`
 
 func TestPartialHTMLArticleAcceptsCorroboratedExcerpt(t *testing.T) {
-    a, ok := partialHTMLArticle(partialFixture, "https://example.org/news/report")
+    a, ok := extraction.PartialHTMLArticle(partialFixture, "https://example.org/news/report")
     if !ok {
         t.Fatal("expected a strongly evidenced short article excerpt")
     }
@@ -35,10 +36,10 @@ func TestPartialHTMLArticleAcceptsCorroboratedExcerpt(t *testing.T) {
 }
 
 func TestPartialHTMLArticleRejectsIndexAndUnmatchedCanonical(t *testing.T) {
-    if _, ok := partialHTMLArticle(strings.ReplaceAll(partialFixture, "content=\"article\"", "content=\"website\""), "https://example.org/news/report"); ok {
+    if _, ok := extraction.PartialHTMLArticle(strings.ReplaceAll(partialFixture, "content=\"article\"", "content=\"website\""), "https://example.org/news/report"); ok {
         t.Fatal("index should not qualify")
     }
-    if _, ok := partialHTMLArticle(partialFixture, "https://example.org/news/different"); ok {
+    if _, ok := extraction.PartialHTMLArticle(partialFixture, "https://example.org/news/different"); ok {
         t.Fatal("canonical mismatch should disqualify excerpt")
     }
 }

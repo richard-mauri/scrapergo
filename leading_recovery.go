@@ -1,6 +1,7 @@
 package main
 
 import (
+ "clean-article-reader/internal/extraction"
  "clean-article-reader/internal/sourcehtml"
 	"net/url"
 	"strings"
@@ -70,7 +71,7 @@ func recoverLeadingParagraphs(raw string, blocks []Block, base *url.URL) []Block
 			continue
 		}
 		t := normalize(textOf(p))
-		if len(t) < 25 || sentenceAdRE.MatchString(t) {
+		if len(t) < 25 || extraction.IsAdvertisingText(t) {
 			continue
 		}
 		duplicated := false
