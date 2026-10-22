@@ -1,6 +1,7 @@
 package main
 
 import (
+ "clean-article-reader/internal/extraction"
  "clean-article-reader/internal/pageclassify"
  "clean-article-reader/internal/structured"
 	articlemodel "clean-article-reader/internal/article"
@@ -45,7 +46,6 @@ type Article = articlemodel.Article
 
 type Node = sourcehtml.Node
 
-var sentenceAdRE = regexp.MustCompile(`(?i)(enter your email|free report|stocks to buy right now|our analysts combed|click here to|grab your free|sign up for|subscribe to|advertisement|read more:|get our free|limited.time offer)`)
 var blockedTags = sourcehtml.BlockedTags
 var wsRE = regexp.MustCompile(`\s+`)
 
@@ -166,7 +166,7 @@ func extractBlocks(root *Node, bases ...string) []Block {
 				return
 			}
 			txt := textOf(n)
-			if len(txt) > 0 && !sentenceAdRE.MatchString(txt) && !(n.Tag == "p" && len(txt) < 25 && len(find(n, func(child *Node) bool { return child.Tag == "a" })) == 0) {
+			if len(txt) > 0 && !extraction.IsAdvertisingText(txt) && !(n.Tag == "p" && len(txt) < 25 && len(find(n, func(child *Node) bool { return child.Tag == "a" })) == 0) {
 				blocks = append(blocks, Block{Kind: n.Tag, Text: txt, Parts: inlineTextParts(n, baseURL)})
 			}
 			return
@@ -358,7 +358,7 @@ func jsonLDArticle(raw string) []Block {
 			out := make([]Block, 0, len(parts))
 			for _, part := range parts {
 				txt := normalize(regexp.MustCompile(`<[^>]*>`).ReplaceAllString(part, " "))
-				if len(txt) > 25 && !sentenceAdRE.MatchString(txt) {
+				if len(txt) > 25 && !extraction.IsAdvertisingText(txt) {
 					out = append(out, Block{Kind: "p", Text: txt})
 				}
 			}
