@@ -35,3 +35,17 @@ func TestGalleryRequiresTwoPresentImages(t *testing.T) {
  groupArticleGalleryImages(&a,raw,"https://example.org/story")
  if a.Blocks[0].Gallery!="" {t.Fatalf("singleton gallery: %+v",a.Blocks)}
 }
+
+func TestVerticalInlineFlexDoesNotGroupEditorialImages(t *testing.T) {
+ raw:=`<article><div style="display: flex; flex-direction: column"><div><img src="/a.jpg"></div><div><img src="/b.jpg"></div></div></article>`
+ a:=Article{Blocks:[]Block{{Kind:"img",URL:"https://example.org/a.jpg"},{Kind:"p",Text:"Intervening text"},{Kind:"img",URL:"https://example.org/b.jpg"}}}
+ groupArticleGalleryImages(&a,raw,"https://example.org/story")
+ if a.Blocks[0].Gallery!=""||a.Blocks[2].Gallery!="" {t.Fatalf("vertical layout should preserve separate editorial figures: %+v",a.Blocks)}
+}
+
+func TestHorizontalInlineFlexGroupsPhotographs(t *testing.T) {
+ raw:=`<article><div style="display: flex; flex-direction: row"><div><img src="/a.jpg"></div><div><img src="/b.jpg"></div></div></article>`
+ a:=Article{Blocks:[]Block{{Kind:"img",URL:"https://example.org/a.jpg"},{Kind:"p",Text:"Recovered paragraph"},{Kind:"img",URL:"https://example.org/b.jpg"}}}
+ groupArticleGalleryImages(&a,raw,"https://example.org/story")
+ if a.Blocks[0].Gallery==""||a.Blocks[1].Gallery!=a.Blocks[0].Gallery {t.Fatalf("horizontal photo layout not restored: %+v",a.Blocks)}
+}

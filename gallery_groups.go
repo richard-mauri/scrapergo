@@ -14,7 +14,10 @@ func sourceGalleryCandidate(n *Node) bool {
  identity:=strings.ToLower(n.Attr["class"]+" "+n.Attr["id"]+" "+n.Attr["data-gallery"])
  explicit:=strings.Contains(identity,"gallery")||strings.Contains(identity,"carousel")||strings.Contains(identity,"slideshow")
  style:=strings.ToLower(n.Attr["style"])
- horizontal:=strings.Contains(style,"display:flex")||strings.Contains(style,"display: flex")||strings.Contains(style,"display:grid")||strings.Contains(style,"display: grid")
+ isFlex:=strings.Contains(style,"display:flex")||strings.Contains(style,"display: flex")
+ isGrid:=strings.Contains(style,"display:grid")||strings.Contains(style,"display: grid")
+ verticalFlex:=strings.Contains(style,"flex-direction:column")||strings.Contains(style,"flex-direction: column")
+ horizontal:=(isFlex&&!verticalFlex)||isGrid
  for _,token:=range strings.Fields(identity) {
   if token=="flex-row"||strings.HasSuffix(token,":flex-row")||strings.HasPrefix(token,"grid-cols-")||strings.Contains(token,":grid-cols-") {horizontal=true}
  }
