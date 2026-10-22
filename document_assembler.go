@@ -31,6 +31,7 @@ func articleAssemblyStages() []assembly.Stage {
   plainStage("separate-contributor-header",contributors.SeparateHeader),
   sourceStage("recover-opening-figure",recoverOpeningSourceFigure),
   assembly.StageFunc{StageName:"normalize",Transform:func(a *article.Article,e extraction.SourceEvidence,_ string){normalizeArticleDocument(a,e.MetadataImageURL)}},
+  sourceStage("restore-gallery-groups",groupArticleGalleryImages),
  }
 
 }
