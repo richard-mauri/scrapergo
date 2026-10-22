@@ -81,6 +81,7 @@ func diagnosticImageTrace(w http.ResponseWriter,r *http.Request) {
  stages=append(stages,traceImageBlocks("recovered",article.Blocks)...)
  removeSerializedPlayerBlocks(&article)
  classifyContributorImages(&article)
+ classifyImagesFromSource(&article,cleaned,input.URL)
  reconcileContributorByline(&article)
  stages=append(stages,traceImageBlocks("classified",article.Blocks)...)
  sourceLead:=""
