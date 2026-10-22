@@ -1,6 +1,7 @@
 package main
 
 import (
+ "clean-article-reader/internal/structured"
 	articlemodel "clean-article-reader/internal/article"
  sourcehtml "clean-article-reader/internal/sourcehtml"
 	"context"
@@ -629,7 +630,7 @@ func writeExtractedArticle(w http.ResponseWriter, raw, finalURL string) {
 	// Extract before deciding whether restricted pages offer readable public text.
 	// Restriction metadata alone does not establish that no usable preview exists.
 	kind := accessRestriction(raw)
-	cleanedArticleHTML := stripEmbeddedMedia(raw)
+	cleanedArticleHTML := structured.StripEmbeddedMedia(raw)
 	extracted, extractionErr := extractWithEvidence(cleanedArticleHTML, finalURL)
 	article := extracted.Article
 	if extractionErr == nil {
