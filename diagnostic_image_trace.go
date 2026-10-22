@@ -83,6 +83,7 @@ func diagnosticImageTrace(w http.ResponseWriter,r *http.Request) {
  classifyContributorImages(&article)
  classifyImagesFromSource(&article,cleaned,input.URL)
  reconcileContributorByline(&article)
+ separateContributorHeader(&article)
  stages=append(stages,traceImageBlocks("classified",article.Blocks)...)
  sourceLead:=""
  if base,err:=url.Parse(input.URL);err==nil{sourceLead=resolveImageURL(meta(parseHTML(cleaned),"og:image","twitter:image"),base)}
