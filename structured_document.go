@@ -115,6 +115,9 @@ func normalizeArticleDocument(a *Article, sourceLead ...string) {
   if b.Kind=="img" && b.Role=="lead" {candidate=i;break}
  }
  if candidate<0 {
+  for i,b:=range out {if b.Kind=="img" && b.Role=="editorial" {candidate=i;break}}
+ }
+ if candidate<0 {
   for i,b:=range out {
    if b.Kind=="img" && b.Role!="author" && b.Role!="decorative" {candidate=i;break}
   }
