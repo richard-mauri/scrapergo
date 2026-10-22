@@ -1,24 +1,9 @@
 package main
 
 import (
+ "clean-article-reader/internal/links"
 	"net/url"
-	"strings"
-	"unicode"
 )
-
-// semanticKey compares complete paragraph text without depending on whitespace
-// differences introduced by HTML layout or Readability's text renderer.
-func semanticKey(s string) string {
-	var b strings.Builder
-	for _, r := range strings.ToLower(s) {
-		if unicode.IsLetter(r) || unicode.IsNumber(r) {
-			b.WriteRune(r)
-		} else {
-			b.WriteRune(' ')
-		}
-	}
-	return strings.Join(strings.Fields(b.String()), " ")
-}
 
 // preserveSelectedHTMLLinks keeps anchors in their original paragraph order.
 // It annotates only Readability-selected blocks; it does not import other text,
@@ -32,7 +17,7 @@ func preserveSelectedHTMLLinks(blocks []Block, cleaned string, base *url.URL) {
 		if inNoisy(node, nil) || len(find(node, func(n *Node) bool { return n.Tag == "a" })) == 0 {
 			continue
 		}
-		key := semanticKey(textOf(node))
+		key := links.SemanticKey(textOf(node))
 		if key == "" {
 			continue
 		}
@@ -51,7 +36,7 @@ func preserveSelectedHTMLLinks(blocks []Block, cleaned string, base *url.URL) {
 			if used[i] || blocks[i].Kind == "img" || blocks[i].Kind == "topic-link" {
 				continue
 			}
-			if semanticKey(blocks[i].Text) != key {
+			if links.SemanticKey(blocks[i].Text) != key {
 				continue
 			}
 			used[i] = true

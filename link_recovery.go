@@ -6,9 +6,6 @@ import (
  "clean-article-reader/internal/links"
 )
 
-// Compatibility entry point for existing callers and regression tests.
-func linkTextKey(s string) string { return links.TextKey(s) }
-
 // recoverMissingArticleLinks translates parser-specific source evidence before
 // handing policy decisions to the standalone links package.
 func recoverMissingArticleLinks(a *Article, raw, source string) {
