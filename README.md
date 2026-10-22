@@ -1,3 +1,7 @@
+## v0.2.85 development candidate — structural lead-photo recovery
+
+Recovers an opening figure/picture from the downloaded article HTML when text-oriented extraction has omitted it. Uses semantic article/main structure and source order, excluding byline portraits, navigation, and non-editorial containers. The recovered figure is preserved through normalization before unrelated thumbnails; no publisher names, hosts, or image filenames are special-cased. Regression tests cover editorial lead, already-extracted lead, and author portrait exclusions. The CNN case requires live Mac acceptance; do not merge before that verification and CI.
+
 ## v0.2.84 development candidate — generic partial article recognition
 
 A corroborated short article excerpt can be distinguished from a navigation index when the server's HTML has article OpenGraph type, matching canonical URL, a headline matching the visible H1, and 30–59 words of prose beneath an article element. Full articles still use Readability. Short responses are explicitly labeled incomplete; no additional retrieval or paywall bypass is attempted. The detection is publisher-neutral (no domain or CSS-class exceptions). A synthetic regression test covers partial extraction and false positives. The real captured source HTML is an external acceptance fixture and has not yet been exercised in CI. Do not merge until complete Go CI and Mac/Safari acceptance.
