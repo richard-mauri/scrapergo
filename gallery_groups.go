@@ -2,6 +2,7 @@ package main
 
 import (
  "fmt"
+ "clean-article-reader/internal/media"
  "strings"
 )
 
@@ -39,12 +40,12 @@ func groupArticleGalleryImages(a *Article, sourceHTML, baseURL string) {
  // Match by canonical media asset identity so source and Readability
  // renditions can differ in image dimensions.
  byIdentity:=map[string]int{}
- for i,b:=range a.Blocks {if b.Kind=="img"&&b.Role!="lead"&&b.Role!="author" {byIdentity[imageSourceIdentity(b.URL)]=i}}
+ for i,b:=range a.Blocks {if b.Kind=="img"&&b.Role!="lead"&&b.Role!="author" {byIdentity[media.Identity(b.URL)]=i}}
  idFor:=map[int]string{}
  for gi,urls:=range groups {
   matches:=[]int{}
   seen:=map[int]bool{}
-  for _,u:=range urls {if i,ok:=byIdentity[imageSourceIdentity(u)];ok&&!seen[i] {seen[i]=true;matches=append(matches,i)}}
+  for _,u:=range urls {if i,ok:=byIdentity[media.Identity(u)];ok&&!seen[i] {seen[i]=true;matches=append(matches,i)}}
   if len(matches)<2 {continue}
   id:=fmt.Sprintf("gallery-%d",gi+1)
   for _,i:=range matches {idFor[i]=id}
