@@ -46,3 +46,7 @@ The `internal/extraction.Result` type now separates `Article` from `SourceEviden
 ## Phase 6: contributor-header package
 
 The contributor header recognition and contiguous preamble separation now live in `internal/contributors`. The assembler calls this independent, article-model-only package; root compatibility wrappers preserve old callers. This phase does not change byline policy, portrait classification, extraction behavior or rendering. Dedicated tests cover Parts/Links contributor anchors, editorial-image boundary, and preservation of article body. Wider contributor/image-role interactions remain separate and should be migrated only after representative fixtures are captured.
+
+## Phase 7: parser-independent image-role evidence
+
+Source image-role classification now has two responsibilities with a real package boundary: `source_image_roles.go` reads HTML nodes and exports ordered ancestor evidence (`media.ImageEvidence`), while `internal/media` decides author/editorial roles and applies them to the canonical article. Image source identity remains the existing implementation and is injected into the policy. The same ancestor priority, source order, editorial-over-author precedence, and preservation of existing lead roles are retained. This is a structural change; subsequent work can replace parser details independently and develop frozen real-page source fixtures before altering image heuristics. Regression tests cover role evidence and precedence.

@@ -1,52 +1,25 @@
 package main
 
-import (
- "net/url"
- "strings"
-)
+import "clean-article-reader/internal/media"
 
-// classifyImagesFromSource maps recovered pictures back to the original HTML
-// via the same source-image identity used by deduplication. Editorial
-// imagewrap containers take precedence over unclassified contributor art.
+// classifyImagesFromSource extracts generic DOM observations; source role policy
+// lives in internal/media and does not depend on the application HTML parser.
 func classifyImagesFromSource(a *Article, sourceHTML, articleURL string) {
  if a==nil{return}
  root:=parseHTML(sourceHTML)
- roles:=map[string]string{}
+ observations:=[]media.ImageEvidence{}
  for _,n:=range find(root,func(n *Node)bool{return n.Tag=="img"}) {
   src:=articleImageURL(n,articleURL)
-  if src==""{continue}
-  key:=imageSourceIdentity(src)
-  role:=""
-  for ancestor:=n.Parent;ancestor!=nil;ancestor=ancestor.Parent{
-   classes:=" "+strings.ToLower(ancestor.Attr["class"])+" "
-   if strings.Contains(classes," imagewrap ") || strings.Contains(classes," has-source-dimensions ") {
-    role="editorial"
-    break
-   }
-   if strings.Contains(classes," byline ") || strings.Contains(classes," author ") || strings.Contains(classes," contributor ") {
-    role="author"
-    break
-   }
-   if ancestor.Tag=="a" {
-    href,err:=url.Parse(ancestor.Attr["href"])
-    if err==nil && (strings.Contains(href.Path,"/people/")||strings.Contains(href.Path,"/authors/")) {
-     role="author"
-     break
-    }
-   }
+  if src=="" {continue}
+  observation:=media.ImageEvidence{URL:src}
+  for ancestor:=n.Parent;ancestor!=nil;ancestor=ancestor.Parent {
+   observation.Ancestors=append(observation.Ancestors,media.Ancestor{
+    Tag:ancestor.Tag,
+    Class:ancestor.Attr["class"],
+    Href:ancestor.Attr["href"],
+   })
   }
-  if role=="editorial" || (role=="author" && roles[key]!="editorial") {
-   roles[key]=role
-  }
+  observations=append(observations,observation)
  }
- for i:=range a.Blocks {
-  b:=&a.Blocks[i]
-  if b.Kind!="img" {continue}
-  switch roles[imageSourceIdentity(b.URL)] {
-  case "editorial":
-   if b.Role!="lead" {b.Role="editorial"}
-  case "author":
-   if b.Role!="lead" {b.Role="author"}
-  }
- }
+ media.ApplySourceRoles(a,observations,imageSourceIdentity)
 }
