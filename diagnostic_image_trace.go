@@ -2,8 +2,6 @@ package main
 
 import (
  "clean-article-reader/internal/structured"
- "clean-article-reader/internal/media"
- "clean-article-reader/internal/contributors"
  "encoding/json"
  "io"
  "net"
@@ -93,23 +91,26 @@ func diagnosticImageTrace(w http.ResponseWriter,r *http.Request) {
  opening=append(opening,traceOpeningBlocks("readability",article.Blocks)...)
  stages=append(stages,sourceImageTrace(cleaned,input.URL)...)
  stages=append(stages,traceImageBlocks("readability",article.Blocks)...)
- recoverArticlePhotographs(&article,cleaned,input.URL)
- media.Deduplicate(&article)
- recoverMissingArticleLinks(&article,cleaned,input.URL)
- recoverAuthorPortrait(&article,cleaned,input.URL)
- stages=append(stages,traceImageBlocks("recovered",article.Blocks)...)
- opening=append(opening,traceOpeningBlocks("recovered",article.Blocks)...)
- structured.RemoveSerializedPlayerBlocks(&article)
- classifyContributorImages(&article)
- classifyImagesFromSource(&article,cleaned,input.URL)
- reconcileContributorByline(&article)
- contributors.SeparateHeader(&article)
- stages=append(stages,traceImageBlocks("classified",article.Blocks)...)
- opening=append(opening,traceOpeningBlocks("classified",article.Blocks)...)
+ // Run the exact same stages in the same order as /api/read. Keep
+ // historical phase snapshots for existing diagnostic consumers and capture
+ // each named stage to expose portrait insertion/removal explicitly.
+ for _,stage:=range articleAssemblyStages() {
+  stage.Apply(&article,extracted.Evidence,cleaned)
+  label:=stage.Name()
+  stages=append(stages,traceImageBlocks(label,article.Blocks)...)
+  opening=append(opening,traceOpeningBlocks(label,article.Blocks)...)
+  switch label {
+  case "recover-author-portrait":
+   stages=append(stages,traceImageBlocks("recovered",article.Blocks)...)
+   opening=append(opening,traceOpeningBlocks("recovered",article.Blocks)...)
+  case "classify-source-images":
+   stages=append(stages,traceImageBlocks("classified",article.Blocks)...)
+   opening=append(opening,traceOpeningBlocks("classified",article.Blocks)...)
+  case "normalize":
+   stages=append(stages,traceImageBlocks("normalized",article.Blocks)...)
+   opening=append(opening,traceOpeningBlocks("normalized",article.Blocks)...)
+  }
+ }
  sourceLead:=extracted.Evidence.MetadataImageURL
- recoverOpeningSourceFigure(&article,cleaned,input.URL)
- normalizeArticleDocument(&article,sourceLead)
- stages=append(stages,traceImageBlocks("normalized",article.Blocks)...)
- opening=append(opening,traceOpeningBlocks("normalized",article.Blocks)...)
  _=json.NewEncoder(w).Encode(map[string]any{"url":input.URL,"sourceMetadataImage":sourceLead,"selectedImage":article.ImageURL,"byline":article.Byline,"images":stages,"openingBlocks":opening})
 }
