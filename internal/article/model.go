@@ -21,6 +21,7 @@ type Block struct {
  Parts []TextPart `json:"parts,omitempty"`
  Kind string `json:"kind"`
  Role string `json:"role,omitempty"`
+ Gallery string `json:"gallery,omitempty"`
  Links []InlineLink `json:"links,omitempty"`
  Text string `json:"text"`
  URL string `json:"url,omitempty"`
