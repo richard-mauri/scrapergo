@@ -8,7 +8,9 @@ import (
 // recoverOpeningSourceFigure preserves a leading editorial image that a
 // text-oriented extractor dropped. All evidence is structural: figure/picture
 // ancestry, article/main membership, document order, and exclusion of bylines,
-// navigation and other non-editorial containers. No publisher identifiers.
+// navigation and other non-editorial containers. An article-header image is
+// eligible only with explicit lead/featured/hero-image evidence or figure/picture
+// structure; a generic header avatar is not sufficient. No publisher identifiers.
 func recoverOpeningSourceFigure(a *Article, raw, sourceURL string) {
 	if a == nil { return }
 	root := parseHTML(raw)
@@ -25,7 +27,7 @@ func recoverFigureInScope(a *Article, scope *Node, sourceURL string) bool {
 	var walk func(*Node) bool
 	sawProse := false
 	walk = func(n *Node) bool {
-		if n != scope && (n.Tag == "aside" || n.Tag == "nav" || n.Tag == "footer" || n.Tag == "header") { return false }
+		if n != scope && (n.Tag == "aside" || n.Tag == "nav" || n.Tag == "footer") { return false }
 		if n.Tag == "p" && len(strings.Fields(textOf(n))) >= 25 {
 			sawProse = true
 			return true
@@ -35,8 +37,8 @@ func recoverFigureInScope(a *Article, scope *Node, sourceURL string) bool {
 			rejected := false
 			for p := n.Parent; p != nil && p != scope.Parent; p = p.Parent {
 				classes := strings.ToLower(p.Attr["class"] + " " + p.Attr["id"])
-				if p.Tag == "figure" || p.Tag == "picture" { eligible = true }
-				if p.Tag == "nav" || p.Tag == "aside" || p.Tag == "footer" || p.Tag == "header" ||
+				if p.Tag == "figure" || p.Tag == "picture" || strings.Contains(classes, "featured-image") || strings.Contains(classes, "hero-image") || strings.Contains(classes, "lead-image") { eligible = true }
+				if p.Tag == "nav" || p.Tag == "aside" || p.Tag == "footer" ||
 					strings.Contains(classes, "byline") || strings.Contains(classes, "author") ||
 					strings.Contains(classes, "avatar") || strings.Contains(classes, "contributor") { rejected = true; break }
 			}
