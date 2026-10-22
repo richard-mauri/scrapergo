@@ -3,6 +3,7 @@ package main
 import (
  "clean-article-reader/internal/article"
  "clean-article-reader/internal/assembly"
+ "clean-article-reader/internal/structured"
  "clean-article-reader/internal/extraction"
  "clean-article-reader/internal/contributors"
  "clean-article-reader/internal/media"
@@ -22,7 +23,7 @@ func assembleArticleDocument(extracted extraction.Result, sourceHTML string) Art
   plainStage("deduplicate-images",media.Deduplicate),
   sourceStage("recover-links",recoverMissingArticleLinks),
   sourceStage("recover-author-portrait",recoverAuthorPortrait),
-  plainStage("remove-player-blocks",removeSerializedPlayerBlocks),
+  plainStage("remove-player-blocks",structured.RemoveSerializedPlayerBlocks),
   plainStage("classify-contributors",classifyContributorImages),
   sourceStage("classify-source-images",classifyImagesFromSource),
   plainStage("reconcile-byline",reconcileContributorByline),
