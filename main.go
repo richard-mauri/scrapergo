@@ -831,7 +831,7 @@ func writeExtractedArticle(w http.ResponseWriter, raw, finalURL string) {
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": accessNotice(kind), "kind": kind, "publisher": mustHostname(finalURL), "evidence": restrictionEvidence(raw)})
 		return
 	}
-	if extractionErr == nil && (pageIsThinPortal(raw, article.WordCount) || pageIsSparseRootLanding(raw, finalURL, article.WordCount)) || extractionErr != nil && pageIsSearchPortal(raw) {
+	if (extractionErr == nil && (pageIsThinPortal(raw, article.WordCount) || pageIsSparseRootLanding(raw, finalURL, article.WordCount)) || extractionErr != nil && pageIsSearchPortal(raw)) && !hasPartialArticleEvidence(raw, finalURL) {
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		_ = json.NewEncoder(w).Encode(map[string]string{
 			"kind":  "page_index",
