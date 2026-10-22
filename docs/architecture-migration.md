@@ -26,3 +26,7 @@ Before migrating the extraction pipeline, capture representative real-page fixtu
 - Preserve root `main.go`, `go build .`, `./devbuild.sh`, and `./scrapergo.sh` while the migration proceeds.
 - No version bump for internal nonbehavioral changes.
 - Never merge before CI and owner review.
+
+## Phase 2: initial extraction and source evidence handoff
+
+The `internal/extraction.Result` type now separates `Article` from `SourceEvidence` (`SourceURL`, `MetadataImageURL`). Production rendering and the image-trace diagnostic both consume the same handoff function, `extractWithEvidence`, rather than recomputing metadata within their own normalization sequence. Source metadata remains an input to existing image normalization, not a forced lead image. Existing downstream reconciliation still mutates `Article.Blocks`; consolidating those mutations into a document assembler is the next phase, after frozen fixtures validate their observable outcomes. This change does not alter fetch policy, publisher handling, image rules, or the JSON API.
