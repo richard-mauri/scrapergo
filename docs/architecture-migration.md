@@ -58,3 +58,7 @@ The source-tree parser, traversal, text normalization and metadata helpers have 
 ## Phase 10: parser-independent link restoration
 
 `internal/links` now owns article text-key matching and restoration of missing anchors. The root `link_recovery.go` collects HTML evidence (selected paragraph text and resolved source anchors) using existing parsing and URL policies, then passes the observations to `links.Restore`. The policy package depends only on the canonical `article` model. It never fetches URLs, adds blocks, or overwrites existing structured links. Tests check exact-paragraph matching, duplicate suppression, and preservation of original links. Existing stage order, output JSON and launcher configuration are unchanged.
+
+## Phase 11: independent editorial continuity policy
+
+`internal/recovery` now owns the pure paragraph-order corroboration and conservative full-document replacement decision. The parser-dependent candidate enumeration, article scope checks, advertising filters, and anchored-tail recovery remain in `continuity_recovery.go` until they can be migrated with their source evidence. The root `orderedEditorialMatches` entry point delegates to the package for compatibility; no network fetches or publisher exceptions were added. The sourcehtml text normalizer is shared to keep equivalent comparison semantics. Unit tests cover ordered anchors, unchanged selections and rejection of truncated replacement text. This is an intermediate architecture boundary, not completion of the paragraph/continuity migration.
