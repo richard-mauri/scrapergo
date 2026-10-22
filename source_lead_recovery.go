@@ -1,6 +1,9 @@
 package main
 
-import "strings"
+import (
+ "strings"
+ "clean-article-reader/internal/sourcehtml"
+)
 
 // recoverOpeningSourceFigure preserves a leading editorial image that a
 // text-oriented extractor dropped. All evidence is structural: figure/picture
@@ -37,7 +40,7 @@ func recoverFigureInScope(a *Article, scope *Node, sourceURL string) bool {
 					strings.Contains(classes, "byline") || strings.Contains(classes, "author") ||
 					strings.Contains(classes, "avatar") || strings.Contains(classes, "contributor") { rejected = true; break }
 			}
-			if eligible && !rejected && !inNoisy(n, scope.Parent) {
+			if eligible && !rejected && !sourcehtml.InNoisy(n, scope.Parent) {
 				if src := articleImageURL(n, sourceURL); src != "" { candidate = src; return true }
 			}
 		}

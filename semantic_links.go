@@ -1,6 +1,7 @@
 package main
 
 import (
+ "clean-article-reader/internal/sourcehtml"
  "clean-article-reader/internal/links"
 	"net/url"
 )
@@ -14,7 +15,7 @@ func preserveSelectedHTMLLinks(blocks []Block, cleaned string, base *url.URL) {
 	for _, node := range find(root, func(n *Node) bool {
 		return n.Tag == "p" || n.Tag == "li" || n.Tag == "h2" || n.Tag == "h3" || n.Tag == "h4" || n.Tag == "blockquote"
 	}) {
-		if inNoisy(node, nil) || len(find(node, func(n *Node) bool { return n.Tag == "a" })) == 0 {
+		if sourcehtml.InNoisy(node, nil) || len(find(node, func(n *Node) bool { return n.Tag == "a" })) == 0 {
 			continue
 		}
 		key := links.SemanticKey(textOf(node))

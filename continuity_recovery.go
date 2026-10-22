@@ -1,6 +1,7 @@
 package main
 
 import (
+ "clean-article-reader/internal/sourcehtml"
 	"net/url"
  "clean-article-reader/internal/recovery"
 	"strings"
@@ -28,7 +29,7 @@ func recoverEditorialContinuity(raw string, selected []Block, base *url.URL) []B
 	for _, scope := range find(root, func(n *Node) bool {
 		return n.Tag == "article" || n.Tag == "main" || (n.Tag == "div" && strings.Contains(strings.ToLower(n.Attr["class"]+" "+n.Attr["id"]), "article-body"))
 	}) {
-		if inNoisy(scope, nil) {
+		if sourcehtml.InNoisy(scope, nil) {
 			continue
 		}
 		candidate := editorialContinuityBlocks(scope, base)
@@ -81,7 +82,7 @@ func editorialContinuityBlocks(scope *Node, base *url.URL) []Block {
 		if blockedTags[n.Tag] || promotionalRegion(n) && !hasSubstantiveEditorialChildren(n) {
 			return
 		}
-		if noisy(n) && !hasSubstantiveEditorialChildren(n) {
+		if sourcehtml.Noisy(n) && !hasSubstantiveEditorialChildren(n) {
 			return
 		}
 		switch n.Tag {
@@ -224,7 +225,7 @@ func recoverAnchoredEditorialTail(root *Node, selected []Block, base *url.URL) [
 			started = true
 			return
 		}
-		if blockedTags[n.Tag] || (noisy(n) && !hasSubstantiveEditorialChildren(n) && !hasEditorialChildOutsideNoise(n)) || (promotionalRegion(n) && !hasSubstantiveEditorialChildren(n) && !hasEditorialChildOutsideNoise(n)) {
+		if blockedTags[n.Tag] || (sourcehtml.Noisy(n) && !hasSubstantiveEditorialChildren(n) && !hasEditorialChildOutsideNoise(n)) || (promotionalRegion(n) && !hasSubstantiveEditorialChildren(n) && !hasEditorialChildOutsideNoise(n)) {
 			return
 		}
 		if n.Tag == "figcaption" {
@@ -290,7 +291,7 @@ func hasEditorialChildOutsideNoise(scope *Node) bool {
 		}
 		blocked := false
 		for a := p.Parent; a != nil && a != scope; a = a.Parent {
-			if noisy(a) || promotionalRegion(a) {
+			if sourcehtml.Noisy(a) || promotionalRegion(a) {
 				blocked = true
 				break
 			}
