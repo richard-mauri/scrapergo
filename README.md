@@ -1,3 +1,21 @@
+## v0.2.79 — image pipeline diagnostic (no selection behavior changes)
+
+Adds localhost-only `POST /api/diagnostic/image-trace`, accepting JSON `{"url":"https://publisher.example/article"}` and optionally `"html":"..."`. Without `html`, it uses ScraperGo's existing validated article retrieval (the same request path as `/api/read`), not an independent downloader. Response includes source HTML image URL/alt and immediate ancestor tags/classes, raw Readability images, recovered images, classified images, normalized images, each with index, role, caption, URL and decoded source identity, plus selected lead URL and byline. The endpoint rejects non-loopback peers, requires POST, and returns no raw publisher HTML; it must not be exposed publicly by a trusted reverse proxy that rewrites the peer address as loopback.
+
+Example read-only local trace after building and launching the v0.2.79 binary:
+
+```bash
+python3 - <<'PY'
+import json,urllib.request
+url="https://www.npr.org/2026/10/21/nx-s1-6010460/brad-lander-detained-west-bank-israel-palestinians"
+req=urllib.request.Request("http://127.0.0.1:8083/api/diagnostic/image-trace",data=json.dumps({"url":url}).encode(),headers={"Content-Type":"application/json"},method="POST")
+with urllib.request.urlopen(req,timeout=60) as res: result=json.load(res)
+print(json.dumps(result,indent=2))
+PY
+```
+
+This is diagnostics only; contributor portrait classification, NewsGo thumbnail selection, and byline spacing are not claimed fixed. Draft PR #4 must not be promoted without the real traced evidence and Mac acceptance.
+
 ## v0.2.78 — linked contributor byline and paragraph whitespace
 
 Reconcile adjacent contributor-name links and separating punctuation into the article byline, rather than rendering them as separate paragraphs. Ordinary article paragraphs now collapse original HTML line breaks (`white-space: normal`). Synthetic regressions assert a four-author byline and preservation of article prose, contributor portrait and lead figure. The actual NPR byline extraction still requires Mac validation; v0.2.77's oversized contributor-photo issue is not claimed resolved by this change. The rewrite remains on draft PR #4, and main is unchanged.
