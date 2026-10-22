@@ -86,3 +86,7 @@ The `/api/read` HTTP request and response contract now lives in `internal/httpap
 ## Phase 17: stabilization review
 
 The final architecture inventory and outstanding-debt list are maintained in [architecture-review.md](architecture-review.md). This milestone adds negative HTTP contract and assembly-isolation tests, documents the package dependency graph and release checklist, and deliberately makes no production implementation changes. Continued migration should be based on concrete remaining ownership and behavior requirements rather than a fixed PR count.
+
+## Phase 18: remove root media/contributor compatibility shims
+
+Deleted `image_dedupe.go` and `contributor_header.go`, which contained only root-package forwarding functions. Updated affected root regression tests and assembly-equivalence tests to invoke `internal/media.Deduplicate` and `internal/contributors.SeparateHeader` directly, matching production stage wiring. No new compatibility facade or callback injection was introduced. This is intentionally a narrow first deletion PR; source-HTML adapters that still perform parsing or transformation are not mere wrappers and must be migrated with their owning subsystem.
