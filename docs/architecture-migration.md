@@ -70,3 +70,7 @@ The source-tree parser, traversal, text normalization and metadata helpers have 
 ## Phase 13: document media normalization ownership
 
 `internal/documentmedia` now owns the article title, media deduplication, editorial lead precedence, and metadata rendition reconciliation pass. The existing image-source identity resolver remains injected from the application boundary, so delivery-specific identity and editorial ranking are not reimplemented. The root `normalizeArticleDocument` function forwards to the new package to preserve legacy callers and stage ordering. Package tests verify author portrait exclusion, title removal, editorial-first ranking, metadata rendition substitution and metadata-only fallback. This refactor changes no HTTP, scraper retrieval or version behavior; image recovery and source-specific evidence extraction remain separate for later review.
+
+## Phase 14: injected HTTP presentation adapter
+
+`internal/httpapi` now owns the image-metadata HTTP adapter and ordered image-candidate response. The application injects its existing article API handler, preserving access policy, extraction behavior, POST-only restriction, cache headers and error status/JSON behavior. The root imageMetadata and articleImageCandidates functions forward for compatibility. This is a first HTTP-boundary migration; article retrieval and primary /api/read handling still need independent service ownership. Dedicated tests verify the response contract, duplicate candidates, method restrictions and propagated errors.
