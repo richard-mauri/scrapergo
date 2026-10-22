@@ -28,7 +28,9 @@ func TestImageTraceStagesAndSourceContainers(t *testing.T) {
  if err:=json.Unmarshal(rec.Body.Bytes(),&result);err!=nil{t.Fatal(err)}
  stages:=map[string]bool{}
  container:=false
- for _,v:=range result.Images {stages[v.Stage]=true;if v.Stage=="source-dom"&&v.Parent=="figure"&&v.ParentClass=="hero"{container=true}}
+ ancestry:=false
+ for _,v:=range result.Images {stages[v.Stage]=true;if v.Stage=="source-dom"&&v.Parent=="figure"&&v.ParentClass=="hero"{container=true;if len(v.Ancestors)>0&&strings.Contains(v.Ancestors[0],"figure") {ancestry=true}}}
  for _,step:=range []string{"source-dom","readability","recovered","classified","normalized"}{if !stages[step]{t.Errorf("missing trace stage %s",step)}}
  if !container {t.Fatal("source image container context missing")}
+ if !ancestry {t.Fatal("source image ancestor chain missing")}
 }
