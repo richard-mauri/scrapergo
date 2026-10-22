@@ -1,3 +1,59 @@
+## v0.2.83 — confirmed NPR contributor links in Parts
+
+The v0.2.82 opening-block trace demonstrated that NPR contributor hyperlinks were serialized in `Block.Parts`, not `Block.Links`. The guarded header separator now recognizes either representation and consolidates the contiguous four-name byline, punctuation and source-classified contributor portraits into `Article.Byline`, preserving the first source-confirmed editorial photograph and subsequent article blocks. An added regression uses linked TextPart values, matching the actual diagnostic representation, rather than invented populated `Links`. The permanent localhost diagnostic remains intact. Unrelated audio headings and Download controls are not removed. NewsGo feed disappearance remains unverified and NewsGo is unchanged. Draft PR #4 remains unmerged pending Mac acceptance.
+
+## v0.2.82 — persistent opening-block diagnostic
+
+Extends localhost-only `POST /api/diagnostic/image-trace` with `openingBlocks` at Readability, recovered, classified, and normalized stages. Each stage records the first 45 actual block records with `index`, `kind`, `text`, `parts`, `links`, image `role`, and `url`. This is specifically for investigating why NPR contributor names and comma blocks survive v0.2.81 despite visually appearing as links; the trace distinguishes inline `Parts` hyperlinks from `Block.Links`. Existing five-stage image trace, download path, and source-image classification remain unchanged. Tests verify serializing linked Parts and rejecting remote peers. No contributor-removal behavior changes in v0.2.82; acceptance is evidence collection, not a fix. Keep draft PR #4 unmerged.
+
+## v0.2.81 — contributor header separation
+
+After source-backed image classification, ScraperGo can now consume a contiguous byline segment containing linked contributor names, punctuation, and explicitly classified contributor photos as article metadata. The removal is bounded by the first source-confirmed editorial figure and requires multiple contributor names; it preserves the editorial photographs and story content. Existing diagnostic image tracing remains permanent and follows the same pipeline. Regression tests cover the four-author West Bank header, preserving both editorial photos, and a no-boundary case. Other NPR ancillary player/download widgets are not removed in this change; the byline/header cleanup requires live Safari acceptance. NewsGo remains untouched; main remains unchanged and PR #4 is draft.
+
+## v0.2.80 — source-backed image classification and editorial lead precedence
+
+The persistent localhost `/api/diagnostic/image-trace` remains available. Before normalization, ScraperGo now matches extracted images against their actual HTML source identity and examines ancestor containers. Images within editorial `imagewrap` structures are marked `editorial`; images within byline/author/contributor containers or contributor profile links are marked `author`. Lead selection prefers a confirmed editorial image over an unclassified image. This addresses the observed Daniel Estrin portrait being selected over the security-forces photo. The exact source image and editorial photo URLs from the v0.2.79 trace are covered by regression tests. Source-role heuristics are confined to positive structural evidence; unclassified contributor photos may still require additional source inspection to render compactly. No NewsGo changes. Live Safari acceptance still required, PR #4 draft, main unchanged.
+
+## v0.2.79 — image pipeline diagnostic (no selection behavior changes)
+
+Adds localhost-only `POST /api/diagnostic/image-trace`, accepting JSON `{"url":"https://publisher.example/article"}` and optionally `"html":"..."`. Without `html`, it uses ScraperGo's existing validated article retrieval (the same request path as `/api/read`), not an independent downloader. Response includes source HTML image URL/alt and immediate ancestor tags/classes, raw Readability images, recovered images, classified images, normalized images, each with index, role, caption, URL and decoded source identity, plus selected lead URL and byline. The endpoint rejects non-loopback peers, requires POST, and returns no raw publisher HTML; it must not be exposed publicly by a trusted reverse proxy that rewrites the peer address as loopback.
+
+Example read-only local trace after building and launching the v0.2.79 binary:
+
+```bash
+python3 - <<'PY'
+import json,urllib.request
+url="https://www.npr.org/2026/10/21/nx-s1-6010460/brad-lander-detained-west-bank-israel-palestinians"
+req=urllib.request.Request("http://127.0.0.1:8083/api/diagnostic/image-trace",data=json.dumps({"url":url}).encode(),headers={"Content-Type":"application/json"},method="POST")
+with urllib.request.urlopen(req,timeout=60) as res: result=json.load(res)
+print(json.dumps(result,indent=2))
+PY
+```
+
+This is diagnostics only; contributor portrait classification, NewsGo thumbnail selection, and byline spacing are not claimed fixed. Draft PR #4 must not be promoted without the real traced evidence and Mac acceptance.
+
+## v0.2.78 — linked contributor byline and paragraph whitespace
+
+Reconcile adjacent contributor-name links and separating punctuation into the article byline, rather than rendering them as separate paragraphs. Ordinary article paragraphs now collapse original HTML line breaks (`white-space: normal`). Synthetic regressions assert a four-author byline and preservation of article prose, contributor portrait and lead figure. The actual NPR byline extraction still requires Mac validation; v0.2.77's oversized contributor-photo issue is not claimed resolved by this change. The rewrite remains on draft PR #4, and main is unchanged.
+
+## v0.2.77 — contributor portrait classification before editorial lead selection
+
+The extraction pipeline now classifies contributor portraits identified by adjacent linked contributor names before selecting the article's lead photograph. This preserves a separate author role instead of promoting an unclassified byline headshot to a full-width lead. A regression based on the actual Daniel Estrin portrait URL, Israeli security-forces image, and later olive-harvest image checks role assignments and order. This is an incremental evidence-based classifier: live NPR HTML and the NewsGo thumbnail path are not yet verified. No NewsGo code or production main was changed. PR #4 remains draft pending Mac acceptance.
+
+## v0.2.76 — document-first editorial image selection
+
+ScraperGo now treats the first classified editorial figure in the document as its lead. Publisher/social/RSS image metadata is used only if no editorial figure was recovered, or as a higher-quality rendition when it identifies the same original asset. Author portraits are excluded from lead selection. The article API's `imageUrl` now reflects the selected editorial lead, making `/api/image-metadata` available to downstream consumers using the same selection policy. Later photographs remain in document order, with captions intact. A regression uses the actual two distinct West Bank NPR image identities: the Israeli security-forces first figure and the later olive-harvesting metadata thumbnail. This code does not modify NewsGo itself; any independent RSS thumbnail path there needs its own verification. Mac Safari acceptance is pending.
+
+## Structured source-image identity — v0.2.74
+
+The normalized article model now identifies multiple NPR Brightspot renditions by the explicitly embedded original asset URL in the CDN's `url` query parameter. This is based on the two actual NPR links captured from the Mac, not a guess about filenames or dimensions. The higher-quality publisher lead rendition is retained, the inline editorial caption preserved, and separate author portraits maintained. For CDNs that do not expose an original asset identity, only identical image URLs are treated as the same. Regression tests use the captured NPR URLs; Safari and print/PDF acceptance are still pending. The rewrite remains isolated from main on PR #4.
+
+## Structured article rewrite — v0.2.73 development candidate
+
+This rewrite branch is based on current main; it is not a promoted release. Instead of importing the v0.2.66–v0.2.72 display heuristics, it preprocesses the HTML DOM to remove interactive media nodes before Readability, strips serialized media tags from ordinary text nodes while retaining code examples, and uses the same sanitized HTML for content, image and link recovery. After extraction, document normalization reconciles a duplicated opening title and constructs one typed image-block stream (optional role `lead`) for the UI. The existing `imageUrl` response remains available as metadata for API compatibility. The approved NewsGo-like dark palette and centered 1200px layout are retained.
+
+Automated checks cover media removal, surrounding prose, retained code samples, lead vs. author images, single rendering path, the visual palette, and an end-to-end synthetic article response. These checks do not yet establish that all live NPR article image variants are deduplicated or that publisher HTML renders correctly in Safari and print preview. The rewrite remains draft until representative frozen publisher fixtures and Mac acceptance pass. Do not merge into main without explicit owner approval.
+
 ## Development candidate: image HTTP request compatibility (dev)
 
 The image delivery fetch now sends the full article URL (without query or fragment) as Referer rather than the publisher site root, and advertises only JPEG/PNG/GIF/WebP formats that the thumbnail decoder supports. This preserves the existing validated image selection, HTTPS-only/public-host requirements, redirect checks, response size and deadline limits. Regression tests cover article-scoped, query-stripped referrers. These request changes may help legitimate publisher hotlink checks, but real Practical Engineering and The Dial 502 failures remain unverified; no live success is claimed. Do not merge to main before Mac acceptance tests.

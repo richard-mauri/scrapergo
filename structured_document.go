@@ -1,0 +1,227 @@
+package main
+
+import (
+ "bytes"
+ "net/url"
+ "regexp"
+ "strings"
+
+ "golang.org/x/net/html"
+)
+
+var escapedMediaElementRE = regexp.MustCompile(`(?is)<\s*/?\s*(?:iframe|audio|video|embed|object)\b[^>]*>`)
+
+// stripEmbeddedMedia removes actual non-editorial media DOM nodes before
+// Readability serializes HTML to text. Sibling article prose is preserved.
+func stripEmbeddedMedia(raw string) string {
+ root,err:=html.Parse(strings.NewReader(raw))
+ if err!=nil{return raw}
+ var visit func(*html.Node)
+ visit=func(n *html.Node){
+  if n.Type==html.TextNode && escapedMediaElementRE.MatchString(n.Data) {
+    insideCode:=false
+    for p:=n.Parent;p!=nil;p=p.Parent { if p.Type==html.ElementNode&&(p.Data=="pre"||p.Data=="code"){insideCode=true;break} }
+    if !insideCode {n.Data=escapedMediaElementRE.ReplaceAllString(n.Data,"")}
+  }
+  for child:=n.FirstChild;child!=nil;{
+   next:=child.NextSibling
+   if child.Type==html.ElementNode && (child.Data=="iframe"||child.Data=="embed"||child.Data=="audio"||child.Data=="video"||child.Data=="object"){
+    n.RemoveChild(child)
+   }else{visit(child)}
+   child=next
+  }
+ }
+ visit(root)
+ var b bytes.Buffer
+ if err:=html.Render(&b,root);err!=nil{return raw}
+ return b.String()
+}
+
+// imageSourceIdentity identifies renditions only when the CDN supplies
+// an explicit original asset URL. It never guesses by filename or dimensions.
+func imageSourceIdentity(raw string) string {
+ u,err:=url.Parse(raw)
+ if err!=nil || (u.Scheme!="https"&&u.Scheme!="http") || u.Hostname()=="" {return raw}
+ if strings.EqualFold(u.Hostname(),"npr.brightspotcdn.com") {
+  embedded:=u.Query().Get("url")
+  if asset,err:=url.Parse(embedded);err==nil && (asset.Scheme=="http"||asset.Scheme=="https") && asset.Hostname()!="" {
+   asset.Fragment=""
+   return asset.String()
+  }
+ }
+ u.Fragment=""
+ return u.String()
+}
+
+// classifyContributorImages uses the source document's byline structure and
+// nearby named contributor links, not file dimensions or URL guesses.
+func classifyContributorImages(a *Article) {
+ if a==nil{return}
+ for i:=range a.Blocks {
+  b:=&a.Blocks[i]
+  if b.Kind!="img" || b.Role=="author" {continue}
+  caption:=strings.TrimSpace(b.Text)
+  if caption=="" {continue}
+  // Contributor names often occur as links adjacent to their headshots.
+  // Require a matching named link in the nearby introductory content.
+  for j:=i-2;j<=i+2;j++ {
+   if j<0||j>=len(a.Blocks)||j==i {continue}
+   nearby:=a.Blocks[j]
+   if nearby.Kind=="img" {continue}
+   if strings.EqualFold(strings.TrimSpace(nearby.Text),caption) && (len(nearby.Links)>0 || nearby.Kind=="a") {
+    b.Role="author"
+    break
+   }
+  }
+ }
+}
+
+// normalizeArticleDocument reconciles the article title and image identities.
+// The first editorial image wins over metadata; metadata is a fallback or\n// alternate rendition of the same identified source.
+func normalizeArticleDocument(a *Article, sourceLead ...string) {
+ if a==nil{return}
+ title:=strings.Join(strings.Fields(strings.ToLower(a.Title))," ")
+ for i,b:=range a.Blocks {
+  if b.Kind=="img"{continue}
+  if (b.Kind=="h1"||b.Kind=="h2"||b.Kind=="h3"||b.Kind=="h4"||b.Kind=="p")&&strings.Join(strings.Fields(strings.ToLower(b.Text))," ")==title {
+   a.Blocks=append(a.Blocks[:i],a.Blocks[i+1:]...)
+  }
+  break
+ }
+ lead:=""
+ if len(sourceLead)>0 {lead=strings.TrimSpace(sourceLead[0])}
+ if lead=="" {lead=a.ImageURL}
+ // Deduplicate delivered variants by original asset identity, retaining
+ // editorial order and captions rather than imposing metadata ordering.
+ out:=make([]Block,0,len(a.Blocks)+1)
+ seen:=make(map[string]int)
+ for _,b:=range a.Blocks {
+  if b.Kind!="img" {out=append(out,b);continue}
+  key:=imageSourceIdentity(b.URL)
+  if prev,ok:=seen[key];ok{
+   existing:=&out[prev]
+   if existing.Text=="" {existing.Text=b.Text}
+   if existing.Role=="" {existing.Role=b.Role}
+   continue
+  }
+  seen[key]=len(out)
+  out=append(out,b)
+ }
+ // The document's first editorial figure is authoritative. Portraits,
+ // icons and byline art are not lead candidates; existing lead roles
+ // supplied by recovery identify an editorial figure when present.
+ candidate:=-1
+ for i,b:=range out {
+  if b.Kind=="img" && b.Role=="lead" {candidate=i;break}
+ }
+ if candidate<0 {
+  for i,b:=range out {if b.Kind=="img" && b.Role=="editorial" {candidate=i;break}}
+ }
+ if candidate<0 {
+  for i,b:=range out {
+   if b.Kind=="img" && b.Role!="author" && b.Role!="decorative" {candidate=i;break}
+  }
+ }
+ for i:=range out {if out[i].Kind=="img" && out[i].Role=="lead" {out[i].Role=""}}
+ if candidate>=0 {
+  out[candidate].Role="lead"
+  // A metadata rendition of this SAME original can improve image quality
+  // without changing its editorial identity, position or caption.
+  if lead!="" && imageSourceIdentity(lead)==imageSourceIdentity(out[candidate].URL) {
+   out[candidate].URL=lead
+  }
+  a.ImageURL=out[candidate].URL
+ } else if lead!="" {
+  out=append([]Block{{Kind:"img",URL:lead,Role:"lead"}},out...)
+  a.ImageURL=lead
+ }
+ a.Blocks=out
+}
+
+// recoverAuthorPortrait retains a photo identified by the source document's
+// byline/author structure. It never treats a generic inline photograph as an
+// author portrait based on its dimensions or URL naming.
+func recoverAuthorPortrait(a *Article, sourceHTML, baseURL string) {
+ if a==nil{return}
+ root:=parseHTML(sourceHTML)
+ byline:=regexp.MustCompile(`(?i)(?:^|[\s_-])(?:author|byline|contributor)(?:$|[\s_-])`)
+ candidates:=find(root,func(n *Node)bool{
+  return n.Tag=="div"||n.Tag=="section"||n.Tag=="span"||n.Tag=="figure"
+ })
+ for _,group:=range candidates{
+  if !byline.MatchString(group.Attr["class"]+" "+group.Attr["id"]){continue}
+  photos:=find(group,func(n *Node)bool{return n.Tag=="img"})
+  for _,p:=range photos{
+   src:=articleImageURL(p,baseURL)
+   if src==""{continue}
+   for i:=range a.Blocks{
+    if a.Blocks[i].Kind=="img"&&a.Blocks[i].URL==src {
+     a.Blocks[i].Role="author"
+     return
+    }
+   }
+   a.Blocks=append([]Block{{Kind:"img",Role:"author",URL:src,Text:normalize(p.Attr["alt"])}},a.Blocks...)
+   return
+  }
+ }
+}
+
+// removeSerializedPlayerBlocks rejects standalone serialized player widgets
+// that survived Readability as article blocks. It does not inspect neighboring
+// blocks, and never removes a list item just because it says "Embed".
+func removeSerializedPlayerBlocks(a *Article) {
+ if a==nil {return}
+ out:=make([]Block,0,len(a.Blocks))
+ for _,b:=range a.Blocks {
+  if b.Kind!="img" && containsSerializedMediaTag(b.Text) {
+   // Only suppress blocks that are player widgets rather than mixed prose.
+   remainder:=escapedMediaElementRE.ReplaceAllString(b.Text,"")
+   remainder=strings.TrimSpace(strings.ToLower(remainder))
+   remainder=strings.TrimSpace(strings.TrimPrefix(remainder,"embed"))
+   remainder=strings.TrimSpace(remainder)
+   if remainder=="" {continue}
+  }
+  out=append(out,b)
+ }
+ a.Blocks=out
+}
+func containsSerializedMediaTag(text string) bool {
+ return escapedMediaElementRE.MatchString(text)
+}
+
+// reconcileContributorByline keeps source-linked contributor names together
+// as metadata and removes only the byline fragments preceding the story body.
+// Editorial paragraphs, images and ordinary links remain untouched.
+func reconcileContributorByline(a *Article) {
+ if a==nil || len(a.Blocks)==0{return}
+ names:=[]string{}
+ seen:=map[string]bool{}
+ remove:=map[int]bool{}
+ started:=false
+ for i,b:=range a.Blocks {
+  if b.Kind=="img" {
+   if b.Role=="author" {continue}
+   break
+  }
+  t:=strings.TrimSpace(b.Text)
+  if b.Kind=="p" && (t=="By"||t==",") {
+   remove[i]=true;started=true;continue
+  }
+  if b.Kind=="p" && t!="" && len(t)<90 && len(b.Links)>0 {
+   matched:=false
+   for _,link:=range b.Links {if strings.EqualFold(strings.TrimSpace(link.Text),t){matched=true;break}}
+   if matched {
+    if !seen[strings.ToLower(t)] {names=append(names,t);seen[strings.ToLower(t)]=true}
+    remove[i]=true;started=true;continue
+   }
+  }
+  if started && t=="" {remove[i]=true;continue}
+  if b.Kind=="p" && t=="Middle East" {continue}
+  if started && b.Kind!="img" {break}
+ }
+ if len(names)<2{return}
+ out:=make([]Block,0,len(a.Blocks))
+ for i,b:=range a.Blocks {if !remove[i] {out=append(out,b)}}
+ a.Blocks=out
+ a.Byline=strings.Join(names,", ")
+}

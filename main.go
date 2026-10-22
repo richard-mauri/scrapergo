@@ -24,7 +24,7 @@ import (
 )
 
 // ScraperGo application version is defined once and shared by all presentation paths.
-const appVersion = "0.2.65"
+const appVersion = "0.2.83"
 const sampleURL = "https://247wallst.com/investing/2026/10/16/taiwan-is-planning-4-billion-industrial-parks-in-texas-for-nvidias-suppliers/"
 
 //go:embed tanner.jpg
@@ -45,6 +45,7 @@ type TextPart struct {
 type Block struct {
 	Parts []TextPart   `json:"parts,omitempty"`
 	Kind  string       `json:"kind"`
+    Role string `json:"role,omitempty"`
 	Links []InlineLink `json:"links,omitempty"`
 	Text  string       `json:"text"`
 	URL   string       `json:"url,omitempty"`
@@ -799,11 +800,23 @@ func writeExtractedArticle(w http.ResponseWriter, raw, finalURL string) {
 	// Extract before deciding whether restricted pages offer readable public text.
 	// Restriction metadata alone does not establish that no usable preview exists.
 	kind := accessRestriction(raw)
-	article, extractionErr := extractWithReadability(raw, finalURL)
+	cleanedArticleHTML := stripEmbeddedMedia(raw)
+	article, extractionErr := extractWithReadability(cleanedArticleHTML, finalURL)
 	if extractionErr == nil {
-		recoverArticlePhotographs(&article, raw, finalURL)
+		recoverArticlePhotographs(&article, cleanedArticleHTML, finalURL)
 		deduplicateArticleImages(&article)
-		recoverMissingArticleLinks(&article, raw, finalURL)
+		recoverMissingArticleLinks(&article, cleanedArticleHTML, finalURL)
+        recoverAuthorPortrait(&article, cleanedArticleHTML, finalURL)
+        sourceLead := ""
+        if base, err := url.Parse(finalURL); err == nil {
+            sourceLead = resolveImageURL(meta(parseHTML(cleanedArticleHTML), "og:image", "twitter:image"), base)
+        }
+        removeSerializedPlayerBlocks(&article)
+        classifyContributorImages(&article)
+        classifyImagesFromSource(&article, cleanedArticleHTML, finalURL)
+        reconcileContributorByline(&article)
+        separateContributorHeader(&article)
+        normalizeArticleDocument(&article, sourceLead)
 		logSlateExtractionDiagnostic(article.Blocks, finalURL)
 	}
 	if kind != "" {
@@ -1008,6 +1021,7 @@ func main() {
 	mux.HandleFunc("/api/article-image", articleImage)
 	mux.HandleFunc("/api/thumbnail", articleThumbnail)
 	mux.HandleFunc("/api/diagnostic/extract", diagnosticExtract)
+	mux.HandleFunc("/api/diagnostic/image-trace", diagnosticImageTrace)
 	mux.HandleFunc("/tanner.jpg", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet && r.Method != http.MethodHead {
 			w.Header().Set("Allow", "GET, HEAD")
