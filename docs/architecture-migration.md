@@ -54,3 +54,7 @@ Source image-role classification now has two responsibilities with a real packag
 ## Phase 9: independent source HTML tree package
 
 The source-tree parser, traversal, text normalization and metadata helpers have moved into `internal/sourcehtml`. Existing callers retain their `Node`, `parseHTML`, `find`, `textOf`, `meta`, and `normalize` interfaces as thin forwarding wrappers while the parser is now package-testable and reusable independently of the HTTP server. The application-specific noise and policy filters remain in the application package. The parser deliberately retains the legacy tokenization behavior; replacing it with a standards-compliant tree is a separate, fixture-gated decision. No extraction ranking or page classification changes are intended.
+
+## Phase 10: parser-independent link restoration
+
+`internal/links` now owns article text-key matching and restoration of missing anchors. The root `link_recovery.go` collects HTML evidence (selected paragraph text and resolved source anchors) using existing parsing and URL policies, then passes the observations to `links.Restore`. The policy package depends only on the canonical `article` model. It never fetches URLs, adds blocks, or overwrites existing structured links. Tests check exact-paragraph matching, duplicate suppression, and preservation of original links. Existing stage order, output JSON and launcher configuration are unchanged.
