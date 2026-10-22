@@ -104,6 +104,7 @@ func diagnosticImageTrace(w http.ResponseWriter,r *http.Request) {
  opening=append(opening,traceOpeningBlocks("classified",article.Blocks)...)
  sourceLead:=""
  if base,err:=url.Parse(input.URL);err==nil{sourceLead=resolveImageURL(meta(parseHTML(cleaned),"og:image","twitter:image"),base)}
+ recoverOpeningSourceFigure(&article,cleaned,input.URL)
  normalizeArticleDocument(&article,sourceLead)
  stages=append(stages,traceImageBlocks("normalized",article.Blocks)...)
  opening=append(opening,traceOpeningBlocks("normalized",article.Blocks)...)
