@@ -38,7 +38,7 @@ func recoverFigureInScope(a *Article, scope *Node, sourceURL string) bool {
 			for p := n.Parent; p != nil && p != scope.Parent; p = p.Parent {
 				ancestors = append(ancestors, media.Ancestor{Tag: p.Tag, Class: p.Attr["class"] + " " + p.Attr["id"]})
 			}
-			if media.OpeningFigureEligible(ancestors) && !noisyOpeningFigure(n, scope) {
+			if media.OpeningFigureEligible(ancestors) && !sourcehtml.OpeningFigureNoisy(n, scope) {
 				if src := articleImageURL(n, sourceURL); src != "" { candidate = src; return true }
 			}
 		}
@@ -59,13 +59,3 @@ func recoverFigureInScope(a *Article, scope *Node, sourceURL string) bool {
 }
 
 
-// An article's own header may hold its opening editorial photograph.
-// Keep the shared noise policy for all other containers, including author
-// bylines and unrelated header elements, without globally unblocking headers.
-func noisyOpeningFigure(n, scope *Node) bool {
- for p := n; p != nil && p != scope.Parent; p = p.Parent {
-  if p.Tag == "header" && scope.Tag == "article" { continue }
-  if sourcehtml.Noisy(p) { return true }
- }
- return false
-}
