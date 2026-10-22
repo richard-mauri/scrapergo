@@ -4,6 +4,7 @@ import (
  "clean-article-reader/internal/article"
  "clean-article-reader/internal/assembly"
  "clean-article-reader/internal/extraction"
+ "clean-article-reader/internal/media"
 )
 
 // assembleArticleDocument coordinates document transformations under a shared
@@ -17,7 +18,7 @@ func assembleArticleDocument(extracted extraction.Result, sourceHTML string) Art
  }
  stages := []assembly.Stage{
   sourceStage("recover-photographs",recoverArticlePhotographs),
-  plainStage("deduplicate-images",deduplicateArticleImages),
+  plainStage("deduplicate-images",media.Deduplicate),
   sourceStage("recover-links",recoverMissingArticleLinks),
   sourceStage("recover-author-portrait",recoverAuthorPortrait),
   plainStage("remove-player-blocks",removeSerializedPlayerBlocks),
