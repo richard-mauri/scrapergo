@@ -82,3 +82,7 @@ The `/api/read` HTTP request and response contract now lives in `internal/httpap
 ## Phase 16: centralized application handler wiring
 
 `app_wiring.go` owns the production dependency setup for the article-read handler and the image-metadata adapter. The server now constructs its primary read handler once and passes that exact handler to the metadata route. The prior per-request constructor remains available only through compatibility functions used by existing tests/callers. Neither the URL resolver, protected downloader, publisher access policy, nor extraction writer changed. Router paths and legacy HTTP contracts remain intact. We intentionally retained compatibility wrappers referenced by tests and diagnostic paths; removing them without a comprehensive caller audit would introduce needless risk. This phase centralizes service wiring rather than pretending that all retrieval or parsing dependencies have moved out of main.
+
+## Phase 17: stabilization review
+
+The final architecture inventory and outstanding-debt list are maintained in [architecture-review.md](architecture-review.md). This milestone adds negative HTTP contract and assembly-isolation tests, documents the package dependency graph and release checklist, and deliberately makes no production implementation changes. Continued migration should be based on concrete remaining ownership and behavior requirements rather than a fixed PR count.
