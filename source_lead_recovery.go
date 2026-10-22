@@ -2,6 +2,7 @@ package main
 
 import (
  "strings"
+ "clean-article-reader/internal/media"
  "clean-article-reader/internal/sourcehtml"
 )
 
@@ -33,16 +34,11 @@ func recoverFigureInScope(a *Article, scope *Node, sourceURL string) bool {
 			return true
 		}
 		if n.Tag == "img" && !sawProse {
-			eligible := false
-			rejected := false
+			ancestors := []media.Ancestor{}
 			for p := n.Parent; p != nil && p != scope.Parent; p = p.Parent {
-				classes := strings.ToLower(p.Attr["class"] + " " + p.Attr["id"])
-				if p.Tag == "figure" || p.Tag == "picture" || strings.Contains(classes, "featured-image") || strings.Contains(classes, "hero-image") || strings.Contains(classes, "lead-image") { eligible = true }
-				if p.Tag == "nav" || p.Tag == "aside" || p.Tag == "footer" ||
-					strings.Contains(classes, "byline") || strings.Contains(classes, "author") ||
-					strings.Contains(classes, "avatar") || strings.Contains(classes, "contributor") { rejected = true; break }
+				ancestors = append(ancestors, media.Ancestor{Tag: p.Tag, Class: p.Attr["class"] + " " + p.Attr["id"]})
 			}
-			if eligible && !rejected && !noisyOpeningFigure(n, scope) {
+			if media.OpeningFigureEligible(ancestors) && !noisyOpeningFigure(n, scope) {
 				if src := articleImageURL(n, sourceURL); src != "" { candidate = src; return true }
 			}
 		}
