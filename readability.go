@@ -92,6 +92,9 @@ func extractWithReadability(raw, source string) (Article, error) {
 		fallback.Method = "Legacy extractor fallback"
 		return fallback, nil
 	}
+	if partial, ok := partialHTMLArticle(raw, source); ok {
+		return partial, nil
+	}
 	if parseErr != nil {
 		return fallback, fmt.Errorf("Readability: %v; legacy extractor: %w", parseErr, fallbackErr)
 	}
