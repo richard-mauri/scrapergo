@@ -2,62 +2,59 @@ package main
 
 import (
  "fmt"
- "clean-article-reader/internal/media"
  "strings"
+
+ "clean-article-reader/internal/media"
 )
 
-// groupArticleGalleryImages preserves explicitly grouped source galleries.
-// Only a container with gallery-related markup and at least two image members
-// qualifies. Independent editorial photographs are never grouped by proximity.
+// sourceGalleryCandidate identifies a compact image-centric layout. It uses
+// source structure and CSS layout semantics, never publisher-specific classes.
+func sourceGalleryCandidate(n *Node) bool {
+ if n.Tag!="div" && n.Tag!="section" && n.Tag!="figure" && n.Tag!="ul" {return false}
+ identity:=strings.ToLower(n.Attr["class"]+" "+n.Attr["id"]+" "+n.Attr["data-gallery"])
+ explicit:=strings.Contains(identity,"gallery")||strings.Contains(identity,"carousel")||strings.Contains(identity,"slideshow")
+ style:=strings.ToLower(n.Attr["style"])
+ horizontal:=strings.Contains(style,"display:flex")||strings.Contains(style,"display: flex")||strings.Contains(style,"display:grid")||strings.Contains(style,"display: grid")
+ for _,token:=range strings.Fields(identity) {
+  if token=="flex-row"||strings.HasSuffix(token,":flex-row")||strings.HasPrefix(token,"grid-cols-")||strings.Contains(token,":grid-cols-") {horizontal=true}
+ }
+ if !explicit&&!horizontal {return false}
+ // Require multiple distinct image-centric immediate branches, not an article
+ // wrapper with interleaved prose, buttons, or unrelated body sections.
+ count:=0
+ for _,child:=range n.Kids {
+  if child.Tag=="#text" {continue}
+  if child.Tag=="p"||child.Tag=="h1"||child.Tag=="h2"||child.Tag=="h3" {return false}
+  images:=find(child,func(x *Node)bool{return x.Tag=="img"})
+  if len(images)==0 {return false}
+  // Prevent a whole grid of article sections from looking like a photo group.
+  if len(images)!=1 {return false}
+  if len(find(child,func(x *Node)bool{return x.Tag=="p"||x.Tag=="article"}))>0 {return false}
+  count++
+ }
+ return count>=2 && count<=12
+}
+
+// groupArticleGalleryImages restores photo layouts using publisher-neutral
+// structural evidence. Editorial images without a compact shared layout stay
+// independent, regardless of their proximity in the extracted text.
 func groupArticleGalleryImages(a *Article, sourceHTML, baseURL string) {
- if a == nil || len(a.Blocks)==0 { return }
+ if a==nil||len(a.Blocks)==0{return}
  root:=parseHTML(sourceHTML)
  groups:=[][]string{}
  claimed:=map[string]bool{}
- for _,n:=range find(root,func(n *Node)bool {
-  if n.Tag!="div" && n.Tag!="section" && n.Tag!="figure" && n.Tag!="ul" {return false}
-  identity:=strings.ToLower(n.Attr["class"]+" "+n.Attr["id"]+" "+n.Attr["data-gallery"])
-  return strings.Contains(identity,"gallery") || strings.Contains(identity,"carousel") || strings.Contains(identity,"slideshow")
- }) {
-  // Prefer the innermost explicit group; avoid grouping nested carousels twice.
-  nested:=false
-  for _,desc:=range find(n,func(x *Node)bool {
-   if x==n || (x.Tag!="div"&&x.Tag!="section"&&x.Tag!="figure"&&x.Tag!="ul"){return false}
-   cls:=strings.ToLower(x.Attr["class"]+" "+x.Attr["id"])
-   return strings.Contains(cls,"gallery")||strings.Contains(cls,"carousel")||strings.Contains(cls,"slideshow")
-  }) {if desc!=nil {nested=true;break}}
-  if nested {continue}
+ // Walk deepest-first so nested layout wrappers win over broader containers.
+ candidates:=find(root,sourceGalleryCandidate)
+ for i:=len(candidates)-1;i>=0;i-- {
+  n:=candidates[i]
   urls:=[]string{}
-  unique:=map[string]bool{}
+  seen:=map[string]bool{}
   for _,img:=range find(n,func(x *Node)bool{return x.Tag=="img"}) {
    u:=articleImageURL(img,baseURL)
-   if u!="" && !unique[u]&&!claimed[media.Identity(u)] {unique[u]=true;urls=append(urls,u)}
-  }
-  if len(urls)<2||len(urls)>12 {continue}
-  groups=append(groups,urls)
-  for _,u:=range urls {claimed[media.Identity(u)]=true}
- }
- // PhotoSwipe stores image slides as pswp__item elements, often alongside
- // a separate lightbox rendition. Group only siblings within the same
- // PhotoSwipe track and deduplicate by source-asset identity.
- for _,track:=range find(root,func(n *Node)bool {
-  if n.Tag!="div" {return false}
-  cls:=" "+strings.ToLower(n.Attr["class"])+" "
-  return strings.Contains(cls," pswp__container ") || strings.Contains(cls," pswp__items ")
- }) {
-  urls:=[]string{}
-  unique:=map[string]bool{}
-  for _,child:=range track.Kids {
-   if !strings.Contains(" "+strings.ToLower(child.Attr["class"])+" "," pswp__item ") {continue}
-   for _,img:=range find(child,func(n *Node)bool{return n.Tag=="img"}) {
-    u:=articleImageURL(img,baseURL)
-    key:=media.Identity(u)
-    if u!=""&&key!=""&&!unique[key]&&!claimed[key] {
-     unique[key]=true
-     urls=append(urls,u)
-     break
-    }
-   }
+   key:=media.Identity(u)
+   if u==""||key==""||seen[key]||claimed[key] {continue}
+   seen[key]=true
+   urls=append(urls,u)
   }
   if len(urls)<2||len(urls)>12 {continue}
   groups=append(groups,urls)
