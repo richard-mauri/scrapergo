@@ -47,15 +47,7 @@ func recoverFigureInScope(a *Article, scope *Node, sourceURL string) bool {
 	}
 	walk(scope)
 	if candidate == "" { return false }
-	for i := range a.Blocks {
-		if a.Blocks[i].Kind != "img" { continue }
-		if imageSourceIdentity(a.Blocks[i].URL) == imageSourceIdentity(candidate) {
-			a.Blocks[i].Role = "lead"
-			return true
-		}
-	}
-	a.Blocks = append([]Block{{Kind: "img", URL: candidate, Role: "lead"}}, a.Blocks...)
-	return true
+	return media.ReconcileOpeningLead(a, candidate, imageSourceIdentity)
 }
 
 
