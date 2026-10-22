@@ -50,3 +50,7 @@ The contributor header recognition and contiguous preamble separation now live i
 ## Phase 7: parser-independent image-role evidence
 
 Source image-role classification now has two responsibilities with a real package boundary: `source_image_roles.go` reads HTML nodes and exports ordered ancestor evidence (`media.ImageEvidence`), while `internal/media` decides author/editorial roles and applies them to the canonical article. Image source identity remains the existing implementation and is injected into the policy. The same ancestor priority, source order, editorial-over-author precedence, and preservation of existing lead roles are retained. This is a structural change; subsequent work can replace parser details independently and develop frozen real-page source fixtures before altering image heuristics. Regression tests cover role evidence and precedence.
+
+## Phase 9: independent source HTML tree package
+
+The source-tree parser, traversal, text normalization and metadata helpers have moved into `internal/sourcehtml`. Existing callers retain their `Node`, `parseHTML`, `find`, `textOf`, `meta`, and `normalize` interfaces as thin forwarding wrappers while the parser is now package-testable and reusable independently of the HTTP server. The application-specific noise and policy filters remain in the application package. The parser deliberately retains the legacy tokenization behavior; replacing it with a standards-compliant tree is a separate, fixture-gated decision. No extraction ranking or page classification changes are intended.
