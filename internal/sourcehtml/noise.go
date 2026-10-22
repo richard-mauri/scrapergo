@@ -20,3 +20,22 @@ func InNoisy(n, stop *Node) bool {
 	}
 	return false
 }
+
+// OpeningFigureNoisy applies ordinary source noise rules to an opening image,
+// except that an article's own header is structural rather than automatically
+// disqualifying. Other noisy ancestors, including bylines, remain blocked.
+// Traversal stops at the parent of scope, matching source recovery boundaries.
+func OpeningFigureNoisy(n, scope *Node) bool {
+	if n == nil || scope == nil {
+		return true
+	}
+	for p := n; p != nil && p != scope.Parent; p = p.Parent {
+		if p.Tag == "header" && scope.Tag == "article" {
+			continue
+		}
+		if Noisy(p) {
+			return true
+		}
+	}
+	return false
+}
