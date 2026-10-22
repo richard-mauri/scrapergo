@@ -64,6 +64,10 @@ func recoverAuthorPortrait(a *Article, sourceHTML, baseURL string) {
  })
  for _,group:=range candidates{
   if !byline.MatchString(group.Attr["class"]+" "+group.Attr["id"]){continue}
+  // Only restore portraits belonging to an opening contributor group.
+  // An author biography after the article's editorial content must not be
+  // promoted into the opening byline, even when an ancestor is named author.
+  if !openingContributorGroup(group) { continue }
   photos:=find(group,func(n *Node)bool{return n.Tag=="img"})
   for _,p:=range photos{
    src:=articleImageURL(p,baseURL)
@@ -78,6 +82,27 @@ func recoverAuthorPortrait(a *Article, sourceHTML, baseURL string) {
    return
   }
  }
+}
+
+// openingContributorGroup identifies contributor markup before the first
+// substantial article prose or editorial figure in its article/main scope.
+// Structural DOM order is used rather than the author's image filename.
+func openingContributorGroup(group *Node) bool {
+ var scope *Node
+ for n:=group.Parent;n!=nil;n=n.Parent { if n.Tag=="article" {scope=n;break} }
+ if scope==nil { for n:=group.Parent;n!=nil;n=n.Parent {if n.Tag=="main" {scope=n;break}} }
+ if scope==nil { return false }
+ for _,n:=range find(scope,func(n *Node)bool{return n.Tag=="p"||n.Tag=="figure"||n.Tag=="img"||n==group}) {
+  if n==group { return true }
+  if n.Tag=="p" && len(strings.Fields(textOf(n)))>=25 {return false}
+  if n.Tag=="figure" || n.Tag=="img" {
+   // Do not use portrait markup itself as the editorial boundary.
+   inside:=false
+   for p:=n;p!=nil;p=p.Parent {if p==group {inside=true;break}}
+   if !inside {return false}
+  }
+ }
+ return false
 }
 
 // reconcileContributorByline keeps source-linked contributor names together

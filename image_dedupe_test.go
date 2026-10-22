@@ -15,13 +15,13 @@ func TestDeduplicateHeroAndInlineImages(t *testing.T) {
 		{Kind: "img", URL: "https://images.example.org/content/third.jpg"},
 	}}
 	media.Deduplicate(a)
-	if len(a.Blocks) != 5 {
-		t.Fatalf("expected 5 blocks including 2 distinct inline photos, got %#v", a.Blocks)
+	if len(a.Blocks) != 6 {
+		t.Fatalf("expected 6 blocks including metadata-matching lead and 2 distinct inline photos, got %#v", a.Blocks)
 	}
-	if a.Blocks[2].URL != "https://images.example.org/content/second.jpg" || a.Blocks[4].URL != "https://images.example.org/content/third.jpg" {
+	if a.Blocks[1].URL != "https://images.example.org/content/photo.jpg?width=600" || a.Blocks[3].URL != "https://images.example.org/content/second.jpg" || a.Blocks[5].URL != "https://images.example.org/content/third.jpg" {
 		t.Fatalf("incorrect image order: %#v", a.Blocks)
 	}
-	if a.Blocks[1].Text != "Credit for hero" || a.Blocks[3].Text != "Second photograph credit" {
+	if a.Blocks[2].Text != "Credit for hero" || a.Blocks[4].Text != "Second photograph credit" {
 		t.Fatalf("credits lost: %#v", a.Blocks)
 	}
 }

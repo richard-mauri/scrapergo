@@ -25,10 +25,10 @@ func RoleFromEvidence(ancestors []Ancestor) string {
  for _, ancestor := range ancestors {
   classes := " "+strings.ToLower(ancestor.Class)+" "
   if strings.Contains(classes," imagewrap ") || strings.Contains(classes," has-source-dimensions ") {return "editorial"}
-  if strings.Contains(classes," byline ") || strings.Contains(classes," author ") || strings.Contains(classes," contributor ") {return "author"}
+  if strings.Contains(classes," byline ") || strings.Contains(classes," author ") || strings.Contains(classes," contributor ") || strings.Contains(classes," author-bio ") || strings.Contains(classes," author-profile ") || strings.Contains(classes," bio ") {return "author"}
   if ancestor.Tag=="a" {
    href,err:=url.Parse(ancestor.Href)
-   if err==nil && (strings.Contains(href.Path,"/people/") || strings.Contains(href.Path,"/authors/")) {return "author"}
+   if err==nil && (strings.Contains(href.Path,"/people/") || strings.Contains(href.Path,"/authors/") || strings.Contains(href.Path,"/author/")) {return "author"}
   }
  }
  return ""

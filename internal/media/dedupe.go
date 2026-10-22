@@ -21,12 +21,13 @@ func Identity(raw string) string {
  return strings.ToLower(u.Hostname()) + path
 }
 
-// Deduplicate keeps the hero image and first inline occurrence of each photo.
+// Deduplicate preserves the first inline occurrence of each photograph.
+// Metadata ImageURL is not an article block and must not consume an image
+// identity: normalization reconciles the source's metadata rendition later.
 // Other blocks, captions and attribution are unchanged.
 func Deduplicate(a *article.Article) {
  if a == nil { return }
  seen := map[string]bool{}
- if key := Identity(a.ImageURL); key != "" { seen[key] = true }
  blocks := make([]article.Block,0,len(a.Blocks))
  for _, b := range a.Blocks {
   if b.Kind == "img" {
