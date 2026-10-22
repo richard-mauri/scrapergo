@@ -1,6 +1,7 @@
 package main
 
 import (
+ "clean-article-reader/internal/sourcehtml"
  "net/url"
 
  "clean-article-reader/internal/links"
@@ -15,7 +16,7 @@ func recoverMissingArticleLinks(a *Article, raw, source string) {
  root:=parseHTML(raw)
  evidence:=[]links.ParagraphEvidence{}
  for _,node:=range find(root,func(n *Node)bool{return n.Tag=="p"||n.Tag=="li"}) {
-  if inNoisy(node,nil) {continue}
+  if sourcehtml.InNoisy(node,nil) {continue}
   anchors:=find(node,func(n *Node)bool{return n.Tag=="a"})
   if len(anchors)==0 {continue}
   record:=links.ParagraphEvidence{Text:textOf(node)}
