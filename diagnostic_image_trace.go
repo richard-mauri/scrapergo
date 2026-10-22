@@ -43,6 +43,19 @@ func sourceImageTrace(raw,articleURL string) []traceImage {
  }
  return out
 }
+
+// traceOpeningBlocks records the extraction representation, including inline
+// link parts that are not represented in Block.Links. Limit output by count.
+func traceOpeningBlocks(stage string, blocks []Block) []map[string]any {
+ out:=make([]map[string]any,0)
+ limit:=len(blocks);if limit>45 {limit=45}
+ for i:=0;i<limit;i++ {
+  b:=blocks[i]
+  out=append(out,map[string]any{"stage":stage,"index":i,"kind":b.Kind,"text":b.Text,"role":b.Role,"url":b.URL,"links":b.Links,"parts":b.Parts})
+ }
+ return out
+}
+
 // diagnosticImageTrace is read-only and restricted to direct loopback peers.
 // It traces the same transformations as writeExtractedArticle, without
 // returning raw publisher HTML, credentials, or making asset requests.
@@ -72,6 +85,8 @@ func diagnosticImageTrace(w http.ResponseWriter,r *http.Request) {
  article,err:=extractWithReadability(cleaned,input.URL)
  if err!=nil{http.Error(w,"extraction failed",422);return}
  stages:=[]traceImage{}
+ opening:=[]map[string]any{}
+ opening=append(opening,traceOpeningBlocks("readability",article.Blocks)...)
  stages=append(stages,sourceImageTrace(cleaned,input.URL)...)
  stages=append(stages,traceImageBlocks("readability",article.Blocks)...)
  recoverArticlePhotographs(&article,cleaned,input.URL)
@@ -79,15 +94,18 @@ func diagnosticImageTrace(w http.ResponseWriter,r *http.Request) {
  recoverMissingArticleLinks(&article,cleaned,input.URL)
  recoverAuthorPortrait(&article,cleaned,input.URL)
  stages=append(stages,traceImageBlocks("recovered",article.Blocks)...)
+ opening=append(opening,traceOpeningBlocks("recovered",article.Blocks)...)
  removeSerializedPlayerBlocks(&article)
  classifyContributorImages(&article)
  classifyImagesFromSource(&article,cleaned,input.URL)
  reconcileContributorByline(&article)
  separateContributorHeader(&article)
  stages=append(stages,traceImageBlocks("classified",article.Blocks)...)
+ opening=append(opening,traceOpeningBlocks("classified",article.Blocks)...)
  sourceLead:=""
  if base,err:=url.Parse(input.URL);err==nil{sourceLead=resolveImageURL(meta(parseHTML(cleaned),"og:image","twitter:image"),base)}
  normalizeArticleDocument(&article,sourceLead)
  stages=append(stages,traceImageBlocks("normalized",article.Blocks)...)
- _=json.NewEncoder(w).Encode(map[string]any{"url":input.URL,"sourceMetadataImage":sourceLead,"selectedImage":article.ImageURL,"byline":article.Byline,"images":stages})
+ opening=append(opening,traceOpeningBlocks("normalized",article.Blocks)...)
+ _=json.NewEncoder(w).Encode(map[string]any{"url":input.URL,"sourceMetadataImage":sourceLead,"selectedImage":article.ImageURL,"byline":article.Byline,"images":stages,"openingBlocks":opening})
 }
