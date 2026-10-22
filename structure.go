@@ -1,6 +1,7 @@
 package main
 
 import (
+ "clean-article-reader/internal/sourcehtml"
 	"net/url"
 )
 
@@ -16,7 +17,7 @@ func recoverStructuredDocument(raw string, reader []Block, base *url.URL) ([]Blo
 	for _, candidate := range find(root, func(n *Node) bool {
 		return n.Tag == "article" || n.Tag == "main" || n.Tag == "section" || n.Tag == "div"
 	}) {
-		if inNoisy(candidate, nil) {
+		if sourcehtml.InNoisy(candidate, nil) {
 			continue
 		}
 		hs := editorialHeadings(candidate)
@@ -26,7 +27,7 @@ func recoverStructuredDocument(raw string, reader []Block, base *url.URL) ([]Blo
 		// Require substantive text outside headings, avoiding menus/catalogs.
 		prose := 0
 		for _, n := range find(candidate, func(n *Node) bool { return n.Tag == "p" || n.Tag == "li" }) {
-			if !inNoisy(n, candidate) && !nestedProse(n, candidate) && len(normalize(textOf(n))) >= 35 {
+			if !sourcehtml.InNoisy(n, candidate) && !nestedProse(n, candidate) && len(normalize(textOf(n))) >= 35 {
 				prose++
 			}
 		}
@@ -63,7 +64,7 @@ func recoverStructuredDocument(raw string, reader []Block, base *url.URL) ([]Blo
 	blocks := make([]Block, 0, len(heads)*5)
 	var walk func(*Node)
 	walk = func(n *Node) {
-		if inNoisy(n, scope) || promotionalRegion(n) || promotionalAncestor(n, scope) {
+		if sourcehtml.InNoisy(n, scope) || promotionalRegion(n) || promotionalAncestor(n, scope) {
 			return
 		}
 		if title, links, ok := contextualLinkSection(n, base); ok {
@@ -150,7 +151,7 @@ func recoverStructuredDocument(raw string, reader []Block, base *url.URL) ([]Blo
 func editorialHeadings(n *Node) []*Node {
 	var out []*Node
 	for _, h := range find(n, func(x *Node) bool { return x.Tag == "h2" || x.Tag == "h3" }) {
-		if inNoisy(h, n) || inNavigationCluster(h, n) || promotionalAncestor(h, n) || topicHeading(h) {
+		if sourcehtml.InNoisy(h, n) || inNavigationCluster(h, n) || promotionalAncestor(h, n) || topicHeading(h) {
 			continue
 		}
 		title := normalize(textOf(h))
