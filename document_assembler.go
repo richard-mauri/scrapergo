@@ -4,6 +4,7 @@ import (
  "clean-article-reader/internal/article"
  "clean-article-reader/internal/assembly"
  "clean-article-reader/internal/extraction"
+ "clean-article-reader/internal/contributors"
  "clean-article-reader/internal/media"
 )
 
@@ -25,7 +26,7 @@ func assembleArticleDocument(extracted extraction.Result, sourceHTML string) Art
   plainStage("classify-contributors",classifyContributorImages),
   sourceStage("classify-source-images",classifyImagesFromSource),
   plainStage("reconcile-byline",reconcileContributorByline),
-  plainStage("separate-contributor-header",separateContributorHeader),
+  plainStage("separate-contributor-header",contributors.SeparateHeader),
   sourceStage("recover-opening-figure",recoverOpeningSourceFigure),
   assembly.StageFunc{StageName:"normalize",Transform:func(a *article.Article,e extraction.SourceEvidence,_ string){normalizeArticleDocument(a,e.MetadataImageURL)}},
  }

@@ -42,3 +42,7 @@ The `internal/extraction.Result` type now separates `Article` from `SourceEviden
 ## Phase 5: extract media identity and deduplication
 
 `internal/media` now owns image delivery-URL identity and duplicate elimination as a dependency-light, independently tested package. The document assembler invokes `media.Deduplicate` directly, while existing root helpers delegate for compatibility with older callers and tests. This does not change which photos are selected or their order, and does not alter source-image role classification. The migration is intentionally limited to one low-coupling stage; further stages should move only after their dependencies and output invariants are characterized.
+
+## Phase 6: contributor-header package
+
+The contributor header recognition and contiguous preamble separation now live in `internal/contributors`. The assembler calls this independent, article-model-only package; root compatibility wrappers preserve old callers. This phase does not change byline policy, portrait classification, extraction behavior or rendering. Dedicated tests cover Parts/Links contributor anchors, editorial-image boundary, and preservation of article body. Wider contributor/image-role interactions remain separate and should be migrated only after representative fixtures are captured.
