@@ -120,7 +120,7 @@ func Text(n *Node) string {
 	return Normalize(b.String())
 }
 func Meta(root *Node, keys ...string) string {
-	for _, n := range Find(root, func(n *Node) bool { return n.Tag == "Meta" }) {
+	for _, n := range Find(root, func(n *Node) bool { return n.Tag == "meta" }) {
 		key := strings.ToLower(n.Attr["property"])
 		if key == "" {
 			key = strings.ToLower(n.Attr["name"])
