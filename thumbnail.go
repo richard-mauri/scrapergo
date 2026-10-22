@@ -3,8 +3,8 @@ package main
 import (
  "clean-article-reader/internal/thumbnail"
 			"context"
-				"fmt"
-								"net/http"
+ "time"
+												"net/http"
 	"net/url"
 	"strconv"
 		)
