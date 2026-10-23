@@ -60,7 +60,7 @@ func RecoverArticlePhotographs(a *article.Article, raw, baseURL string) {
 					continue
 				}
 				for _, para := range sourcehtml.Find(sib, func(x *sourcehtml.Node) bool { return x.Tag == "p" }) {
-					t := textOf(para)
+					t := sourcehtml.Text(para)
 					if len(t) >= 35 {
 						near = t
 						break
@@ -79,7 +79,7 @@ func RecoverArticlePhotographs(a *article.Article, raw, baseURL string) {
 	}
 	original := a.Blocks
 	before := make(map[int][]article.Block)
-	tail := []article.article.Block{}
+	tail := []article.Block{}
 	lastAnchor := -1
 	for _, f := range found {
 		img := article.Block{Kind: "img", URL: f.url, Text: f.alt}
