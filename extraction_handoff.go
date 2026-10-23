@@ -11,7 +11,7 @@ import (
 // records the publisher's source metadata. No later normalization decision is
 // made while gathering this evidence.
 func extractWithEvidence(raw, source string) (extractionmodel.Result, error) {
- article, err := extractWithReadability(raw, source)
+ article, err := extractionmodel.ExtractWithReadability(raw, source, extract, inlineTextParts)
  if err != nil { return extractionmodel.Result{}, err }
  result := extractionmodel.Result{Article: article, Evidence: extractionmodel.SourceEvidence{SourceURL: source}}
  if base, err := url.Parse(source); err == nil {
