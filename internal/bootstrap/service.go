@@ -76,10 +76,10 @@ func WriteExtractedArticle(w http.ResponseWriter, raw, finalURL string) {
 // extractWithEvidence preserves the initial extractor result and independently
 // records the publisher's source metadata. No later normalization decision is
 // made while gathering this evidence.
-func ExtractWithEvidence(raw, source string) (extractionmodel.Result, error) {
- article, err := extractionmodel.ExtractWithReadability(raw, source, extractionmodel.LegacyExtract, extractionmodel.InlineTextParts)
- if err != nil { return extractionmodel.Result{}, err }
- result := extractionmodel.Result{Article: article, Evidence: extractionmodel.SourceEvidence{SourceURL: source}}
+func ExtractWithEvidence(raw, source string) (extraction.Result, error) {
+ article, err := extraction.ExtractWithReadability(raw, source, extraction.LegacyExtract, extraction.InlineTextParts)
+ if err != nil { return extraction.Result{}, err }
+ result := extraction.Result{Article: article, Evidence: extraction.SourceEvidence{SourceURL: source}}
  if base, err := url.Parse(source); err == nil {
   result.Evidence.MetadataImageURL = sourcehtml.ResolveURL(sourcehtml.Meta(sourcehtml.Parse(raw), "og:image", "twitter:image"), base)
  }
@@ -158,7 +158,7 @@ func NewArticleMetadataHandler(read http.Handler) http.Handler {
 }
 
 // Start composes the production HTTP graph once.
-func Start(port int, version, build string, tannerJPG []byte) error {
+func Start(port string, version, build string, tannerJPG []byte) error {
  readHandler := NewArticleReadHandler()
  return app.Run(app.Config{Port:port,Version:version,Build:build}, app.Handlers{
   Read:readHandler,
