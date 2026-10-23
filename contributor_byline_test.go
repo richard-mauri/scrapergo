@@ -1,6 +1,7 @@
 package main
 
 import (
+ articlemodel "clean-article-reader/internal/article"
  "clean-article-reader/internal/contributors"
  "clean-article-reader/internal/ui"
  "strings"
@@ -8,8 +9,8 @@ import (
 )
 
 func TestContributorBylineReconciliation(t *testing.T) {
- linked:=func(name string) Block{return Block{Kind:"p",Text:name,Links:[]InlineLink{{Text:name,URL:"https://www.npr.org/people/123"}}}}
- a:=Article{Byline:"Ruth Sherlock",Blocks:[]Block{
+ linked:=func(name string) articlemodel.Block{return articlemodel.Block{Kind:"p",Text:name,Links:[]articlemodel.InlineLink{{Text:name,URL:"https://www.npr.org/people/123"}}}}
+ a:=articlemodel.Article{Byline:"Ruth Sherlock",Blocks:[]articlemodel.Block{
   {Kind:"p",Text:"Middle East"}, {Kind:"p",Text:"By"},
   linked("Ruth Sherlock"),{Kind:"p",Text:","},
   {Kind:"img",Role:"author",Text:"Photo of Samantha Balaban",URL:"https://example.org/samantha.jpg"},
@@ -28,7 +29,7 @@ func TestContributorBylineReconciliation(t *testing.T) {
  if len(a.Blocks)!=4 || a.Blocks[0].Text!="Middle East" || a.Blocks[1].Role!="author" || a.Blocks[2].Role!="lead" || a.Blocks[3].Text!="Real reporting remains." {t.Fatalf("lost editorial blocks: %+v",a.Blocks)}
 }
 func TestNoBylineFragmentsPreservesEditorialLinks(t *testing.T) {
- a:=Article{Byline:"Writer",Blocks:[]Block{{Kind:"p",Text:"A story about someone."},{Kind:"p",Text:"Further reading",Links:[]InlineLink{{Text:"Further reading",URL:"https://example.org/story"}}}}}
+ a:=articlemodel.Article{Byline:"Writer",Blocks:[]articlemodel.Block{{Kind:"p",Text:"A story about someone."},{Kind:"p",Text:"Further reading",Links:[]articlemodel.InlineLink{{Text:"Further reading",URL:"https://example.org/story"}}}}}
  contributors.ReconcileContributorByline(&a)
  if a.Byline!="Writer"||len(a.Blocks)!=2 {t.Fatalf("ordinary content altered: %+v",a)}
 }
