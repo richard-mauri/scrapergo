@@ -1,6 +1,7 @@
 package main
 
 import (
+ "clean-article-reader/internal/extraction"
  "clean-article-reader/internal/ui"
  "clean-article-reader/internal/links"
 	"net/url"
@@ -11,7 +12,7 @@ import (
 func TestArticleInlineLinkRouting(t *testing.T) {
 	base, _ := url.Parse("https://www.aljazeera.com/news/story")
 	blocks := []Block{{Kind: "p", Text: "Read the California court filing for details."}}
-	attachInlineLinks(blocks, `<article><p>Read the <a href="/news/filing">California court filing</a> for details.</p><a href="javascript:alert(1)">unsafe</a></article>`, base)
+	extraction.AttachInlineLinks(blocks, `<article><p>Read the <a href="/news/filing">California court filing</a> for details.</p><a href="javascript:alert(1)">unsafe</a></article>`, base)
 	if len(blocks[0].Links) != 1 || blocks[0].Links[0].URL != "https://www.aljazeera.com/news/filing" {
 		t.Fatalf("links: %+v", blocks[0].Links)
 	}

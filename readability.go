@@ -3,7 +3,6 @@ package main
 import (
  "clean-article-reader/internal/extraction"
  "clean-article-reader/internal/sourcehtml"
- "clean-article-reader/internal/links"
 	"bytes"
 	"fmt"
 	"net/url"
@@ -61,9 +60,9 @@ func extractWithReadability(raw, source string) (Article, error) {
 					cleaned := cleanHTML.String()
 					preserveSelectedHTMLLinks(blocks, cleaned, u)
 					if !structuredRecovered {
-						ordered := positionArticleFigures(blocks, cleaned, u)
+						ordered := extraction.PositionArticleFigures(blocks, cleaned, u)
 						if strings.Contains(u.Path, "/gallery/") {
-							ordered = supplementGalleryFigures(ordered, raw, u)
+							ordered = extraction.SupplementGalleryFigures(ordered, raw, u)
 						}
 						blocks = ordered
 					}
@@ -102,192 +101,4 @@ func extractWithReadability(raw, source string) (Article, error) {
 		return fallback, fmt.Errorf("Readability: %v; legacy extractor: %w", parseErr, fallbackErr)
 	}
 	return fallback, fallbackErr
-}
-
-func articleImages(cleaned string, base *url.URL) []Block {
-	root := parseHTML(cleaned)
-	images := []Block{}
-	seen := map[string]bool{}
-	for _, n := range find(root, func(n *Node) bool { return n.Tag == "img" }) {
-		src := n.Attr["src"]
-		if src == "" {
-			src = n.Attr["data-src"]
-		}
-		if src == "" {
-			src = n.Attr["data-original"]
-		}
-		link := sourcehtml.ResolveURL(src, base)
-		if link == "" || seen[link] {
-			continue
-		}
-		seen[link] = true
-		caption := ""
-		for ancestor := n.Parent; ancestor != nil; ancestor = ancestor.Parent {
-			if ancestor.Tag == "figure" {
-				for _, c := range find(ancestor, func(x *Node) bool { return x.Tag == "figcaption" }) {
-					caption = textOf(c)
-					break
-				}
-				break
-			}
-			if ancestor.Tag == "body" {
-				break
-			}
-		}
-		if caption == "" {
-			caption = normalize(n.Attr["alt"])
-		}
-		images = append(images, Block{Kind: "img", Text: caption, URL: link})
-		if len(images) >= 12 {
-			break
-		}
-	}
-	return images
-}
-
-func attachInlineLinks(blocks []Block, cleaned string, base *url.URL) {
-	root := parseHTML(cleaned)
-	for _, anchor := range find(root, func(n *Node) bool { return n.Tag == "a" }) {
-		label := normalize(textOf(anchor))
-		if label == "" {
-			continue
-		}
-		destination := sourcehtml.ResolveURL(anchor.Attr["href"], base)
-		if destination == "" || !links.IsDocumentURL(destination) {
-			continue
-		}
-		for i := range blocks {
-			if blocks[i].Kind == "img" || !strings.Contains(blocks[i].Text, label) {
-				continue
-			}
-			blocks[i].Links = append(blocks[i].Links, InlineLink{Text: label, URL: destination})
-			break
-		}
-	}
-}
-
-func positionArticleFigures(blocks []Block, cleaned string, base *url.URL) []Block {
-	root := parseHTML(cleaned)
-	figures := articleImages(cleaned, base)
-	if len(figures) == 0 {
-		return blocks
-	}
-	placed := map[string]bool{}
-	at := make(map[int][]Block)
-	paragraph := 0
-	for _, n := range find(root, func(n *Node) bool {
-		return n.Tag == "p" || n.Tag == "h2" || n.Tag == "h3" || n.Tag == "h4" || n.Tag == "img"
-	}) {
-		if n.Tag != "img" {
-			txt := normalize(textOf(n))
-			if txt == "" {
-				continue
-			}
-			inFigure := false
-			for x := n.Parent; x != nil; x = x.Parent {
-				if x.Tag == "figure" || x.Tag == "figcaption" {
-					inFigure = true
-					break
-				}
-			}
-			if inFigure {
-				continue
-			}
-			// A source paragraph omitted or rewritten by Readability must not
-			// consume the entire block cursor and push later images to the end.
-			// Advance only when a retained prose block really matches.
-			for next := paragraph; next < len(blocks); next++ {
-				if blocks[next].Kind == "img" || blocks[next].Kind == "topic-link" {
-					continue
-				}
-				candidate := normalize(blocks[next].Text)
-				if candidate != "" && (strings.Contains(candidate, txt) || strings.Contains(txt, candidate)) {
-					paragraph = next + 1
-					break
-				}
-			}
-			continue
-		}
-		link := imageFromNode(n, base)
-		if link == "" || placed[link] {
-			continue
-		}
-		for _, f := range figures {
-			if f.URL == link {
-				at[paragraph] = append(at[paragraph], f)
-				placed[link] = true
-				break
-			}
-		}
-	}
-	out := make([]Block, 0, len(blocks)+len(figures))
-	for i := 0; i <= len(blocks); i++ {
-		out = append(out, at[i]...)
-		if i < len(blocks) {
-			out = append(out, blocks[i])
-		}
-	}
-	for _, f := range figures {
-		if !placed[f.URL] {
-			out = append(out, f)
-		}
-	}
-	return out
-}
-
-func imageFromNode(n *Node, base *url.URL) string {
-	for _, attr := range []string{"src", "data-src", "data-original"} {
-		if link := sourcehtml.ResolveURL(n.Attr[attr], base); link != "" {
-			return link
-		}
-	}
-	return ""
-}
-
-func supplementGalleryFigures(blocks []Block, raw string, base *url.URL) []Block {
-	root := parseHTML(raw)
-	seen := map[string]bool{}
-	for _, b := range blocks {
-		if b.Kind == "img" {
-			seen[b.URL] = true
-		}
-	}
-	extra := []Block{}
-	for _, fig := range find(root, func(n *Node) bool { return n.Tag == "figure" }) {
-		allowed := false
-		for p := fig.Parent; p != nil; p = p.Parent {
-			if p.Tag == "article" || p.Tag == "main" || strings.Contains(strings.ToLower(p.Attr["class"]), "gallery") {
-				allowed = true
-				break
-			}
-		}
-		if !allowed {
-			continue
-		}
-		imgNodes := find(fig, func(n *Node) bool { return n.Tag == "img" })
-		if len(imgNodes) == 0 {
-			continue
-		}
-		link := imageFromNode(imgNodes[0], base)
-		if link == "" || seen[link] {
-			continue
-		}
-		caption := ""
-		for _, c := range find(fig, func(n *Node) bool { return n.Tag == "figcaption" }) {
-			caption = normalize(textOf(c))
-			break
-		}
-		if caption == "" {
-			caption = normalize(imgNodes[0].Attr["alt"])
-		}
-		if caption == "" || len(caption) < 25 {
-			continue
-		}
-		extra = append(extra, Block{Kind: "img", URL: link, Text: caption})
-		seen[link] = true
-		if len(extra) >= 25 {
-			break
-		}
-	}
-	return append(blocks, extra...)
 }

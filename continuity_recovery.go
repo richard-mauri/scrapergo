@@ -103,7 +103,7 @@ func editorialContinuityBlocks(scope *Node, base *url.URL) []Block {
 		case "img":
 			// Ancestors with mixed editorial/ad content have already been
 			// checked during traversal; reject only ad-only subtrees.
-			link := imageFromNode(n, base)
+			link := extraction.ImageFromNode(n, base)
 			if link == "" || images[link] {
 				return
 			}
@@ -252,7 +252,7 @@ func recoverAnchoredEditorialTail(root *Node, selected []Block, base *url.URL) [
 			if !started {
 				return
 			}
-			link := imageFromNode(n, base)
+			link := extraction.ImageFromNode(n, base)
 			if link == "" || existingImages[link] {
 				return
 			}

@@ -1,3 +1,7 @@
+# CURRENT WORK — PR #52 Readability source figure extraction (2026-10-23)
+
+PR #51 merged into main at e33ed57acbb5abaf079edf55ca137fa3c31c8976. Branch refactor/extraction-figures begins there. Moves figure ordering, gallery supplementation, inline-link extraction and source image scanning from root readability.go into internal/extraction/figures.go. No root forwarding wrappers. Reader orchestration in main/readability.go remains a larger pending migration. Semantic version remains 0.2.85; build indicator Architecture PR #52. Do not merge, release, or tag without approval. Earlier notes below historical.
+
 # CURRENT WORK — PR #51 diagnostic HTTP ownership (2026-10-23)
 
 PR #50 merged into main at 96e98758a3ff41cdf0be8e5bf08ab8418aeb18cc. This branch refactor/diagnostics-package moves both restricted diagnostic endpoints from root into internal/diagnostics. Diagnostic handlers retain loopback enforcement, bounded JSON/HTML, no external asset requests for supplied HTML, and reuse the production extraction stage sequence through explicit dependency injection. Root tests are migrated to direct diagnostics APIs. Semantic version remains 0.2.85; display build PR #51. Extraction logic remains rooted; do not represent this PR as final architecture. Do not merge, release or tag without user approval.
