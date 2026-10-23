@@ -35,16 +35,16 @@ func extractWithReadability(raw, source string) (Article, error) {
 				count += len(strings.Fields(line))
 			}
 			structuredRecovered := false
-			if complete, ok := recoverStructuredDocument(raw, blocks, u); ok {
+			if complete, ok := extraction.RecoverStructuredDocument(raw, blocks, u); ok {
 				blocks = complete
-				count = countWords(blocks)
+				count = extraction.CountWords(blocks)
 				structuredRecovered = true
 			}
 			// Restore missing opening paragraphs before accepting an otherwise plausible
 			// Readability selection. Do not shift the remainder of the article.
 			if !structuredRecovered {
 				blocks = recoverLeadingParagraphs(raw, blocks, u)
-				count = countWords(blocks)
+				count = extraction.CountWords(blocks)
 			}
 			if count >= 60 {
 				title := parsed.Title()
@@ -68,8 +68,8 @@ func extractWithReadability(raw, source string) (Article, error) {
 					}
 				}
 				if !structuredRecovered {
-					blocks = recoverEditorialContinuity(raw, blocks, u)
-					count = countWords(blocks)
+					blocks = extraction.RecoverEditorialContinuity(raw, blocks, u)
+					count = extraction.CountWords(blocks)
 				}
 				if img == "" {
 					for _, photo := range blocks {
