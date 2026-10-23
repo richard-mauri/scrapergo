@@ -95,7 +95,7 @@ func recoverStructuredDocument(raw string, reader []Block, base *url.URL) ([]Blo
 			blocks = append(blocks, b)
 			return
 		case "img":
-			url := imageFromNode(n, base)
+			url := extraction.ImageFromNode(n, base)
 			if url == "" || used[url] {
 				return
 			}
