@@ -14,22 +14,22 @@ func TestFirstEditorialImageOverridesMetadata(t *testing.T) {
   {Kind:"p",Text:"Further reporting"},
   {Kind:"img",URL:nprWestBankInline,Text:"Activists and rabbis harvesting olives"},
  }}
- normalizeArticleDocument(&a,nprWestBankMetadata)
+ documentmedia.NormalizeDocument(&a,media.SourceIdentity,nprWestBankMetadata)
  if a.ImageURL!=nprWestBankFirst {t.Fatalf("metadata displaced editorial lead: %s",a.ImageURL)}
  leadCount,oliveCount:=0,0
  for _,b:=range a.Blocks {
   if b.Kind=="img"&&b.Role=="lead" {leadCount++;if b.URL!=nprWestBankFirst {t.Fatalf("wrong lead: %+v",b)}}
-  if b.Kind=="img"&&imageSourceIdentity(b.URL)==imageSourceIdentity(nprWestBankInline) {oliveCount++;if b.Text!="Activists and rabbis harvesting olives" {t.Fatalf("lost later image caption: %+v",b)}}
+  if b.Kind=="img"&&media.SourceIdentity(b.URL)==media.SourceIdentity(nprWestBankInline) {oliveCount++;if b.Text!="Activists and rabbis harvesting olives" {t.Fatalf("lost later image caption: %+v",b)}}
  }
  if leadCount!=1||oliveCount!=1||a.Blocks[0].Role!="author" {t.Fatalf("roles/order corrupted: %+v",a.Blocks)}
 }
 func TestMetadataFallbackWhenNoEditorialImage(t *testing.T) {
  a:=Article{ImageURL:nprWestBankMetadata,Blocks:[]Block{{Kind:"img",Role:"author",URL:"https://example.org/author.jpg"},{Kind:"p",Text:"Article"}}}
- normalizeArticleDocument(&a,nprWestBankMetadata)
+ documentmedia.NormalizeDocument(&a,media.SourceIdentity,nprWestBankMetadata)
  if len(a.Blocks)!=3||a.Blocks[0].Role!="lead"||a.Blocks[1].Role!="author"{t.Fatalf("fallback failed: %+v",a.Blocks)}
 }
 func TestFirstUnmarkedEditorialImageIsLead(t *testing.T){
  a:=Article{Blocks:[]Block{{Kind:"img",Role:"author",URL:"https://example.org/portrait.jpg"},{Kind:"img",URL:"https://example.org/first.jpg"},{Kind:"img",URL:"https://example.org/second.jpg"}}}
- normalizeArticleDocument(&a,nprWestBankMetadata)
+ documentmedia.NormalizeDocument(&a,media.SourceIdentity,nprWestBankMetadata)
  if a.ImageURL!="https://example.org/first.jpg"||a.Blocks[1].Role!="lead"||a.Blocks[2].Role=="lead" {t.Fatalf("document order lost: %+v",a)}
 }
