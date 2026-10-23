@@ -6,6 +6,7 @@ import (
  "clean-article-reader/internal/app"
  "clean-article-reader/internal/httpapi"
  "clean-article-reader/internal/fetcher"
+ "clean-article-reader/internal/imagedelivery"
  "clean-article-reader/internal/pageclassify"
  "clean-article-reader/internal/structured"
  "clean-article-reader/internal/recovery"
@@ -28,7 +29,7 @@ import (
 
 // ScraperGo application version is defined once and shared by all presentation paths.
 const appVersion = "0.2.85"
-const appBuild = "Architecture PR #49"
+const appBuild = "Architecture PR #50"
 
 func appDisplayVersion() string { return "ScraperGo v" + appVersion + " · " + appBuild }
 const sampleURL = "https://247wallst.com/investing/2026/10/16/taiwan-is-planning-4-billion-industrial-parks-in-texas-for-nvidias-suppliers/"
@@ -510,8 +511,8 @@ func main() {
   Read:readHandler,
   Classify:(&httpapi.Classifier{Read:readHandler,ValidateURL:fetcher.ValidatedURL}).ServeHTTP,
   ImageMetadata:newArticleMetadataHandler(readHandler),
-  ArticleImage:articleImage,
-  Thumbnail:httpapi.NewThumbnailHandler(fetcher.ValidatedURL,http.HandlerFunc(articleImage)).ServeHTTP,
+  ArticleImage:(imagedelivery.Handler{Metadata:newArticleMetadataHandler(readHandler)}).ServeHTTP,
+  Thumbnail:httpapi.NewThumbnailHandler(fetcher.ValidatedURL,imagedelivery.Handler{Metadata:newArticleMetadataHandler(readHandler)}).ServeHTTP,
   DiagnosticExtract:diagnosticExtract,
   DiagnosticImageTrace:diagnosticImageTrace,
   TannerPhoto:tannerJPG,
