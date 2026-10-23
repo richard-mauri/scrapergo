@@ -13,18 +13,18 @@ import (
 // navigation and other non-editorial containers. An article-header image is
 // eligible only with explicit lead/featured/hero-image evidence or figure/picture
 // structure; a generic header avatar is not sufficient. No publisher identifiers.
-func RecoverOpeningSourceFigure(a *article.Article, raw, sourceURL string, resolveImage func(*sourcehtml.Node,string)string, identity func(string)string) {
+func RecoverOpeningSourceFigure(a *article.Article, raw, sourceURL string) {
 	if a == nil { return }
 	root := sourcehtml.Parse(raw)
 	for _, scope := range sourcehtml.Find(root, func(n *sourcehtml.Node) bool { return n.Tag == "article" }) {
-		if RecoverFigureInScope(a, scope, sourceURL, resolveImage, identity) { return }
+		if RecoverFigureInScope(a, scope, sourceURL) { return }
 	}
 	for _, scope := range sourcehtml.Find(root, func(n *sourcehtml.Node) bool { return n.Tag == "main" }) {
-		if RecoverFigureInScope(a, scope, sourceURL, resolveImage, identity) { return }
+		if RecoverFigureInScope(a, scope, sourceURL) { return }
 	}
 }
 
-func RecoverFigureInScope(a *article.Article, scope *sourcehtml.Node, sourceURL string, resolveImage func(*sourcehtml.Node,string)string, identity func(string)string) bool {
+func RecoverFigureInScope(a *article.Article, scope *sourcehtml.Node, sourceURL string) bool {
 	var candidate string
 	var walk func(*sourcehtml.Node) bool
 	sawProse := false
@@ -40,7 +40,7 @@ func RecoverFigureInScope(a *article.Article, scope *sourcehtml.Node, sourceURL 
 				ancestors = append(ancestors, media.Ancestor{Tag: p.Tag, Class: p.Attr["class"] + " " + p.Attr["id"]})
 			}
 			if media.OpeningFigureEligible(ancestors) && !sourcehtml.OpeningFigureNoisy(n, scope) {
-				if src := resolveImage(n, sourceURL); src != "" { candidate = src; return true }
+				if src := sourcehtml.ImageURL(n, sourceURL); src != "" { candidate = src; return true }
 			}
 		}
 		for _, child := range n.Kids { if walk(child) { return true } }
@@ -48,7 +48,7 @@ func RecoverFigureInScope(a *article.Article, scope *sourcehtml.Node, sourceURL 
 	}
 	walk(scope)
 	if candidate == "" { return false }
-	return media.ReconcileOpeningLead(a, candidate, identity)
+	return media.ReconcileOpeningLead(a, candidate, media.SourceIdentity)
 }
 
 
