@@ -49,7 +49,7 @@ func GroupArticleGalleryImages(a *article.Article, sourceHTML, baseURL string, r
  groups:=[][]string{}
  claimed:=map[string]bool{}
  // Walk deepest-first so nested layout wrappers win over broader containers.
- candidates:=sourcehtml.Find(root,sourceGalleryCandidate)
+ candidates:=sourcehtml.Find(root,SourceGalleryCandidate)
  for i:=len(candidates)-1;i>=0;i-- {
   n:=candidates[i]
   urls:=[]string{}
