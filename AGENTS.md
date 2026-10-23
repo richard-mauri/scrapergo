@@ -1,3 +1,7 @@
+# CURRENT WORK — PR #54 (2 of 5 remaining), Readability orchestration (2026-10-23)
+
+PR #53 merged into main at 5605c75decedac8e4cc81c5f9fda0713658ee874. Branch refactor/extraction-orchestration moves Readability pipeline, leading paragraph recovery and inline source link reconciliation into internal/extraction; legacy fallback and inline text-part policy are explicit injected functions until the root legacy extractor is fully migrated in remaining milestones. No root forwarding compatibility files. Keep v0.2.85. Next #55 root bridges and legacy extractor, #56 bootstrap/composition, #57 verification if necessary. Do not merge without authorization.
+
 # CURRENT WORK — PR #53 (1 of 5 remaining), extraction and recovery consolidation (2026-10-23)
 
 Merged PR #52 baseline main is 032add89dcd869d99994971a5b8d1ad3f5e779cf. This branch migrates document structure, navigation filtering, editorial continuity, and document helper implementations from root into internal/extraction without root forwarding wrappers. Direct callers and tests must migrate within this same PR; no separate cleanup PRs for CI failures. Semantic version remains 0.2.85; visible build Architecture PR #53. Root Readability orchestration, leading recovery, inline markup/JSON-LD fallback, diagnostic logging and application wiring remain for planned PRs #54–#57. Do not merge without owner authorization.
