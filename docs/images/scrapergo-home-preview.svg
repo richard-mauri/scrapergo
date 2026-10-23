@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="365" viewBox="0 0 1200 365" role="img" aria-labelledby="title desc">
+<title id="title">ScraperGo reader homepage preview</title>
+<desc id="desc">Dark-themed ScraperGo homepage with version heading, article URL field, Read article button, and public-content notice.</desc>
+<rect width="1200" height="365" fill="#0f141b"/>
+<text x="28" y="52" fill="#70cadb" font-family="Arial,Helvetica,sans-serif" font-weight="700" font-size="14" letter-spacing="2.4">SCRAPERGO · V0.2.85</text>
+<text x="28" y="116" fill="#f0f3f5" font-family="Arial,Helvetica,sans-serif" font-weight="750" font-size="51">ScraperGo</text>
+<text x="29" y="151" fill="#a9b7bd" font-family="Arial,Helvetica,sans-serif" font-size="19">Public articles, without the page clutter.</text>
+<rect x="28" y="184" width="1144" height="92" rx="15" fill="#1b2830" stroke="#354b55"/>
+<rect x="44" y="202" width="968" height="55" rx="9" fill="#0f141b" stroke="#354b55"/>
+<text x="61" y="235" fill="#a9b7bd" font-family="Arial,Helvetica,sans-serif" font-size="18">Paste an article URL (https://...)</text>
+<rect x="1022" y="202" width="134" height="55" rx="9" fill="#284f5b"/>
+<text x="1089" y="236" fill="#f0f3f5" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-weight="700" font-size="17">Read article</text>
+<text x="29" y="305" fill="#a9b7bd" font-family="Arial,Helvetica,sans-serif" font-size="15">Only publicly accessible content. Results depend on the site's HTML and may omit some formatting or media.</text>
+<text x="1170" y="52" text-anchor="end" fill="#70cadb" font-family="Arial,Helvetica,sans-serif" font-size="14">Tanner</text>
+</svg>

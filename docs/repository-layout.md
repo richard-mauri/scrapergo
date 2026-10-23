@@ -1,28 +1,12 @@
-# Repository layout
+# Repository layout (current)
 
-ScraperGo uses a single Go `package main` at the repository root. Keeping its Go source and `*_test.go` regression tests together allows `go test ./...`, `go build .`, `./devbuild.sh`, and `./scrapergo.sh` to work without changing imports, application behavior, or deployment.
+The only production Go file in repository root is `main.go`. Root tests are `architecture_boundary_test.go` and `version_test.go`; functional, regression and boundary tests belong in their owning `internal/` packages. See [architecture contract](../ARCHITECTURE.md).
 
-- `main.go` and other root `*.go` files: executable and supporting article extraction logic.
-- Root `*_test.go` files: regression coverage. Do not remove or move them into separate Go package directories merely to make the root look smaller.
-- `testdata/`: fixture data consumed by Go tests.
-- `docs/`: architecture notes; `docs/archive/` preserves historical version/implementation notes formerly in the repository root.
-- `safari-extension/`: companion Safari browser extension.
-- `AGENTS.md`: development workflow and safety instructions.
-- `README.md`: project overview and usage.
-- `devbuild.sh`, `scrapergo.sh`: established macOS build and runtime launchers. They must remain at the root.
-- `dist/`: generated multi-architecture executables; ignored by Git.
-- `clean-article-reader`: a possible root executable created by a bare `go build` command; ignored by Git, not used by either launcher.
-- `scrapergo.log`, `.cloudflared/`: local runtime log and credentials; ignored by Git. The cleanup does not remove or modify them.
+- `internal/`: production packages, neighboring domain unit tests and integration tests at their actual service boundaries.
+- `testdata/` and internal package test fixtures: frozen synthetic test resources, not live publisher snapshots.
+- `safari-extension/`: temporary Safari Web Extension and [setup instructions](../safari-extension/README.md).
+- `docs/`: explanatory and historical material; `docs/archive/` retains versioned historical research.
+- `README.md`: user overview and API; `AGENTS.md`: short mandatory contributor instructions; `DEVELOPMENT.md`: contributor workflow; `ARCHITECTURE.md`: ownership contract.
+- `devbuild.sh`, `scrapergo.sh`: local Mac build and machine-specific runtime launcher at root. `dist/`, private build counter, tunnel tokens and runtime logs are not tracked source files.
 
-To test a housekeeping candidate on Mac:
-
-```bash
-git fetch origin
-git checkout chore/repository-layout-cleanup
-git pull --ff-only origin chore/repository-layout-cleanup
-go test -count=1 ./...
-./devbuild.sh
-./scrapergo.sh
-```
-
-Only historical Markdown files were relocated. Existing file contents are preserved, and source/test/package names, module path, application version, launcher configuration, ports, tunnel, tokens, and user data are unchanged.
+For branch-specific Mac test instructions use [DEVELOPMENT.md](../DEVELOPMENT.md). Prior root-logic and root-test retention instructions were superseded by the completed migrations.

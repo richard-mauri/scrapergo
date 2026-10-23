@@ -1,3 +1,5 @@
+> **Historical design record — not current instructions.** This document describes earlier migration/design states and may reference superseded branches, root package owners, aliases, and PR status. Current authority: [ARCHITECTURE.md](../ARCHITECTURE.md), [DEVELOPMENT.md](../DEVELOPMENT.md).
+
 # Architecture review and release checklist — October 2026
 
 This review documents the state after PR #23 and scopes the final pre-release acceptance. It is not a claim that all root-package code has been migrated or that live publisher sites have been tested by CI.
