@@ -26,7 +26,7 @@ func TestRecoverAuthorPortraitRetainsOpeningContributor(t *testing.T) {
 func TestAssembledPoststoryPortraitAbsentAndLeadPreserved(t *testing.T) {
  raw:=`<html><body><main><article><figure><img src="/lead.jpg" alt="Editorial photograph"/></figure><p>`+strings.Repeat("This article covers an important current development in science. ",7)+`</p><section class="author-bio"><a href="/author/beth"><img src="/beth.jpg" alt="Photo of Beth Mole"/></a></section></article></main></body></html>`
  extracted:=extraction.Result{}
- extracted.articlemodel.Article=articlemodel.Article{Byline:"Beth Mole",Blocks:[]articlemodel.Block{{Kind:"img",URL:"https://example.org/lead.jpg",Role:"lead"},{Kind:"p",Text:strings.Repeat("Editorial story text. ",8)}}}
+ extracted.Article=articlemodel.Article{Byline:"Beth Mole",Blocks:[]articlemodel.Block{{Kind:"img",URL:"https://example.org/lead.jpg",Role:"lead"},{Kind:"p",Text:strings.Repeat("Editorial story text. ",8)}}}
  extracted.Evidence.SourceURL="https://example.org/health"
  a:=reader.DefaultProcessor().Process(extracted,raw)
  for _,b:=range a.Blocks {if b.Kind=="img" && strings.Contains(b.URL,"beth.jpg") {t.Fatalf("author portrait leaked into final body: %+v",a.Blocks)}}
