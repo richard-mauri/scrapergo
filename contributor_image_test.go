@@ -14,14 +14,14 @@ func TestContributorPortraitNotEditorialLead(t *testing.T) {
   {Kind:"p",Text:"Story reporting"},
   {Kind:"img",URL:nprWestBankInline,Text:"Activists and rabbis from the United States and Israel help Palestinians harvest olives"},
  }}
- classifyContributorImages(&a)
+ contributors.ClassifyContributorImages(&a)
  if a.Blocks[2].Role!="author"{t.Fatalf("contributor portrait not classified: %+v",a.Blocks[2])}
- normalizeArticleDocument(&a,nprWestBankMetadata)
+ documentmedia.NormalizeDocument(&a,media.SourceIdentity,nprWestBankMetadata)
  if a.ImageURL!=nprWestBankFirst {t.Fatalf("wrong article lead %s",a.ImageURL)}
  if a.Blocks[2].Role!="author" || a.Blocks[4].Role!="lead" || a.Blocks[6].URL!=nprWestBankInline {t.Fatalf("image roles or order wrong: %+v",a.Blocks)}
 }
 func TestEditorialCaptionNotPromotedToContributor(t *testing.T) {
  a:=Article{Blocks:[]Block{{Kind:"p",Text:"Photo by Daniel Estrin"},{Kind:"img",Text:"Military patrols in the area",URL:nprWestBankFirst}}}
- classifyContributorImages(&a)
+ contributors.ClassifyContributorImages(&a)
  if a.Blocks[1].Role=="author"{t.Fatal("editorial figure incorrectly classified")}
 }
