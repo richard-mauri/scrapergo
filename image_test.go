@@ -26,7 +26,7 @@ func TestExtractImageAndCaption(t *testing.T) {
 }
 func TestReadabilityWithImage(t *testing.T) {
 	raw := `<html><head><meta property="og:image" content="/hero.jpg"></head><body><article><h1>Study</h1><figure><img src="/inside.jpg" alt="Research image"><figcaption>Field study</figcaption></figure><p>` + strings.Repeat("This article describes work that is interesting and contains several findings. ", 30) + `</p></article></body></html>`
-	a, e := extraction.ExtractWithReadability(raw, "https://example.com/story", extract, inlineTextParts)
+	a, e := extraction.ExtractWithReadability(raw, "https://example.com/story", extraction.LegacyExtract, extraction.InlineTextParts)
 	if e != nil {
 		t.Fatal(e)
 	}
