@@ -1,6 +1,8 @@
 package main
 
 import (
+ "clean-article-reader/internal/recovery"
+ "clean-article-reader/internal/reader"
  "clean-article-reader/internal/structured"
  "encoding/json"
  "clean-article-reader/internal/media"
@@ -22,17 +24,17 @@ func TestAssembleArticleDocumentMatchesExistingPipeline(t *testing.T) {
  expected := input.Article
  recoverArticlePhotographs(&expected,raw,sourceURL)
  media.Deduplicate(&expected)
- recoverMissingArticleLinks(&expected,raw,sourceURL)
+ recovery.RecoverMissingArticleLinks(&expected,raw,sourceURL)
  recoverAuthorPortrait(&expected,raw,sourceURL)
  structured.RemoveSerializedPlayerBlocks(&expected)
  classifyContributorImages(&expected)
- classifyImagesFromSource(&expected,raw,sourceURL)
+ recovery.ClassifyImagesFromSource(&expected,raw,sourceURL)
  reconcileContributorByline(&expected)
  contributors.SeparateHeader(&expected)
- recoverOpeningSourceFigure(&expected,raw,sourceURL)
+ recovery.RecoverOpeningSourceFigure(&expected,raw,sourceURL)
  normalizeArticleDocument(&expected,input.Evidence.MetadataImageURL)
 
- got := assembleArticleDocument(input,raw)
+ got := reader.DefaultProcessor().Process(input,raw)
  wantJSON,_ := json.Marshal(expected)
  gotJSON,_ := json.Marshal(got)
  if string(wantJSON)!=string(gotJSON) {t.Fatalf("assembly changed document:\nwant %s\ngot  %s",wantJSON,gotJSON)}

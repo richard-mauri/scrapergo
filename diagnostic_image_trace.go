@@ -1,6 +1,7 @@
 package main
 
 import (
+ "clean-article-reader/internal/reader"
  "clean-article-reader/internal/structured"
  "encoding/json"
  "io"
@@ -121,7 +122,7 @@ func diagnosticImageTrace(w http.ResponseWriter,r *http.Request) {
  // Run the exact same stages in the same order as /api/read. Keep
  // historical phase snapshots for existing diagnostic consumers and capture
  // each named stage to expose portrait insertion/removal explicitly.
- for _,stage:=range articleAssemblyStages() {
+ for _,stage:=range reader.DefaultProcessor().Stages() {
   stage.Apply(&article,extracted.Evidence,cleaned)
   label:=stage.Name()
   stages=append(stages,traceImageBlocks(label,article.Blocks)...)

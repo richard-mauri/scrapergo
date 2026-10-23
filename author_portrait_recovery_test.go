@@ -1,6 +1,7 @@
 package main
 
 import (
+ "clean-article-reader/internal/reader"
  "strings"
  "testing"
  "clean-article-reader/internal/extraction"
@@ -25,7 +26,7 @@ func TestAssembledPoststoryPortraitAbsentAndLeadPreserved(t *testing.T) {
  extracted:=extraction.Result{}
  extracted.Article=Article{Byline:"Beth Mole",Blocks:[]Block{{Kind:"img",URL:"https://example.org/lead.jpg",Role:"lead"},{Kind:"p",Text:strings.Repeat("Editorial story text. ",8)}}}
  extracted.Evidence.SourceURL="https://example.org/health"
- a:=assembleArticleDocument(extracted,raw)
+ a:=reader.DefaultProcessor().Process(extracted,raw)
  for _,b:=range a.Blocks {if b.Kind=="img" && strings.Contains(b.URL,"beth.jpg") {t.Fatalf("author portrait leaked into final body: %+v",a.Blocks)}}
  if a.Byline!="Beth Mole" || a.ImageURL!="https://example.org/lead.jpg" {t.Fatalf("byline or lead changed: %+v",a)}
 }

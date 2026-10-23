@@ -1,6 +1,7 @@
 package main
 
 import (
+ "clean-article-reader/internal/reader"
  "clean-article-reader/internal/extraction"
  "clean-article-reader/internal/app"
  "clean-article-reader/internal/fetcher"
@@ -26,7 +27,7 @@ import (
 
 // ScraperGo application version is defined once and shared by all presentation paths.
 const appVersion = "0.2.85"
-const appBuild = "Architecture PR #47"
+const appBuild = "Architecture PR #48"
 
 func appDisplayVersion() string { return "ScraperGo v" + appVersion + " · " + appBuild }
 const sampleURL = "https://247wallst.com/investing/2026/10/16/taiwan-is-planning-4-billion-industrial-parks-in-texas-for-nvidias-suppliers/"
@@ -335,7 +336,7 @@ func writeExtractedArticle(w http.ResponseWriter, raw, finalURL string) {
 	extracted, extractionErr := extractWithEvidence(cleanedArticleHTML, finalURL)
 	article := extracted.Article
 	if extractionErr == nil {
-		article = assembleArticleDocument(extracted, cleanedArticleHTML)
+		article = reader.DefaultProcessor().Process(extracted, cleanedArticleHTML)
 		logSlateExtractionDiagnostic(article.Blocks, finalURL)
 	}
 	if kind != "" {

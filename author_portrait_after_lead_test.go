@@ -1,6 +1,7 @@
 package main
 
 import (
+ "clean-article-reader/internal/recovery"
  "strings"
  "testing"
  "clean-article-reader/internal/media"
@@ -9,7 +10,7 @@ import (
 func TestAuthorBioPortraitBelowEditorialLeadExcluded(t *testing.T) {
  const source = `<html><body><article><figure class="imagewrap"><img src="/images/lead.jpg" alt="Calley Means"/></figure><p>Editorial reporting paragraph with enough words to establish the story prose as the primary body and not a contributor header.</p><section class="author-bio"><a href="/author/beth/"><img src="/images/beth.jpg" alt="Beth Mole"/></a><p>Beth Mole Senior Health Reporter</p></section></article></body></html>`
  a:=Article{Byline:"Beth Mole",Blocks:[]Block{{Kind:"img",URL:"https://example.org/images/lead.jpg",Role:"lead",Text:"Calley Means"},{Kind:"p",Text:strings.Repeat("Story body information. ",7)},{Kind:"img",URL:"https://example.org/images/beth.jpg",Text:"Beth Mole"}}}
- classifyImagesFromSource(&a,source,"https://example.org/report")
+ recovery.ClassifyImagesFromSource(&a,source,"https://example.org/report")
  if a.Blocks[2].Role!="author" {t.Fatalf("bio photo not classified: %+v",a.Blocks)}
  media.RemovePostEditorialAuthorPortraits(&a)
  if len(a.Blocks)!=2 || a.Blocks[0].Role!="lead" || a.Byline!="Beth Mole" {t.Fatalf("editorial lead or byline changed: %+v",a)}
