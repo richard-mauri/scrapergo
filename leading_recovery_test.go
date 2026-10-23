@@ -1,6 +1,7 @@
 package main
 
 import (
+ "clean-article-reader/internal/extraction"
 	"net/url"
 	"strings"
 	"testing"
@@ -20,7 +21,7 @@ func TestRecoverLeadingParagraphsPreservesOrderAndLinks(t *testing.T) {
 		`<p>The next paragraph remains exactly where it was after the first retained paragraph and should not be duplicated by the recovery logic.</p></article></main></body></html>`
 	base, _ := url.Parse("https://example.org/cars/review")
 	original := []Block{{Kind: "p", Text: "It was bigger than I expected—to my eye, roughly the size of a Hyundai Santa Cruz, and it was impressively sturdy when I pressed on it."}, {Kind: "p", Text: "The next paragraph remains exactly where it was after the first retained paragraph and should not be duplicated by the recovery logic."}}
-	got := recoverLeadingParagraphs(raw, original, base)
+	got := extraction.RecoverLeadingParagraphs(raw, original, base, inlineTextParts)
 	if len(got) != 10 {
 		t.Fatalf("got %d paragraphs, expected 10", len(got))
 	}
@@ -45,7 +46,7 @@ func TestRecoverLeadingParagraphsDeclinesWithoutEditorialScope(t *testing.T) {
 	base, _ := url.Parse("https://example.org/story")
 	raw := `<html><body><p>Earlier paragraph from an unrelated section with plenty of words and other material that must not be imported.</p><p>The original first paragraph is sufficiently long to serve as a trusted anchor within the source page itself.</p></body></html>`
 	blocks := []Block{{Kind: "p", Text: "The original first paragraph is sufficiently long to serve as a trusted anchor within the source page itself."}}
-	if got := recoverLeadingParagraphs(raw, blocks, base); len(got) != 1 {
+	if got := extraction.RecoverLeadingParagraphs(raw, blocks, base, inlineTextParts); len(got) != 1 {
 		t.Fatalf("unexpected recovery: %+v", got)
 	}
 }
