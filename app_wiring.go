@@ -2,6 +2,7 @@ package main
 
 import (
  "net/http"
+ "clean-article-reader/internal/accesspolicy"
 
  "clean-article-reader/internal/httpapi"
  "clean-article-reader/internal/googlenews"
@@ -15,7 +16,7 @@ func newArticleReadHandler() http.Handler {
   Resolve: googlenews.ResolveURL,
   Download: download,
   PublisherAccessMessage: publisherAccessMessage,
-  Hostname: mustHostname,
+  Hostname: accesspolicy.Hostname,
   WriteExtracted: writeExtractedArticle,
  })
 }
