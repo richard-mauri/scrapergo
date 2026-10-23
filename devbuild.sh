@@ -80,10 +80,10 @@ fi
 next=$((10#$previous + 1))
 [[ "$next" -le 999999 ]] || { echo 'Error: build counter exhausted.' >&2; exit 1; }
 temp_counter="${COUNTER_FILE}.tmp.$"
-printf '%d\\n' "$next" > "$temp_counter"
+printf '%d\n' "$next" > "$temp_counter"
 mv "$temp_counter" "$COUNTER_FILE"
 printf -v BUILD_LABEL 'Build %06d' "$next"
-printf 'ScraperGo %s\\n' "$BUILD_LABEL"
+printf 'ScraperGo %s\n' "$BUILD_LABEL"
 
 for arch in amd64 arm64; do
   output="$OUT_DIR/scrapergo-darwin-$arch"
