@@ -21,9 +21,6 @@ for file in "$APP" "$TOKEN" "$CLOUDFLARED"; do
     fi
 done
 
-# Show the version embedded in the built executable before replacing the running app.
-"$APP" --version || exit 1
-
 # Stop only the previous ScraperGo application.
 pkill -x scrapergo-darwin-amd64 2>/dev/null || true
 
