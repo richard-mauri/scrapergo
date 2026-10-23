@@ -36,4 +36,4 @@ Check source-backed media identity, editorial lead versus author portrait, capti
 
 After local build/launch, inspect **http://localhost:8083** in Safari, including the reading view, extension link handoff where applicable, image display and print/PDF behavior. Live publisher, Cloudflare and Safari checks are owner-side acceptance, not evidence supplied by Linux CI. Preserve the current browser and [Safari extension setup](safari-extension/README.md). Report checks as passed, failed or not performed; never imply a remote CI run substitutes for browser acceptance.
 
-For historical architectural changes see [HISTORY.md](HISTORY.md); historical plans in `docs/` are not current development instructions.
+Historical plans in `docs/` and previous Git revisions are not current development instructions.
