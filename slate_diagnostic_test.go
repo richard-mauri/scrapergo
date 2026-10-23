@@ -17,7 +17,7 @@ func TestSlateDiagnosticTarget(t *testing.T) {
 	}
 	for _, tc := range cases {
 		if got := bootstrap.SlateDiagnosticTarget(tc.url); got != tc.want {
-			t.Errorf("bootstrap.SlateDiagnosticTarget(%q) = %t, want %t", tc.url, got, tc.want)
+			t.Errorf("slateDiagnosticTarget(%q) = %t, want %t", tc.url, got, tc.want)
 		}
 	}
 }
