@@ -4,7 +4,6 @@ import (
  "clean-article-reader/internal/imagedelivery"
  "clean-article-reader/internal/httpapi"
  "clean-article-reader/internal/fetcher"
- "net/http"
  "clean-article-reader/internal/thumbnail"
 	"bytes"
 		"image"
