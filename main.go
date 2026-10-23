@@ -30,7 +30,7 @@ import (
 
 // ScraperGo application version is defined once and shared by all presentation paths.
 const appVersion = "0.2.85"
-const appBuild = "Architecture PR #54"
+var appBuild = "Build 000000"
 
 func appDisplayVersion() string { return "ScraperGo v" + appVersion + " · " + appBuild }
 const sampleURL = "https://247wallst.com/investing/2026/10/16/taiwan-is-planning-4-billion-industrial-parks-in-texas-for-nvidias-suppliers/"
