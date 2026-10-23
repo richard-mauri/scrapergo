@@ -1,6 +1,7 @@
 package main
 
 import (
+ "clean-article-reader/internal/ui"
  "clean-article-reader/internal/links"
 	"net/url"
 	"strings"
@@ -14,7 +15,7 @@ func TestArticleInlineLinkRouting(t *testing.T) {
 	if len(blocks[0].Links) != 1 || blocks[0].Links[0].URL != "https://www.aljazeera.com/news/filing" {
 		t.Fatalf("links: %+v", blocks[0].Links)
 	}
-	if !strings.Contains(indexHTML, "function putLinked(") || !strings.Contains(indexHTML, "encodeURIComponent(dest.href)") {
+	if !strings.Contains(ui.Template(), "function putLinked(") || !strings.Contains(ui.Template(), "encodeURIComponent(dest.href)") {
 		t.Fatal("ScraperGo reader routing missing")
 	}
 }

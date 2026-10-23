@@ -1,12 +1,13 @@
 package main
 
 import (
+ "clean-article-reader/internal/ui"
 	"strings"
 	"testing"
 )
 
 func TestVersionSingleSource(t *testing.T) {
-	html := renderedIndexHTML()
+	html := ui.Render(appVersion,appBuild)
 	if !strings.Contains(html, "ScraperGo · v"+appVersion) {
 		t.Fatalf("header version differs from appVersion %s", appVersion)
 	}
@@ -16,7 +17,7 @@ func TestVersionSingleSource(t *testing.T) {
 	if strings.Contains(html, "__APP_VERSION__") {
 		t.Fatal("unexpanded version placeholder")
 	}
-	if strings.Contains(indexHTML, "ScraperGo · v0.") {
+	if strings.Contains(ui.Template(), "ScraperGo · v0.") {
 		t.Fatal("hardcoded version in template")
 	}
 }

@@ -1,6 +1,9 @@
 package main
 
-import "testing"
+import (
+ "testing"
+ "clean-article-reader/internal/ui"
+)
 
 func TestPaywallEvidence(t *testing.T) {
 	for _, tc := range []struct {
@@ -31,8 +34,8 @@ func TestAccessRestriction(t *testing.T) {
 // The application's own access-warning copy is not evidence that its home
 // page requires a subscription. This regression uses the actual embedded UI.
 func TestAccessWarningInExecutableScriptIsNotPaywall(t *testing.T) {
-	if got := accessRestriction(indexHTML); got != "" {
-		t.Fatalf("ScraperGo homepage falsely classified as %q (%s)", got, restrictionEvidence(indexHTML))
+	if got := accessRestriction(ui.Template()); got != "" {
+		t.Fatalf("ScraperGo homepage falsely classified as %q (%s)", got, restrictionEvidence(ui.Template()))
 	}
 	for _, body := range []string{
 		`<script>const title = "Paid Subscription Required";</script><article>Public content</article>`,

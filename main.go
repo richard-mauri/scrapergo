@@ -3,6 +3,7 @@ package main
 import (
  "clean-article-reader/internal/extraction"
  "clean-article-reader/internal/fetcher"
+ "clean-article-reader/internal/ui"
  "clean-article-reader/internal/pageclassify"
  "clean-article-reader/internal/structured"
  "clean-article-reader/internal/recovery"
@@ -30,7 +31,7 @@ import (
 
 // ScraperGo application version is defined once and shared by all presentation paths.
 const appVersion = "0.2.85"
-const appBuild = "Architecture PR #45"
+const appBuild = "Architecture PR #46"
 
 func appDisplayVersion() string { return "ScraperGo v" + appVersion + " · " + appBuild }
 const sampleURL = "https://247wallst.com/investing/2026/10/16/taiwan-is-planning-4-billion-industrial-parks-in-texas-for-nvidias-suppliers/"
@@ -567,7 +568,7 @@ func main() {
 		}
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Header().Set("Content-Security-Policy", "default-src 'self'; img-src 'self' https: data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; base-uri 'none'; object-src 'none'")
-		fmt.Fprint(w, renderedIndexHTML())
+		fmt.Fprint(w, ui.Render(appVersion,appBuild))
 	})
 	server := &http.Server{Addr: ":" + port, Handler: mux, ReadHeaderTimeout: 5 * time.Second}
 	log.Printf("%s listening on http://localhost:%s", appDisplayVersion(), port)

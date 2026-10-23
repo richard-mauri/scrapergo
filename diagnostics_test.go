@@ -1,6 +1,7 @@
 package main
 
 import (
+ "clean-article-reader/internal/ui"
 	"strings"
 	"testing"
 )
@@ -19,7 +20,7 @@ func TestRestrictionEvidenceDiagnostics(t *testing.T) {
 			t.Errorf("kind %q: got %q", tc.body, got)
 		}
 	}
-	if !strings.Contains(indexHTML, "paydiagnostic") {
+	if !strings.Contains(ui.Template(), "paydiagnostic") {
 		t.Fatal("publisher diagnostics missing from UI")
 	}
 }
