@@ -3,6 +3,7 @@ package main
 import (
  "clean-article-reader/internal/extraction"
  "clean-article-reader/internal/fetcher"
+ "clean-article-reader/internal/ui"
  "clean-article-reader/internal/pageclassify"
  "clean-article-reader/internal/structured"
  "clean-article-reader/internal/recovery"
@@ -567,7 +568,7 @@ func main() {
 		}
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Header().Set("Content-Security-Policy", "default-src 'self'; img-src 'self' https: data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; base-uri 'none'; object-src 'none'")
-		fmt.Fprint(w, renderedIndexHTML())
+		fmt.Fprint(w, ui.Render(appVersion,appBuild))
 	})
 	server := &http.Server{Addr: ":" + port, Handler: mux, ReadHeaderTimeout: 5 * time.Second}
 	log.Printf("%s listening on http://localhost:%s", appDisplayVersion(), port)
