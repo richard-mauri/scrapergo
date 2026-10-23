@@ -33,8 +33,8 @@ func RecoverEditorialContinuity(raw string, selected []article.Block, base *url.
 		if sourcehtml.InNoisy(scope, nil) {
 			continue
 		}
-		candidate := editorialContinuityBlocks(scope, base)
-		matches := orderedEditorialMatches(retained, candidate)
+		candidate := EditorialContinuityBlocks(scope, base)
+		matches := OrderedEditorialMatches(retained, candidate)
 		// Multiple independent anchors must agree and cover a substantial
 		// fraction of the Readability paragraphs, in the correct source order.
 		if matches < 2 || matches*2 < len(retained) || matches < bestMatches {
@@ -45,7 +45,7 @@ func RecoverEditorialContinuity(raw string, selected []article.Block, base *url.
 		}
 	}
 	if bestMatches < 2 {
-		return recoverAnchoredEditorialTail(root, selected, base)
+		return RecoverAnchoredEditorialTail(root, selected, base)
 	}
 	selectedText := map[string]bool{}
 	selectedImages := map[string]bool{}
@@ -57,19 +57,19 @@ func RecoverEditorialContinuity(raw string, selected []article.Block, base *url.
 		}
 	}
 	if !recovery.ReplacementAllowed(selected, best, selectedText, selectedImages) {
-		return recoverAnchoredEditorialTail(root, selected, base)
+		return RecoverAnchoredEditorialTail(root, selected, base)
 	}
 	return best
 }
 
-func orderedEditorialMatches(retained []string, candidate []article.Block) int {
+func OrderedEditorialMatches(retained []string, candidate []article.Block) int {
 	return recovery.OrderedMatches(retained,candidate)
 }
 
 // editorialContinuityBlocks traverses one article element in source order.
 // Advertisements are removed as individual subtrees, leaving adjacent editorial
 // siblings intact. Gallery images receive their figure captions where available.
-func editorialContinuityBlocks(scope *sourcehtml.Node, base *url.URL) []article.Block {
+func EditorialContinuityBlocks(scope *sourcehtml.Node, base *url.URL) []article.Block {
 	var blocks []article.Block
 	images := map[string]bool{}
 	seenText := map[string]bool{}
@@ -80,17 +80,17 @@ func editorialContinuityBlocks(scope *sourcehtml.Node, base *url.URL) []article.
 		}
 		// Only prune containers that really are advertisements or site UI.
 		// A generic gallery/wrapper must not suppress its editorial siblings.
-		if sourcehtml.BlockedTags[n.Tag] || promotionalRegion(n) && !hasSubstantiveEditorialChildren(n) {
+		if sourcehtml.BlockedTags[n.Tag] || PromotionalRegion(n) && !HasSubstantiveEditorialChildren(n) {
 			return
 		}
-		if sourcehtml.Noisy(n) && !hasSubstantiveEditorialChildren(n) {
+		if sourcehtml.Noisy(n) && !HasSubstantiveEditorialChildren(n) {
 			return
 		}
 		switch n.Tag {
 		case "script", "style", "noscript", "iframe", "svg", "nav", "aside", "footer", "header", "form", "button":
 			return
 		case "p", "h2", "h3", "h4", "blockquote", "li":
-			if nestedProse(n, scope) || insideFigure(n, scope) {
+			if NestedProse(n, scope) || InsideFigure(n, scope) {
 				return
 			}
 			b := SemanticTextBlock(n, base)
@@ -137,7 +137,7 @@ func editorialContinuityBlocks(scope *sourcehtml.Node, base *url.URL) []article.
 
 // Distinguish an ad-only wrapper from a mixed editorial wrapper. This is
 // deliberately bounded to avoid deep scans on large publisher pages.
-func hasSubstantiveEditorialChildren(n *sourcehtml.Node) bool {
+func HasSubstantiveEditorialChildren(n *sourcehtml.Node) bool {
 	if n == nil || n.Tag == "script" || n.Tag == "style" {
 		return false
 	}
@@ -153,7 +153,7 @@ func hasSubstantiveEditorialChildren(n *sourcehtml.Node) bool {
 	return false
 }
 
-func insideFigure(n, stop *sourcehtml.Node) bool {
+func InsideFigure(n, stop *sourcehtml.Node) bool {
 	for p := n.Parent; p != nil && p != stop; p = p.Parent {
 		if p.Tag == "figure" || p.Tag == "figcaption" {
 			return true
@@ -166,7 +166,7 @@ func insideFigure(n, stop *sourcehtml.Node) bool {
 // recovering trailing siblings when the last selected paragraph is an exact
 // anchor in the original HTML. No speculative expansion without an article
 // scope and at least two substantial editorial paragraphs after the anchor.
-func recoverAnchoredEditorialTail(root *sourcehtml.Node, selected []article.Block, base *url.URL) []article.Block {
+func RecoverAnchoredEditorialTail(root *sourcehtml.Node, selected []article.Block, base *url.URL) []article.Block {
 	if root == nil || base == nil {
 		return selected
 	}
@@ -226,14 +226,14 @@ func recoverAnchoredEditorialTail(root *sourcehtml.Node, selected []article.Bloc
 			started = true
 			return
 		}
-		if sourcehtml.BlockedTags[n.Tag] || (sourcehtml.Noisy(n) && !hasSubstantiveEditorialChildren(n) && !hasEditorialChildOutsideNoise(n)) || (promotionalRegion(n) && !hasSubstantiveEditorialChildren(n) && !hasEditorialChildOutsideNoise(n)) {
+		if sourcehtml.BlockedTags[n.Tag] || (sourcehtml.Noisy(n) && !HasSubstantiveEditorialChildren(n) && !HasEditorialChildOutsideNoise(n)) || (PromotionalRegion(n) && !HasSubstantiveEditorialChildren(n) && !HasEditorialChildOutsideNoise(n)) {
 			return
 		}
 		if n.Tag == "figcaption" {
 			return
 		}
 		if n.Tag == "p" || n.Tag == "h2" || n.Tag == "h3" || n.Tag == "h4" || n.Tag == "blockquote" {
-			if !started || insideFigure(n, scope) {
+			if !started || InsideFigure(n, scope) {
 				return
 			}
 			b := SemanticTextBlock(n, base)
@@ -285,14 +285,14 @@ func recoverAnchoredEditorialTail(root *sourcehtml.Node, selected []article.Bloc
 
 // hasEditorialChildOutsideNoise allows editorial siblings in a noisy outer
 // wrapper while keeping independently marked advertising subtrees excluded.
-func hasEditorialChildOutsideNoise(scope *sourcehtml.Node) bool {
+func HasEditorialChildOutsideNoise(scope *sourcehtml.Node) bool {
 	for _, p := range sourcehtml.Find(scope, func(n *sourcehtml.Node) bool { return n.Tag == "p" }) {
 		if len(sourcehtml.Normalize(sourcehtml.Text(p))) < 75 {
 			continue
 		}
 		blocked := false
 		for a := p.Parent; a != nil && a != scope; a = a.Parent {
-			if sourcehtml.Noisy(a) || promotionalRegion(a) {
+			if sourcehtml.Noisy(a) || PromotionalRegion(a) {
 				blocked = true
 				break
 			}
