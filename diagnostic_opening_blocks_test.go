@@ -1,6 +1,7 @@
 package main
 
 import (
+ "clean-article-reader/internal/bootstrap"
  articlemodel "clean-article-reader/internal/article"
  "clean-article-reader/internal/diagnostics"
  "encoding/json"
@@ -25,6 +26,6 @@ func TestDiagnosticImageTraceRejectsNonLocalPeerForOpeningBlocks(t *testing.T) {
  req:=httptest.NewRequest(http.MethodPost,"/api/diagnostic/image-trace",bytes.NewBufferString(`{"url":"https://example.org/story"}`))
  req.RemoteAddr="203.0.113.20:41230"
  rec:=httptest.NewRecorder()
- (diagnostics.ImageTraceHandler{Extract:extractWithEvidence}).ServeHTTP(rec,req)
+ (diagnostics.ImageTraceHandler{Extract:bootstrap.ExtractWithEvidence}).ServeHTTP(rec,req)
  if rec.Code!=http.StatusForbidden{t.Fatalf("expected localhost restriction, got %d",rec.Code)}
 }
