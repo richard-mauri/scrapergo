@@ -67,7 +67,7 @@ func recoverLeadingParagraphs(raw string, blocks []Block, base *url.URL) []Block
 		if p == anchor {
 			break
 		}
-		if sourcehtml.InNoisy(p, scope) || promotionalAncestor(p, scope) || promotionalRegion(p) || nestedProse(p, scope) {
+		if sourcehtml.InNoisy(p, scope) || extraction.PromotionalAncestor(p, scope) || extraction.PromotionalRegion(p) || extraction.NestedProse(p, scope) {
 			continue
 		}
 		t := normalize(textOf(p))
