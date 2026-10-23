@@ -21,12 +21,14 @@ func mustRead(path string) string {
 }
 
 // Template returns the static HTML skeleton, without a compiled version label.
-func Template() string { return templateHTML }
+func Template() string {
+ page := strings.Replace(templateHTML,"__READER_CSS__",readerCSS,1)
+ return strings.Replace(page,"__READER_JS__",readerJS,1)
+}
 
 // Render preserves the existing inline asset delivery and Content Security
 // Policy while sourcing each presentation concern from its own asset file.
 func Render(version, build string) string {
- page := strings.Replace(templateHTML,"__READER_CSS__",readerCSS,1)
- page = strings.Replace(page,"__READER_JS__",readerJS,1)
+ page := Template()
  return strings.Replace(page,"__APP_VERSION__","v"+version+" · "+build,1)
 }
