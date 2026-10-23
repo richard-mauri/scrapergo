@@ -8,7 +8,7 @@ import (
 
 func TestCapturedNPRSerializedPlayerBlock(t *testing.T) {
  markup := "\n <iframe src=\"https://www.npr.org/player/embed/nx-s1-5977837/nx-s1-9973214\" width=\"100%\" height=\"290\" frameborder=\"0\" scrolling=\"no\" title=\"NPR embedded audio player\">\n "
- player:=article.Block{Kind:"li",Text:"Embed\n \n \n\n "+markup,Parts:[]TextPart{{Text:"\n \n\n \n \n \n "},{Text:"Embed",Bold:true},{Text:"\n \n \n\n "},{Text:markup,Bold:true},{Text:"\n\n \n "}}}
+ player:=article.Block{Kind:"li",Text:"Embed\n \n \n\n "+markup,Parts:[]article.TextPart{{Text:"\n \n\n \n \n \n "},{Text:"Embed",Bold:true},{Text:"\n \n \n\n "},{Text:markup,Bold:true},{Text:"\n\n \n "}}}
  caption:="Dried grass in Greenwich Park, London, Aug. 11 during the UK’s hottest summer on record."
  a:=article.Article{Blocks:[]article.Block{player,{Kind:"img",Role:"lead",Text:caption,URL:"https://example.org/lead.jpg"},{Kind:"p",Text:caption+" Dan Kitwood/Getty Images Europe hide caption"},{Kind:"p",Text:"Actual editorial paragraph."}}}
  RemoveSerializedPlayerBlocks(&a)
