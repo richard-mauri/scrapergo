@@ -1,6 +1,8 @@
 package extraction
 
 import (
+ "clean-article-reader/internal/structured"
+ "clean-article-reader/internal/links"
  "clean-article-reader/internal/article"
   "clean-article-reader/internal/sourcehtml"
 	"net/url"
@@ -83,7 +85,7 @@ func RecoverStructuredDocument(raw string, reader []article.Block, base *url.URL
 			if NestedProse(n, scope) {
 				return
 			}
-			b := SemanticTextBlock(n, base)
+			b := structured.TextBlock(n, base, sourcehtml.ResolveURL, links.IsDocumentURL)
 			if b.Text == "" || IsAdvertisingText(b.Text) {
 				return
 			}

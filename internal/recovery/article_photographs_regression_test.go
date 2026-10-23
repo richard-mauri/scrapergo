@@ -1,4 +1,4 @@
-package extraction
+package recovery
 
 import (
  "clean-article-reader/internal/article"

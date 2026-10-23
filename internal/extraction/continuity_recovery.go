@@ -1,6 +1,8 @@
 package extraction
 
 import (
+ "clean-article-reader/internal/structured"
+ "clean-article-reader/internal/links"
  "clean-article-reader/internal/article"
   "clean-article-reader/internal/sourcehtml"
 	"net/url"
@@ -93,7 +95,7 @@ func EditorialContinuityBlocks(scope *sourcehtml.Node, base *url.URL) []article.
 			if NestedProse(n, scope) || InsideFigure(n, scope) {
 				return
 			}
-			b := SemanticTextBlock(n, base)
+			b := structured.TextBlock(n, base, sourcehtml.ResolveURL, links.IsDocumentURL)
 			if len(b.Text) < 25 || (IsAdvertisingText(b.Text) && len(strings.Fields(b.Text)) < 12) || seenText[sourcehtml.Normalize(b.Text)] {
 				return
 			}
@@ -236,7 +238,7 @@ func RecoverAnchoredEditorialTail(root *sourcehtml.Node, selected []article.Bloc
 			if !started || InsideFigure(n, scope) {
 				return
 			}
-			b := SemanticTextBlock(n, base)
+			b := structured.TextBlock(n, base, sourcehtml.ResolveURL, links.IsDocumentURL)
 			k := sourcehtml.Normalize(b.Text)
 			if len(k) < 25 || (IsAdvertisingText(k) && len(strings.Fields(k)) < 12) || existing[k] {
 				return

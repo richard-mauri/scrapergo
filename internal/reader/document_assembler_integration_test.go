@@ -3,7 +3,6 @@ package reader_test
 import (
  articlemodel "clean-article-reader/internal/article"
  "clean-article-reader/internal/documentmedia"
- "clean-article-reader/internal/extraction"
  "clean-article-reader/internal/recovery"
  "clean-article-reader/internal/reader"
  "clean-article-reader/internal/structured"
@@ -25,7 +24,7 @@ func TestAssembleArticleDocumentMatchesExistingPipeline(t *testing.T) {
   Evidence: extractionmodel.SourceEvidence{SourceURL:sourceURL,MetadataImageURL:"https://example.org/meta.jpg"},
  }
  expected := input.Article
- extraction.RecoverArticlePhotographs(&expected,raw,sourceURL)
+ recovery.RecoverArticlePhotographs(&expected,raw,sourceURL)
  media.Deduplicate(&expected)
  recovery.RecoverMissingArticleLinks(&expected,raw,sourceURL)
  contributors.RecoverAuthorPortrait(&expected,raw,sourceURL)
