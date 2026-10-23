@@ -80,7 +80,7 @@ func editorialContinuityBlocks(scope *sourcehtml.Node, base *url.URL) []article.
 		}
 		// Only prune containers that really are advertisements or site UI.
 		// A generic gallery/wrapper must not suppress its editorial siblings.
-		if blockedTags[n.Tag] || promotionalRegion(n) && !hasSubstantiveEditorialChildren(n) {
+		if sourcehtml.BlockedTags[n.Tag] || promotionalRegion(n) && !hasSubstantiveEditorialChildren(n) {
 			return
 		}
 		if sourcehtml.Noisy(n) && !hasSubstantiveEditorialChildren(n) {
@@ -226,7 +226,7 @@ func recoverAnchoredEditorialTail(root *sourcehtml.Node, selected []article.Bloc
 			started = true
 			return
 		}
-		if blockedTags[n.Tag] || (sourcehtml.Noisy(n) && !hasSubstantiveEditorialChildren(n) && !hasEditorialChildOutsideNoise(n)) || (promotionalRegion(n) && !hasSubstantiveEditorialChildren(n) && !hasEditorialChildOutsideNoise(n)) {
+		if sourcehtml.BlockedTags[n.Tag] || (sourcehtml.Noisy(n) && !hasSubstantiveEditorialChildren(n) && !hasEditorialChildOutsideNoise(n)) || (promotionalRegion(n) && !hasSubstantiveEditorialChildren(n) && !hasEditorialChildOutsideNoise(n)) {
 			return
 		}
 		if n.Tag == "figcaption" {
