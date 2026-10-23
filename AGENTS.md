@@ -16,6 +16,14 @@ This is the **entry point for development agents**, not a duplicate of the archi
 - **Do not merge, tag, release or change semantic version without the owner's explicit authorization.**
 - Never expose or change private credentials, tunnel configuration or local build counters.
 
+## Maintaining CURRENT_WORK.md
+
+- Keep `CURRENT_WORK.md` as a **single portable snapshot of actual work**, not a template, policy manual or chronological diary. It must stand alone when uploaded into a fresh chat.
+- Capture active PRs and branches (links, base/head, state, dependencies), current goal and technical findings, decisions and reasons, completed work, next action, blockers, verified test/CI evidence and unresolved out-of-scope TODOs.
+- **Add** new findings and deferred tasks; **replace** outdated statuses, SHAs and next steps. Retain relevant decisions and TODOs across PR cycles until resolved, transferred to an Issue, or explicitly dismissed.
+- Update the same file before a chat handoff and at meaningful PR transitions. Clearly mark unverified status; check GitHub again at the start of the next session. Never create a stack of dated handoffs.
+- Keep reusable instructions here, architecture in `ARCHITECTURE.md`, and branching/testing policy in `DEVELOPMENT.md`. Do not duplicate them inside `CURRENT_WORK.md`.
+
 ## Handoff
 
 Follow the change-type-specific validation in **DEVELOPMENT.md**. For code/runtime PRs, include its full Mac checkout, test, build and launch sequence with the **actual branch name** substituted. Documentation-only PRs require documentary review and existing CI, not a local application build or Safari acceptance.
