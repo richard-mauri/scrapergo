@@ -1,4 +1,4 @@
-package main
+package fetcher
 
 import (
 	"errors"
@@ -9,7 +9,7 @@ import (
 
 func TestPublisherAccessMessage(t *testing.T) {
 	for _, status := range []int{http.StatusUnauthorized, http.StatusForbidden} {
-		message, denied := publisherAccessMessage(&publisherHTTPError{Host: "example.org", StatusCode: status})
+		message, denied := PublisherAccessMessage(&PublisherHTTPError{Host: "example.org", StatusCode: status})
 		if !denied || !strings.Contains(message, "Publisher access restricted") || !strings.Contains(message, "Open the original website") {
 			t.Fatalf("status %d: %q, %v", status, message, denied)
 		}
@@ -17,8 +17,8 @@ func TestPublisherAccessMessage(t *testing.T) {
 			t.Fatalf("claimed paywall: %s", message)
 		}
 	}
-	for _, err := range []error{&publisherHTTPError{Host: "example.org", StatusCode: http.StatusAccepted}, errors.New("connection reset")} {
-		if _, denied := publisherAccessMessage(err); denied {
+	for _, err := range []error{&PublisherHTTPError{Host: "example.org", StatusCode: http.StatusAccepted}, errors.New("connection reset")} {
+		if _, denied := PublisherAccessMessage(err); denied {
 			t.Fatalf("unexpected restriction classification: %v", err)
 		}
 	}

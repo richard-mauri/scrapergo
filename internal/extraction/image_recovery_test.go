@@ -1,15 +1,16 @@
-package main
+package extraction
 
 import (
- "clean-article-reader/internal/extraction"
+ "clean-article-reader/internal/article"
+
 	"strings"
 	"testing"
 )
 
 func TestRecoverArticlePhotographsFromSiblingWrappers(t *testing.T) {
 	html := `<main><div class="article-content"><p>Opening context describing a football match and providing sufficient material for a reader to keep.</p></div><div class="full-width-image mg-t-15 article-content"><picture><source srcset="/real-photo.jpg 1200w"><img src="/real-photo.jpg" alt="Players on field"></picture></div><p>Photo by Ed McGregor/FOX Sports</p><p>Following paragraph with adequate context about the match and what happened in the closing minutes.</p></main><aside><img src="/league-logo.png"></aside>`
-	a := Article{Blocks: []Block{{Kind: "p", Text: "Opening context describing a football match and providing sufficient material for a reader to keep."}, {Kind: "p", Text: "Photo by Ed McGregor/FOX Sports"}, {Kind: "p", Text: "Following paragraph with adequate context about the match and what happened in the closing minutes."}}}
-	extraction.RecoverArticlePhotographs(&a, html, "https://example.org/story")
+	a := article.Article{Blocks: []article.Block{{Kind: "p", Text: "Opening context describing a football match and providing sufficient material for a reader to keep."}, {Kind: "p", Text: "Photo by Ed McGregor/FOX Sports"}, {Kind: "p", Text: "Following paragraph with adequate context about the match and what happened in the closing minutes."}}}
+	RecoverArticlePhotographs(&a, html, "https://example.org/story")
 	count := 0
 	for _, b := range a.Blocks {
 		if b.Kind == "img" {

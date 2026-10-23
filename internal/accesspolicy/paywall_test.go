@@ -1,4 +1,4 @@
-package main
+package accesspolicy
 
 import (
  "testing"
@@ -10,7 +10,7 @@ func TestPaywallEvidence(t *testing.T) {
 		body string
 		want bool
 	}{{`<script>{"isAccessibleForFree":false}</script>`, true}, {`Subscribe to continue reading`, true}, {`HTTP 403 forbidden`, false}, {`Read our daily news coverage here`, false}} {
-		if got := paywallEvidence(tc.body); got != tc.want {
+		if got := IsPaywallEvidence(tc.body); got != tc.want {
 			t.Errorf("%q: %v", tc.body, got)
 		}
 	}
@@ -25,7 +25,7 @@ func TestAccessRestriction(t *testing.T) {
 		{`HTTP 403 Forbidden`, ""},
 		{`Subscribe to our newsletter`, ""},
 	} {
-		if got := accessRestriction(tc.input); got != tc.want {
+		if got := Restriction(tc.input); got != tc.want {
 			t.Errorf("%q: got %q, want %q", tc.input, got, tc.want)
 		}
 	}
@@ -34,8 +34,8 @@ func TestAccessRestriction(t *testing.T) {
 // The application's own access-warning copy is not evidence that its home
 // page requires a subscription. This regression uses the actual embedded UI.
 func TestAccessWarningInExecutableScriptIsNotPaywall(t *testing.T) {
-	if got := accessRestriction(ui.Template()); got != "" {
-		t.Fatalf("ScraperGo homepage falsely classified as %q (%s)", got, restrictionEvidence(ui.Template()))
+	if got := Restriction(ui.Template()); got != "" {
+		t.Fatalf("ScraperGo homepage falsely classified as %q (%s)", got, Evidence(ui.Template()))
 	}
 	for _, body := range []string{
 		`<script>const title = "Paid Subscription Required";</script><article>Public content</article>`,
@@ -44,7 +44,7 @@ func TestAccessWarningInExecutableScriptIsNotPaywall(t *testing.T) {
 		`<style>.x::after{content:"Paid subscription required"}</style>`,
 		`<!-- paid subscription required --><article>Public</article>`,
 	} {
-		if got := accessRestriction(body); got != "" {
+		if got := Restriction(body); got != "" {
 			t.Errorf("false positive for executable or non-visible text: %q", got)
 		}
 	}
@@ -57,10 +57,10 @@ func TestAccessRestrictionKeepsVisibleEvidenceAndJSONLD(t *testing.T) {
 		{`<script type="text/javascript">let message='Paid Subscription Required'</script><div>Subscribe to continue reading</div>`, "restricted", "subscription-prompt"},
 	}
 	for _, tc := range cases {
-		if got := accessRestriction(tc.source); got != tc.kind {
+		if got := Restriction(tc.source); got != tc.kind {
 			t.Errorf("kind got %q, want %q", got, tc.kind)
 		}
-		if got := restrictionEvidence(tc.source); got != tc.evidence {
+		if got := Evidence(tc.source); got != tc.evidence {
 			t.Errorf("evidence got %q, want %q", got, tc.evidence)
 		}
 	}

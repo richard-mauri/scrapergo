@@ -1,7 +1,8 @@
-package main
+package extraction
 
 import (
- "clean-article-reader/internal/extraction"
+ "clean-article-reader/internal/article"
+
 	"net/url"
 	"strings"
 	"testing"
@@ -9,9 +10,9 @@ import (
 
 func TestPreserveSelectedHTMLLinksDuplicateLabels(t *testing.T) {
 	html := `<article><p>Read the bill text <a href="/docs/bill.pdf">here</a>.</p><p>Read a summary <a href="/docs/summary.pdf">here</a>.</p><p>Read the economic analysis <a href="/docs/economics.pdf">here</a>.</p><p>Visit <a href="/a">first</a> and <a href="/b">second</a>.</p></article>`
-	b := []Block{{Kind: "p", Text: "Read the bill text here."}, {Kind: "p", Text: "Read a summary here."}, {Kind: "p", Text: "Read the economic analysis here."}, {Kind: "p", Text: "Visit first and second."}}
+	b := []article.Block{{Kind: "p", Text: "Read the bill text here."}, {Kind: "p", Text: "Read a summary here."}, {Kind: "p", Text: "Read the economic analysis here."}, {Kind: "p", Text: "Visit first and second."}}
 	u, _ := url.Parse("https://example.com/article")
-	extraction.PreserveSelectedHTMLLinks(b, html, u, extraction.InlineTextParts)
+	PreserveSelectedHTMLLinks(b, html, u, InlineTextParts)
 	for i, expect := range []string{"/docs/bill.pdf", "/docs/summary.pdf", "/docs/economics.pdf"} {
 		n := 0
 		for _, p := range b[i].Parts {
@@ -35,9 +36,9 @@ func TestPreserveSelectedHTMLLinksDuplicateLabels(t *testing.T) {
 }
 func TestPreserveSelectedHTMLLinksNoNoiseOrUnselected(t *testing.T) {
 	html := `<nav><p>Read a summary <a href="/fake">here</a>.</p></nav><article><p>Read a summary <a href="/real.pdf">here</a>.</p><p>Not an article <a href="/else">link</a>.</p><p>Unsafe <a href="javascript:alert(1)">script</a>.</p></article>`
-	b := []Block{{Kind: "p", Text: "Read a summary here."}}
+	b := []article.Block{{Kind: "p", Text: "Read a summary here."}}
 	u, _ := url.Parse("https://example.com/")
-	extraction.PreserveSelectedHTMLLinks(b, html, u, extraction.InlineTextParts)
+	PreserveSelectedHTMLLinks(b, html, u, InlineTextParts)
 	found := []string{}
 	for _, p := range b[0].Parts {
 		if p.URL != "" {
@@ -55,7 +56,7 @@ func TestReadabilityPreservesDocumentLinksEndToEnd(t *testing.T) {
 	prose := "The proposal describes its funding mechanisms, projected allocations, implementation timetable, and the public oversight process. "
 	long := strings.Repeat(prose, 4)
 	raw := `<html><head><title>Public policy summary</title></head><body><article><h1>Public policy summary</h1><p>` + long + `</p><p>Read the full proposal <a href="/docs/proposal.pdf">online</a>.</p><p>Read the executive summary <a href="/docs/summary.pdf">online</a>.</p><p>Read the underlying analysis <a href="/docs/analysis.pdf">online</a>.</p><p>` + long + `</p></article></body></html>`
-	article, err := extraction.ExtractWithReadability(raw, "https://example.org/news/policy",extraction.LegacyExtract,extraction.InlineTextParts)
+	article, err := ExtractWithReadability(raw, "https://example.org/news/policy",LegacyExtract,InlineTextParts)
 	if err != nil {
 		t.Fatalf("Readability extraction failed: %v", err)
 	}

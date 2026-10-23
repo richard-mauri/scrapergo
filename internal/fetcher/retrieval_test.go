@@ -1,4 +1,4 @@
-package main
+package fetcher
 
 import (
 	"net/http"
@@ -10,7 +10,7 @@ func TestBrowserHeaders(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	setBrowserHeaders(req)
+	SetBrowserHeaders(req)
 	for _, k := range []string{"User-Agent", "Accept", "Accept-Language", "Sec-Fetch-Mode"} {
 		if req.Header.Get(k) == "" {
 			t.Errorf("missing header %q", k)
@@ -23,7 +23,7 @@ func TestReadeckLikeHeaders(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	setReadeckLikeHeaders(req)
+	SetReadeckLikeHeaders(req)
 	if req.Header.Get("Sec-CH-UA-Platform") != `"Windows"` {
 		t.Fatal("incorrect client hint platform")
 	}
@@ -36,7 +36,7 @@ func TestReadeckLikeHeaders(t *testing.T) {
 	if req.Header.Get("User-Agent") == "" {
 		t.Fatal("missing user agent")
 	}
-	if !alternateHeaderRetry(http.StatusForbidden) || alternateHeaderRetry(http.StatusUnauthorized) || alternateHeaderRetry(http.StatusOK) {
+	if !AlternateHeaderRetry(http.StatusForbidden) || AlternateHeaderRetry(http.StatusUnauthorized) || AlternateHeaderRetry(http.StatusOK) {
 		t.Fatal("retry must be limited to explicit HTTP 403")
 	}
 }

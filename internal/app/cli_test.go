@@ -1,8 +1,8 @@
-package main
+package app
 
 import (
 	"bytes"
- "clean-article-reader/internal/app"
+
 	"flag"
 	"strings"
 	"testing"
@@ -18,7 +18,7 @@ func TestResolvePort(t *testing.T) {
 		{[]string{"-port=9001"}, "", "9001", false}, {[]string{"--port", "0"}, "", "", true},
 		{[]string{"--port", "65536"}, "", "", true}, {[]string{"--port", "foo"}, "", "", true},
 	} {
-		got, err := app.ResolvePort(tc.args, tc.env, &bytes.Buffer{})
+		got, err := ResolvePort(tc.args, tc.env, &bytes.Buffer{})
 		if (err != nil) != tc.fail || (!tc.fail && got != tc.want) {
 			t.Errorf("%v %q => %q %v", tc.args, tc.env, got, err)
 		}
@@ -26,7 +26,7 @@ func TestResolvePort(t *testing.T) {
 }
 func TestHelp(t *testing.T) {
 	var out bytes.Buffer
-	_, err := app.ResolvePort([]string{"--help"}, "", &out)
+	_, err := ResolvePort([]string{"--help"}, "", &out)
 	if err != flag.ErrHelp || !strings.Contains(out.String(), "--port") {
 		t.Fatalf("help: %v %q", err, out.String())
 	}

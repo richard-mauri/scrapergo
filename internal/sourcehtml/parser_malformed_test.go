@@ -1,4 +1,4 @@
-package main
+package sourcehtml
 
 import "testing"
 
@@ -10,12 +10,12 @@ func TestParseHTMLMalformedClosingTags(t *testing.T) {
 		"<p>before</   >after</p>",
 		"<p>before</\t>after</p>",
 	} {
-		root := parseHTML(raw)
+		root := Parse(raw)
 		if root == nil || len(root.Kids) == 0 {
-			t.Fatalf("parseHTML(%q) returned no tree", raw)
+			t.Fatalf("Parse(%q) returned no tree", raw)
 		}
-		if got := textOf(root); got == "" {
-			t.Fatalf("parseHTML(%q) lost all content", raw)
+		if got := Text(root); got == "" {
+			t.Fatalf("Parse(%q) lost all content", raw)
 		}
 	}
 }
