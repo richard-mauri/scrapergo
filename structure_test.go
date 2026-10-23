@@ -1,6 +1,7 @@
 package main
 
 import (
+ "clean-article-reader/internal/extraction"
 	"fmt"
 	"net/url"
 	"strings"
@@ -15,7 +16,7 @@ func TestGenericStructuredDocument(t *testing.T) {
 	}
 	raw.WriteString(`</article></main><footer><h2>Footer</h2></footer></html>`)
 	base, _ := url.Parse("https://example.org/guide")
-	got, ok := recoverStructuredDocument(raw.String(), []Block{{Kind: "p", Text: "Model 1 overview"}}, base)
+	got, ok := extraction.RecoverStructuredDocument(raw.String(), []Block{{Kind: "p", Text: "Model 1 overview"}}, base)
 	if !ok {
 		t.Fatal("missed structured content")
 	}
@@ -45,7 +46,7 @@ func TestGenericStructuredDocumentDeclinesMenu(t *testing.T) {
 	}
 	raw.WriteString(`</nav><main><p>Ordinary body paragraph remains readable in its original order.</p></main>`)
 	base, _ := url.Parse("https://example.org/")
-	if _, ok := recoverStructuredDocument(raw.String(), nil, base); ok {
+	if _, ok := extraction.RecoverStructuredDocument(raw.String(), nil, base); ok {
 		t.Fatal("menu accepted as article")
 	}
 }
