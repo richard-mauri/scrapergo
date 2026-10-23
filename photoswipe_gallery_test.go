@@ -1,6 +1,9 @@
 package main
 
-import "testing"
+import (
+ "testing"
+ "clean-article-reader/internal/recovery"
+)
 
 // The two photo URLs and their shared flex layout are based on the actual
 // downloaded BMW markup, not publisher-specific gallery classes.
