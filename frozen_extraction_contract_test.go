@@ -19,7 +19,7 @@ func TestFrozenStructuralLeadContract(t *testing.T) {
  cleaned:=structured.StripEmbeddedMedia(string(raw))
  extracted,err:=bootstrap.ExtractWithEvidence(cleaned,"https://news.example.test/report")
  if err!=nil {t.Fatalf("extract fixture: %v",err)}
- if extracted.articlemodel.Article.WordCount<60 {t.Fatalf("unexpectedly short extraction: %d",extracted.articlemodel.Article.WordCount)}
+ if extracted.Article.WordCount<60 {t.Fatalf("unexpectedly short extraction: %d",extracted.Article.WordCount)}
  if extracted.Evidence.MetadataImageURL!="https://media.example.test/preview.jpg" {
   t.Fatalf("source metadata lost: %q",extracted.Evidence.MetadataImageURL)
  }
