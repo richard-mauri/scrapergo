@@ -1,6 +1,7 @@
 package main
 
 import (
+ "clean-article-reader/internal/ui"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -8,7 +9,7 @@ import (
 
 func TestBookmarkletAutoRead(t *testing.T) {
 	for _, needle := range []string{"new URLSearchParams(window.location.search).get('url')", "form.requestSubmit()", "ScraperGo · v" + appVersion} {
-		if !strings.Contains(renderedIndexHTML(), needle) {
+		if !strings.Contains(ui.Render(appVersion,appBuild), needle) {
 			t.Fatalf("missing UI feature: %s", needle)
 		}
 	}
@@ -19,7 +20,7 @@ func TestIndexKeepsManualForm(t *testing.T) {
 	if r.URL.Query().Get("url") != "https://example.com/news" {
 		t.Fatal("query decoding failed")
 	}
-	if !strings.Contains(indexHTML, `id="form"`) {
+	if !strings.Contains(ui.Template(), `id="form"`) {
 		t.Fatal("manual entry disappeared")
 	}
 }
