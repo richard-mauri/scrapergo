@@ -1,10 +1,15 @@
 package main
 
-import ("testing";"strings";"clean-article-reader/internal/contributors")
+import (
+ articlemodel "clean-article-reader/internal/article"
+ "testing"
+ "strings"
+ "clean-article-reader/internal/contributors"
+)
 
 func TestNPRHeaderSeparationPreservesEditorialImages(t *testing.T) {
- linked:=func(name string) Block{return Block{Kind:"p",Text:name,Links:[]InlineLink{{Text:name,URL:"https://www.npr.org/people/123"}}}}
- a:=Article{Byline:"Ruth Sherlock",Blocks:[]Block{
+ linked:=func(name string) articlemodel.Block{return articlemodel.Block{Kind:"p",Text:name,Links:[]articlemodel.InlineLink{{Text:name,URL:"https://www.npr.org/people/123"}}}}
+ a:=articlemodel.Article{Byline:"Ruth Sherlock",Blocks:[]articlemodel.Block{
   {Kind:"p",Text:"Middle East"}, {Kind:"p",Text:"By"},
   linked("Ruth Sherlock"),{Kind:"p",Text:","},
   {Kind:"img",Role:"author",URL:"https://example.org/samantha.jpg",Text:"Photo of Samantha Balaban in the field"},
@@ -26,7 +31,7 @@ func TestNPRHeaderSeparationPreservesEditorialImages(t *testing.T) {
  if a.Blocks[len(a.Blocks)-1].URL!=nprWestBankInline{t.Fatal("later editorial image moved")}
 }
 func TestNoConfirmedEditorialBoundaryLeavesContentUntouched(t *testing.T){
- a:=Article{Blocks:[]Block{{Kind:"p",Text:"By"},{Kind:"p",Text:"Alice"},{Kind:"p",Text:strings.Repeat("Real article content. ",10)}}}
+ a:=articlemodel.Article{Blocks:[]articlemodel.Block{{Kind:"p",Text:"By"},{Kind:"p",Text:"Alice"},{Kind:"p",Text:strings.Repeat("Real article content. ",10)}}}
  contributors.SeparateHeader(&a)
  if len(a.Blocks)!=3{t.Fatalf("no source boundary should leave content intact %+v",a.Blocks)}
 }

@@ -1,6 +1,8 @@
 package main
 
 import (
+ articlemodel "clean-article-reader/internal/article"
+ "clean-article-reader/internal/documentmedia"
  "clean-article-reader/internal/extraction"
  "clean-article-reader/internal/recovery"
  "clean-article-reader/internal/reader"
@@ -19,21 +21,21 @@ func TestAssembleArticleDocumentMatchesExistingPipeline(t *testing.T) {
  sourceURL := "https://example.org/story"
  raw := `<html><head><meta property="og:image" content="/meta.jpg"></head><body><main><article><h1>Story</h1><figure><picture><img src="/lead.jpg"></picture></figure><p>A complete first paragraph of ordinary article content appears here with contextual information and enough text for source processing.</p></article></main></body></html>`
  input := extractionmodel.Result{
-  Article: Article{Title:"Story",URL:sourceURL,Byline:"Reporter",WordCount:21,Blocks:[]Block{{Kind:"p",Text:"A complete first paragraph of ordinary article content appears here with contextual information and enough text for source processing."}}},
+  Article: articlemodel.Article{Title:"Story",URL:sourceURL,Byline:"Reporter",WordCount:21,Blocks:[]articlemodel.Block{{Kind:"p",Text:"A complete first paragraph of ordinary article content appears here with contextual information and enough text for source processing."}}},
   Evidence: extractionmodel.SourceEvidence{SourceURL:sourceURL,MetadataImageURL:"https://example.org/meta.jpg"},
  }
  expected := input.Article
  extraction.RecoverArticlePhotographs(&expected,raw,sourceURL)
  media.Deduplicate(&expected)
  recovery.RecoverMissingArticleLinks(&expected,raw,sourceURL)
- recoverAuthorPortrait(&expected,raw,sourceURL)
+ contributors.RecoverAuthorPortrait(&expected,raw,sourceURL)
  structured.RemoveSerializedPlayerBlocks(&expected)
- classifyContributorImages(&expected)
+ contributors.ClassifyContributorImages(&expected)
  recovery.ClassifyImagesFromSource(&expected,raw,sourceURL)
- reconcileContributorByline(&expected)
+ contributors.ReconcileContributorByline(&expected)
  contributors.SeparateHeader(&expected)
  recovery.RecoverOpeningSourceFigure(&expected,raw,sourceURL)
- normalizeArticleDocument(&expected,input.Evidence.MetadataImageURL)
+ documentmedia.NormalizeDocument(&expected,media.SourceIdentity,input.Evidence.MetadataImageURL)
 
  got := reader.DefaultProcessor().Process(input,raw)
  wantJSON,_ := json.Marshal(expected)

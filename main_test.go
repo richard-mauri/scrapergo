@@ -1,6 +1,7 @@
 package main
 
 import (
+ "clean-article-reader/internal/fetcher"
  "clean-article-reader/internal/extraction"
 	"context"
 	"strings"
@@ -27,7 +28,7 @@ func TestExtraction(t *testing.T) {
 }
 func TestRejectLocal(t *testing.T) {
 	for _, u := range []string{"file:///etc/passwd", "http://localhost/private", "http://127.0.0.1/", "http://10.0.0.1/"} {
-		if _, err := validatedURL(context.Background(), u); err == nil {
+		if _, err := fetcher.ValidatedURL(context.Background(), u); err == nil {
 			t.Errorf("accepted %s", u)
 		}
 	}

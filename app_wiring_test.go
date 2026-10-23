@@ -1,6 +1,7 @@
 package main
 
 import (
+ "clean-article-reader/internal/bootstrap"
  "net/http"
  "net/http/httptest"
  "strings"
@@ -8,8 +9,8 @@ import (
 )
 
 func TestCentralHandlerWiringPreservesReadMethodLimit(t *testing.T) {
- read := newArticleReadHandler()
- metadata := newArticleMetadataHandler(read)
+ read := bootstrap.NewArticleReadHandler()
+ metadata := bootstrap.NewArticleMetadataHandler(read)
  for _,tc:=range []struct{name string;handler http.Handler}{
   {"read",read},{"metadata",metadata},
  } {

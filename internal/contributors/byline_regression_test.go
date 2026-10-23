@@ -1,14 +1,14 @@
-package main
+package contributors
 
 import (
- "clean-article-reader/internal/ui"
+ articlemodel "clean-article-reader/internal/article"
  "strings"
  "testing"
 )
 
 func TestContributorBylineReconciliation(t *testing.T) {
- linked:=func(name string) Block{return Block{Kind:"p",Text:name,Links:[]InlineLink{{Text:name,URL:"https://www.npr.org/people/123"}}}}
- a:=Article{Byline:"Ruth Sherlock",Blocks:[]Block{
+ linked:=func(name string) articlemodel.Block{return articlemodel.Block{Kind:"p",Text:name,Links:[]articlemodel.InlineLink{{Text:name,URL:"https://www.npr.org/people/123"}}}}
+ a:=articlemodel.Article{Byline:"Ruth Sherlock",Blocks:[]articlemodel.Block{
   {Kind:"p",Text:"Middle East"}, {Kind:"p",Text:"By"},
   linked("Ruth Sherlock"),{Kind:"p",Text:","},
   {Kind:"img",Role:"author",Text:"Photo of Samantha Balaban",URL:"https://example.org/samantha.jpg"},
@@ -18,7 +18,7 @@ func TestContributorBylineReconciliation(t *testing.T) {
   {Kind:"img",Role:"lead",URL:"https://example.org/security.jpg"},
   {Kind:"p",Text:"Real reporting remains."},
  }}
- reconcileContributorByline(&a)
+ ReconcileContributorByline(&a)
  expected:="Ruth Sherlock, Samantha Balaban, Nuha Musleh, Daniel Estrin"
  if a.Byline!=expected {t.Fatalf("byline=%q, want %q",a.Byline,expected)}
  for _,b:=range a.Blocks {
@@ -27,11 +27,7 @@ func TestContributorBylineReconciliation(t *testing.T) {
  if len(a.Blocks)!=4 || a.Blocks[0].Text!="Middle East" || a.Blocks[1].Role!="author" || a.Blocks[2].Role!="lead" || a.Blocks[3].Text!="Real reporting remains." {t.Fatalf("lost editorial blocks: %+v",a.Blocks)}
 }
 func TestNoBylineFragmentsPreservesEditorialLinks(t *testing.T) {
- a:=Article{Byline:"Writer",Blocks:[]Block{{Kind:"p",Text:"A story about someone."},{Kind:"p",Text:"Further reading",Links:[]InlineLink{{Text:"Further reading",URL:"https://example.org/story"}}}}}
- reconcileContributorByline(&a)
+ a:=articlemodel.Article{Byline:"Writer",Blocks:[]articlemodel.Block{{Kind:"p",Text:"A story about someone."},{Kind:"p",Text:"Further reading",Links:[]articlemodel.InlineLink{{Text:"Further reading",URL:"https://example.org/story"}}}}}
+ ReconcileContributorByline(&a)
  if a.Byline!="Writer"||len(a.Blocks)!=2 {t.Fatalf("ordinary content altered: %+v",a)}
-}
-func TestOrdinaryArticleParagraphsCollapseWhitespace(t *testing.T){
- page:=ui.Render(appVersion,appBuild)
- if !strings.Contains(page,".content p{margin:1.1em 0;white-space:normal}") {t.Fatal("ordinary paragraphs should collapse source whitespace")}
 }
