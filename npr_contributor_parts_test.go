@@ -1,7 +1,8 @@
 package main
 
 import (
- articlemodel "clean-article-reader/internal/article""testing"
+ articlemodel "clean-article-reader/internal/article"
+ "testing"
 "clean-article-reader/internal/contributors"
 )
 
@@ -18,7 +19,7 @@ func TestNPRContributorPartsHeaderSeparation(t *testing.T) {
   {Kind:"h3",Text:"Brad Lander West Bank"},
   {Kind:"li",Text:"Download"},
   {Kind:"img",Role:"editorial",URL:nprWestBankFirst,Text:"Israeli security forces"},
-  {Kind:"p",Text:"articlemodel.Article begins here."},
+  {Kind:"p",Text:"Article begins here."},
   {Kind:"img",Role:"editorial",URL:nprWestBankInline,Text:"Olive harvesting"},
  }}
  contributors.SeparateHeader(&a)
