@@ -1,6 +1,7 @@
 package main
 
 import (
+ "clean-article-reader/internal/extraction"
  "clean-article-reader/internal/sourcehtml"
 	"net/url"
 	"strings"
@@ -18,7 +19,7 @@ func TestImageURLResolution(t *testing.T) {
 }
 func TestExtractImageAndCaption(t *testing.T) {
 	u, _ := url.Parse("https://example.com/post")
-	photos := articleImages(`<article><figure><img src="/photo.jpg" alt="fallback"><figcaption>Photographer credit</figcaption></figure><img src="javascript:1"></article>`, u)
+	photos := extraction.ArticleImages(`<article><figure><img src="/photo.jpg" alt="fallback"><figcaption>Photographer credit</figcaption></figure><img src="javascript:1"></article>`, u)
 	if len(photos) != 1 || photos[0].URL != "https://example.com/photo.jpg" || photos[0].Text != "Photographer credit" {
 		t.Fatalf("%+v", photos)
 	}
