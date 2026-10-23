@@ -1,6 +1,7 @@
 package main
 
 import (
+ "clean-article-reader/internal/extraction"
 	"fmt"
 	"net/url"
 	"strings"
@@ -20,7 +21,7 @@ func TestTrailingSiblingPromotionAndNearbyTopics(t *testing.T) {
 	}
 	s.WriteString(`</div></div></main>`)
 	u, _ := url.Parse("https://example.com/story")
-	blocks, ok := recoverStructuredDocument(s.String(), []Block{{Kind: "p", Text: "only a partial intro"}}, u)
+	blocks, ok := extraction.RecoverStructuredDocument(s.String(), []Block{{Kind: "p", Text: "only a partial intro"}}, u)
 	if !ok {
 		t.Fatal("no recover")
 	}
@@ -37,7 +38,7 @@ func TestTrailingSiblingPromotionAndNearbyTopics(t *testing.T) {
 
 func TestTrimSiblingRecommendation(t *testing.T) {
 	b := []Block{{Kind: "p", Text: "Legitimate last paragraph."}, {Kind: "img", Text: "College Football", URL: "https://example.com/icon.png"}, {Kind: "img", Text: "Next Story Image: Some unrelated report", URL: "https://example.com/teaser.jpg"}, {Kind: "h2", Text: "Some unrelated report"}}
-	cleaned := trimTrailingRecommendation(b)
+	cleaned := extraction.TrimTrailingRecommendation(b)
 	if len(cleaned) != 1 {
 		t.Fatalf("expected editorial only, got %#v", cleaned)
 	}
