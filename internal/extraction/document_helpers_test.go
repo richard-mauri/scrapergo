@@ -22,7 +22,7 @@ func TestSerializedCaptionImagesGeneric(t *testing.T) {
 func TestSemanticTextBlockKeepsMarkup(t *testing.T) {
 	base, _ := url.Parse("https://example.org/guide")
 	root := sourcehtml.Parse(`<p><strong>First:</strong> read the guide<br><a href="/details"><em>Second:</em> follow the link</a></p>`)
-	ps := find(root, func(n *sourcehtml.Node) bool { return n.Tag == "p" })
+	ps := sourcehtml.Find(root, func(n *sourcehtml.Node) bool { return n.Tag == "p" })
 	if len(ps) != 1 {
 		t.Fatal("paragraph missing")
 	}
