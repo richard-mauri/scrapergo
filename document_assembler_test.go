@@ -22,7 +22,7 @@ func TestAssembleArticleDocumentMatchesExistingPipeline(t *testing.T) {
   Evidence: extractionmodel.SourceEvidence{SourceURL:sourceURL,MetadataImageURL:"https://example.org/meta.jpg"},
  }
  expected := input.Article
- recoverArticlePhotographs(&expected,raw,sourceURL)
+ extraction.RecoverArticlePhotographs(&expected,raw,sourceURL)
  media.Deduplicate(&expected)
  recovery.RecoverMissingArticleLinks(&expected,raw,sourceURL)
  recoverAuthorPortrait(&expected,raw,sourceURL)
