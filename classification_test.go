@@ -24,7 +24,7 @@ func TestClassifyRejectsBadInput(t *testing.T) {
 
 // A temporary publisher failure never qualifies an article for display.
 func TestClassificationUnavailableIsNotReadable(t *testing.T) {
-	result := struct { Classification string `json:"classification"`; Reason string `json:"reason"` }{Classification: "unavailable", Reason: "publisher_unavailable"}
+	result := struct { Classification string `json:"classification"`; Reason string `json:"reason"`; ReadableArticle bool `json:"readableArticle"` }{Classification: "unavailable", Reason: "publisher_unavailable"}
 	if result.ReadableArticle {
 		t.Fatal("unavailable publisher cannot be readable")
 	}
