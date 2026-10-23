@@ -1,6 +1,8 @@
 package main
 
 import (
+ "clean-article-reader/internal/httpapi"
+ "clean-article-reader/internal/fetcher"
 	"context"
 	"crypto/tls"
 	"errors"
@@ -37,7 +39,7 @@ func TestImageRetrievalFailureKind(t *testing.T) {
 func TestThumbnailMethodRejectionStillWorks(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/api/thumbnail", strings.NewReader(""))
 	w := httptest.NewRecorder()
-	articleThumbnail(w, req)
+	httpapi.NewThumbnailHandler(fetcher.ValidatedURL,http.HandlerFunc(articleImage)).ServeHTTP(w, req)
 	if w.Code != http.StatusMethodNotAllowed {
 		t.Fatalf("status %d", w.Code)
 	}
