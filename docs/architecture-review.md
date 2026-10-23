@@ -1,4 +1,4 @@
-> **Historical design record — not current instructions.** This document describes earlier migration/design states and may reference superseded branches, root package owners, aliases, and PR status. Current authority: [ARCHITECTURE.md](../ARCHITECTURE.md), [DEVELOPMENT.md](../DEVELOPMENT.md), and [HISTORY.md](../HISTORY.md).
+> **Historical design record — not current instructions.** This document describes earlier migration/design states and may reference superseded branches, root package owners, aliases, and PR status. Current authority: [ARCHITECTURE.md](../ARCHITECTURE.md), [DEVELOPMENT.md](../DEVELOPMENT.md).
 
 # Architecture review and release checklist — October 2026
 
