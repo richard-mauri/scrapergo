@@ -4,6 +4,7 @@ import (
  "net/http"
 
  "clean-article-reader/internal/httpapi"
+ "clean-article-reader/internal/googlenews"
 )
 
 // newArticleReadHandler is the single production dependency wiring point for
@@ -11,7 +12,7 @@ import (
 // retrieval and extraction policies instead of recreating them in HTTP code.
 func newArticleReadHandler() http.Handler {
  return httpapi.ReadHandler(httpapi.ReadDependencies{
-  Resolve: resolveGoogleNewsURL,
+  Resolve: googlenews.ResolveURL,
   Download: download,
   PublisherAccessMessage: publisherAccessMessage,
   Hostname: mustHostname,
