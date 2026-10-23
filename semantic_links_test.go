@@ -55,7 +55,7 @@ func TestReadabilityPreservesDocumentLinksEndToEnd(t *testing.T) {
 	prose := "The proposal describes its funding mechanisms, projected allocations, implementation timetable, and the public oversight process. "
 	long := strings.Repeat(prose, 4)
 	raw := `<html><head><title>Public policy summary</title></head><body><article><h1>Public policy summary</h1><p>` + long + `</p><p>Read the full proposal <a href="/docs/proposal.pdf">online</a>.</p><p>Read the executive summary <a href="/docs/summary.pdf">online</a>.</p><p>Read the underlying analysis <a href="/docs/analysis.pdf">online</a>.</p><p>` + long + `</p></article></body></html>`
-	article, err := extraction.ExtractWithReadability(raw, "https://example.org/news/policy",extract,inlineTextParts)
+	article, err := extraction.ExtractWithReadability(raw, "https://example.org/news/policy",extraction.LegacyExtract,extraction.InlineTextParts)
 	if err != nil {
 		t.Fatalf("Readability extraction failed: %v", err)
 	}
