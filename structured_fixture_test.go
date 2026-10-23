@@ -1,6 +1,8 @@
 package main
 
 import (
+ articlemodel "clean-article-reader/internal/article"
+ "clean-article-reader/internal/bootstrap"
  "encoding/json"
  "net/http/httptest"
  "os"
@@ -12,9 +14,9 @@ func TestFixtureArticleMediaAndAuthor(t *testing.T){
  raw,err:=os.ReadFile("testdata/article_media_and_author.html")
  if err!=nil{t.Fatal(err)}
  rec:=httptest.NewRecorder()
- writeExtractedArticle(rec,string(raw),"https://news.example.org/report")
+ bootstrap.WriteExtractedArticle(rec,string(raw),"https://news.example.org/report")
  if rec.Code!=200{t.Fatalf("HTTP %d: %s",rec.Code,rec.Body.String())}
- var a Article
+ var a articlemodel.Article
  if err:=json.Unmarshal(rec.Body.Bytes(),&a);err!=nil{t.Fatal(err)}
  leadCount,authorCount:=0,0
  for _,b:=range a.Blocks {
