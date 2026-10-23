@@ -8,12 +8,12 @@ import (
 
 // classifyImagesFromSource extracts generic DOM observations; source role policy
 // lives in internal/media and does not depend on the application HTML parser.
-func ClassifyImagesFromSource(a *article.Article, sourceHTML, articleURL string, resolveImage func(*sourcehtml.Node,string) string, identity func(string)string) {
+func ClassifyImagesFromSource(a *article.Article, sourceHTML, articleURL string) {
  if a==nil{return}
  root:=sourcehtml.Parse(sourceHTML)
  observations:=[]media.ImageEvidence{}
  for _,n:=range sourcehtml.Find(root,func(n *sourcehtml.Node)bool{return n.Tag=="img"}) {
-  src:=resolveImage(n,articleURL)
+  src:=sourcehtml.ImageURL(n,articleURL)
   if src=="" {continue}
   observation:=media.ImageEvidence{URL:src}
   for ancestor:=n.Parent;ancestor!=nil;ancestor=ancestor.Parent {
@@ -25,5 +25,5 @@ func ClassifyImagesFromSource(a *article.Article, sourceHTML, articleURL string,
   }
   observations=append(observations,observation)
  }
- media.ApplySourceRoles(a,observations,identity)
+ media.ApplySourceRoles(a,observations,media.SourceIdentity)
 }
