@@ -1,6 +1,6 @@
 # ScraperGo development and validation
 
-Start with [AGENTS.md](AGENTS.md) and [ARCHITECTURE.md](ARCHITECTURE.md). GitHub [main](https://github.com/richard-mauri/scrapergo/tree/main) is authoritative. Keep branches short-lived and scoped (for example `docs/consolidate-reference`, `fix/issue-N-description`, `test/area-contract`). Open a **draft PR** against `main` with rationale, changed boundaries, issue references, regression risks, CI and Mac/Safari acceptance. The owner decides when to merge, tag or release. Do not bump `appVersion` during documentation or ordinary development PRs.
+GitHub [main](https://github.com/richard-mauri/scrapergo/tree/main) is the authoritative merged code baseline. Start with [AGENTS.md](AGENTS.md) and consult [ARCHITECTURE.md](ARCHITECTURE.md) for technical constraints. Keep branches short-lived and scoped (for example `docs/consolidate-reference`, `fix/issue-N-description`, `test/area-contract`). Open a **draft PR** against `main` with rationale, changed boundaries, issue references, regression risks, CI and Mac/Safari acceptance. The owner decides when to merge, tag or release. Do not bump `appVersion` during documentation or ordinary development PRs.
 
 ## Bugs and GitHub Issues
 
@@ -16,7 +16,7 @@ A cross-repository example is [NewsGo Issue #8](https://github.com/richard-mauri
 
 GitHub Actions workflow [Go CI](.github/workflows/go-ci.yml) runs on PRs targeting `main`: a non-blocking gofmt debt report, `go test -count=1 ./...` and `go build ./...` (Go version from `go.mod`). Inspect the run and outcome on **this PR's latest commit**. Confirm the intended diff is documentation-only when applicable.
 
-For **every** PR, supply the following complete copy-and-pasteable block to the owner with its *real branch name*, not the placeholder:
+For **code or runtime PRs**, supply the following complete copy-and-pasteable block to the owner with its *real branch name*, not the placeholder. **Documentation-only PRs** instead require rendered Markdown, link, path and command verification; normal PR CI can run, but local Mac build/restart/Safari acceptance is unnecessary:
 
 ```bash
 cd ~/projects/scrapergo
