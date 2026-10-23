@@ -1,6 +1,7 @@
 package main
 
 import (
+ "clean-article-reader/internal/extraction"
 	"fmt"
 	"net/url"
 	"strings"
@@ -15,7 +16,7 @@ func TestGenericRecoveryHandlesRankingWithoutSpecialCase(t *testing.T) {
 	}
 	raw.WriteString(`</main>`)
 	u, _ := url.Parse("https://example.com/sports/rankings")
-	got, ok := recoverStructuredDocument(raw.String(), []Block{{Kind: "p", Text: "25. University 25"}}, u)
+	got, ok := extraction.RecoverStructuredDocument(raw.String(), []Block{{Kind: "p", Text: "25. University 25"}}, u)
 	if !ok {
 		t.Fatal("did not recover ranking")
 	}

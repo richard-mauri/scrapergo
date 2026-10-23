@@ -1,6 +1,7 @@
 package main
 
 import (
+ "clean-article-reader/internal/extraction"
 	"fmt"
 	"net/url"
 	"strings"
@@ -19,7 +20,7 @@ func TestContextualTopicIndexAndPromo(t *testing.T) {
 	}
 	b.WriteString(`</div></section><section class="next-story"><h3>Next Story</h3><img src="/teaser.jpg" alt="Next Story Image"><h2>Promotional headline is not the original article</h2></section></article></main>`)
 	base, _ := url.Parse("https://example.org/story")
-	blocks, ok := recoverStructuredDocument(b.String(), []Block{{Kind: "p", Text: "intro"}}, base)
+	blocks, ok := extraction.RecoverStructuredDocument(b.String(), []Block{{Kind: "p", Text: "intro"}}, base)
 	if !ok {
 		t.Fatal("recovery failed")
 	}

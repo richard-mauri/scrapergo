@@ -1,6 +1,7 @@
 package main
 
 import (
+ "clean-article-reader/internal/extraction"
 	"net/url"
 	"strings"
 	"testing"
@@ -23,7 +24,7 @@ func TestEditorialContinuityRestoresGalleryAndFinalParagraphs(t *testing.T) {
 		{Kind: "p", Text: "As I sat in the cab of the pickup truck and manually rolled down the windows, I thought about driving an old truck years ago."},
 		{Kind: "p", Text: "Being able to order online and have the truck delivered is a major attraction for buyers and shoppers who dislike dealerships."},
 	}
-	got := recoverEditorialContinuity(source, selected, base)
+	got := extraction.RecoverEditorialContinuity(source, selected, base)
 	if len(got) != 8 {
 		t.Fatalf("want 8 article blocks, got %d: %+v", len(got), got)
 	}
@@ -59,7 +60,7 @@ func TestEditorialContinuityRejectsUnverifiedContent(t *testing.T) {
 	base, _ := url.Parse("https://example.org/a")
 	raw := `<html><article><p>Unrelated first paragraph covering material absent from the selected article altogether and should not pass the anchoring test.</p><p>Unrelated second paragraph also covers different issues and is not part of the selected article for this test.</p><p>Unrelated third paragraph with sufficient content to make recovery appear tempting but must not be used.</p></article></html>`
 	chosen := []Block{{Kind: "p", Text: "Selected article first paragraph with sufficient material to serve as an editorial reference for continuity."}, {Kind: "p", Text: "Selected article second paragraph with sufficient material for the required independent corroboration."}}
-	got := recoverEditorialContinuity(raw, chosen, base)
+	got := extraction.RecoverEditorialContinuity(raw, chosen, base)
 	if len(got) != len(chosen) || got[0].Text != chosen[0].Text {
 		t.Fatalf("replaced unrelated article: %+v", got)
 	}
@@ -80,7 +81,7 @@ func TestEditorialContinuityMixedWrapperAndCaptionOnce(t *testing.T) {
 		{Kind: "p", Text: "First editorial paragraph contains enough distinctive information to establish that it belongs to this long article, and matches the reader selection exactly."},
 		{Kind: "p", Text: "Second editorial paragraph contains distinct narrative substance confirming its order within the selected article despite the surrounding advertising layout."},
 	}
-	got := recoverEditorialContinuity(raw, selected, base)
+	got := extraction.RecoverEditorialContinuity(raw, selected, base)
 	var captions, images int
 	for _, b := range got {
 		if b.Kind == "img" {
@@ -111,7 +112,7 @@ func TestEditorialTailRecoveryAfterSelectedParagraph(t *testing.T) {
 	a := "The customization section discusses choosing the interior configuration and describes the truck options available to customers in this showroom."
 	raw := `<html><main><article><p>` + a + `</p><div class="advertisement-wrapper"><div class="advertisement"><p>Sponsored deals for everyone.</p></div><p>The next editorial paragraph explains how the staff can assist people who wish to customize their vehicle in person at the center.</p><figure><img src="/pegboard.jpg"/><figcaption>Headlight and taillight options on display at the showroom.</figcaption></figure></div><p>The service discussion explains maintenance arrangements with a network of shops for future truck buyers.</p><p>The final production paragraph examines the manufacturing challenges and concludes it is time to deliver vehicles.</p></article></main></html>`
 	chosen := []Block{{Kind: "p", Text: a}}
-	got := recoverAnchoredEditorialTail(parseHTML(raw), chosen, base)
+	got := extraction.RecoverAnchoredEditorialTail(parseHTML(raw), chosen, base)
 	if len(got) != 5 {
 		t.Fatalf("want five blocks, got %d: %+v", len(got), got)
 	}

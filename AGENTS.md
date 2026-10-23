@@ -1,3 +1,7 @@
+# CURRENT WORK — PR #53 (1 of 5 remaining), extraction and recovery consolidation (2026-10-23)
+
+Merged PR #52 baseline main is 032add89dcd869d99994971a5b8d1ad3f5e779cf. This branch migrates document structure, navigation filtering, editorial continuity, and document helper implementations from root into internal/extraction without root forwarding wrappers. Direct callers and tests must migrate within this same PR; no separate cleanup PRs for CI failures. Semantic version remains 0.2.85; visible build Architecture PR #53. Root Readability orchestration, leading recovery, inline markup/JSON-LD fallback, diagnostic logging and application wiring remain for planned PRs #54–#57. Do not merge without owner authorization.
+
 # CURRENT WORK — PR #52 Readability source figure extraction (2026-10-23)
 
 PR #51 merged into main at e33ed57acbb5abaf079edf55ca137fa3c31c8976. Branch refactor/extraction-figures begins there. Moves figure ordering, gallery supplementation, inline-link extraction and source image scanning from root readability.go into internal/extraction/figures.go. No root forwarding wrappers. Reader orchestration in main/readability.go remains a larger pending migration. Semantic version remains 0.2.85; build indicator Architecture PR #52. Do not merge, release, or tag without approval. Earlier notes below historical.
