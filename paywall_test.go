@@ -1,6 +1,9 @@
 package main
 
-import "testing"
+import (
+ "testing"
+ "clean-article-reader/internal/ui"
+)
 
 func TestPaywallEvidence(t *testing.T) {
 	for _, tc := range []struct {
