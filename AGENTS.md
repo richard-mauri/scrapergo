@@ -1,3 +1,7 @@
+# CURRENT WORK — PR #55 (3 of 5), legacy extraction and monotonic build ID (2026-10-23)
+
+Based on merged #54 at 048fd2ca06af182b612afd94449dff0879540c36. The legacy HTML selection, inline text parts, JSON-LD fallback and extraction engine move from root main.go to internal/extraction/legacy.go without root compatibility wrappers. devbuild.sh now reserves an ever-increasing build number stored under Git's private directory, unaffected by branch switches, and embeds it into both CPU architecture binaries via linker flags. Semantic appVersion stays 0.2.85; PR number is no longer displayed. Build numbering is local to one working copy (no parallel development) and never reset by a failed compilation. #56–#57 remain for bootstrap-only main and verification. Do not merge without explicit authorization.
+
 # CURRENT WORK — PR #54 (2 of 5 remaining), Readability orchestration (2026-10-23)
 
 PR #53 merged into main at 5605c75decedac8e4cc81c5f9fda0713658ee874. Branch refactor/extraction-orchestration moves Readability pipeline, leading paragraph recovery and inline source link reconciliation into internal/extraction; legacy fallback and inline text-part policy are explicit injected functions until the root legacy extractor is fully migrated in remaining milestones. No root forwarding compatibility files. Keep v0.2.85. Next #55 root bridges and legacy extractor, #56 bootstrap/composition, #57 verification if necessary. Do not merge without authorization.
