@@ -1,7 +1,11 @@
 package main
 
 import (
- articlemodel "clean-article-reader/internal/article""testing";"strings";"clean-article-reader/internal/contributors")
+ articlemodel "clean-article-reader/internal/article"
+ "testing"
+ "strings"
+ "clean-article-reader/internal/contributors"
+)
 
 func TestNPRHeaderSeparationPreservesEditorialImages(t *testing.T) {
  linked:=func(name string) articlemodel.Block{return articlemodel.Block{Kind:"p",Text:name,Links:[]articlemodel.InlineLink{{Text:name,URL:"https://www.npr.org/people/123"}}}}
