@@ -21,10 +21,10 @@ func TestAssembleArticleDocumentMatchesExistingPipeline(t *testing.T) {
  sourceURL := "https://example.org/story"
  raw := `<html><head><meta property="og:image" content="/meta.jpg"></head><body><main><article><h1>Story</h1><figure><picture><img src="/lead.jpg"></picture></figure><p>A complete first paragraph of ordinary article content appears here with contextual information and enough text for source processing.</p></article></main></body></html>`
  input := extractionmodel.Result{
-  articlemodel.Article: articlemodel.Article{Title:"Story",URL:sourceURL,Byline:"Reporter",WordCount:21,Blocks:[]articlemodel.Block{{Kind:"p",Text:"A complete first paragraph of ordinary article content appears here with contextual information and enough text for source processing."}}},
+  Article: articlemodel.Article{Title:"Story",URL:sourceURL,Byline:"Reporter",WordCount:21,Blocks:[]articlemodel.Block{{Kind:"p",Text:"A complete first paragraph of ordinary article content appears here with contextual information and enough text for source processing."}}},
   Evidence: extractionmodel.SourceEvidence{SourceURL:sourceURL,MetadataImageURL:"https://example.org/meta.jpg"},
  }
- expected := input.articlemodel.Article
+ expected := input.Article
  extraction.RecoverArticlePhotographs(&expected,raw,sourceURL)
  media.Deduplicate(&expected)
  recovery.RecoverMissingArticleLinks(&expected,raw,sourceURL)
