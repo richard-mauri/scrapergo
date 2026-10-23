@@ -16,11 +16,11 @@ func articleProcessor() reader.Processor {
   RecoverLinks: recovery.RecoverMissingArticleLinks,
   RecoverAuthorPortrait: recoverAuthorPortrait,
   ClassifyContributors: classifyContributorImages,
-  ClassifySourceImages: func(a *article.Article, raw, u string) { recovery.ClassifyImagesFromSource(a,raw,u,articleImageURL,imageSourceIdentity) },
+  ClassifySourceImages: recovery.ClassifyImagesFromSource,
   ReconcileByline: reconcileContributorByline,
-  RecoverOpeningFigure: func(a *article.Article, raw, u string) { recovery.RecoverOpeningSourceFigure(a,raw,u,articleImageURL,imageSourceIdentity) },
+  RecoverOpeningFigure: recovery.RecoverOpeningSourceFigure,
   Normalize: func(a *article.Article, lead string) { normalizeArticleDocument(a, lead) },
-  RestoreGalleryGroups: func(a *article.Article, raw, u string) { recovery.GroupArticleGalleryImages(a,raw,u,articleImageURL) },
+  RestoreGalleryGroups: recovery.GroupArticleGalleryImages,
  })
 }
 
