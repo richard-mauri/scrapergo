@@ -1,6 +1,7 @@
 package main
 
 import (
+ "clean-article-reader/internal/extraction"
  "clean-article-reader/internal/recovery"
  "clean-article-reader/internal/reader"
  "clean-article-reader/internal/structured"
