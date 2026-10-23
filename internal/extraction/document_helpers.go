@@ -23,7 +23,7 @@ func CountWords(blocks []article.Block) int {
 	return n
 }
 
-func nodeDepth(n *sourcehtml.Node) int {
+func NodeDepth(n *sourcehtml.Node) int {
 	d := 0
 	for n != nil {
 		d++
@@ -37,7 +37,7 @@ func nodeDepth(n *sourcehtml.Node) int {
 // Matches only static photo assets followed immediately by descriptive text.
 var serializedPhotoRE = regexp.MustCompile(`"(https?://[^"\\]+\.(?:jpg|jpeg|png|webp)(?:\?[^"\\]*)?)","((?:[^"\\]|\\.){30,600})"`)
 
-func serializedCaptionImages(raw string, base *url.URL) map[string]string {
+func SerializedCaptionImages(raw string, base *url.URL) map[string]string {
 	result := map[string]string{}
 	for _, m := range serializedPhotoRE.FindAllStringSubmatch(raw, -1) {
 		picture, err1 := strconv.Unquote(`"` + m[1] + `"`)
@@ -60,7 +60,7 @@ func SemanticTextBlock(n *sourcehtml.Node, base *url.URL) article.Block {
  return structured.TextBlock(n,base,sourcehtml.ResolveURL,links.IsDocumentURL)
 }
 
-func nestedProse(n, scope *sourcehtml.Node) bool {
+func NestedProse(n, scope *sourcehtml.Node) bool {
 	for p := n.Parent; p != nil && p != scope; p = p.Parent {
 		if p.Tag == "p" || p.Tag == "li" || p.Tag == "blockquote" || p.Tag == "figcaption" {
 			return true
