@@ -1,6 +1,7 @@
 package main
 
 import (
+ "clean-article-reader/internal/bootstrap"
  "clean-article-reader/internal/diagnostics"
  "bytes"
  "encoding/json"
@@ -14,7 +15,7 @@ func TestImageTraceRefusesRemoteClients(t *testing.T) {
  rec:=httptest.NewRecorder()
  req:=httptest.NewRequest(http.MethodPost,"/api/diagnostic/image-trace",strings.NewReader(`{}`))
  req.RemoteAddr="203.0.113.17:45000"
- (diagnostics.ImageTraceHandler{Extract:extractWithEvidence}).ServeHTTP(rec,req)
+ (diagnostics.ImageTraceHandler{Extract:bootstrap.ExtractWithEvidence}).ServeHTTP(rec,req)
  if rec.Code!=http.StatusForbidden {t.Fatalf("expected forbidden, got %d",rec.Code)}
 }
 func TestImageTraceStagesAndSourceContainers(t *testing.T) {
@@ -23,7 +24,7 @@ func TestImageTraceStagesAndSourceContainers(t *testing.T) {
  req:=httptest.NewRequest(http.MethodPost,"/api/diagnostic/image-trace",bytes.NewReader(payload))
  req.RemoteAddr="127.0.0.1:52000"
  rec:=httptest.NewRecorder()
- (diagnostics.ImageTraceHandler{Extract:extractWithEvidence}).ServeHTTP(rec,req)
+ (diagnostics.ImageTraceHandler{Extract:bootstrap.ExtractWithEvidence}).ServeHTTP(rec,req)
  if rec.Code!=http.StatusOK {t.Fatalf("status=%d body=%s",rec.Code,rec.Body.String())}
  var result struct{Images []diagnostics.TraceImage `json:"images"`}
  if err:=json.Unmarshal(rec.Body.Bytes(),&result);err!=nil{t.Fatal(err)}
