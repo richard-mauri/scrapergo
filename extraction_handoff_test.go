@@ -14,6 +14,6 @@ func TestExtractWithEvidencePreservesMetadataSeparately(t *testing.T) {
  if err != nil { t.Fatalf("extract: %v", err) }
  if result.Evidence.SourceURL != "https://example.org/news/example" { t.Fatalf("source URL: %q", result.Evidence.SourceURL) }
  if result.Evidence.MetadataImageURL != "https://example.org/lead.jpg" { t.Fatalf("metadata image: %q", result.Evidence.MetadataImageURL) }
- if result.articlemodel.Article.WordCount < 60 { t.Fatalf("missing article text: %+v", result.articlemodel.Article) }
- if result.articlemodel.Article.Blocks == nil { t.Fatal("expected article blocks") }
+ if result.Article.WordCount < 60 { t.Fatalf("missing article text: %+v", result.Article) }
+ if result.Article.Blocks == nil { t.Fatal("expected article blocks") }
 }
