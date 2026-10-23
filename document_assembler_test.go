@@ -1,6 +1,7 @@
 package main
 
 import (
+ "clean-article-reader/internal/documentmedia"
  "clean-article-reader/internal/extraction"
  "clean-article-reader/internal/recovery"
  "clean-article-reader/internal/reader"
@@ -26,14 +27,14 @@ func TestAssembleArticleDocumentMatchesExistingPipeline(t *testing.T) {
  extraction.RecoverArticlePhotographs(&expected,raw,sourceURL)
  media.Deduplicate(&expected)
  recovery.RecoverMissingArticleLinks(&expected,raw,sourceURL)
- recoverAuthorPortrait(&expected,raw,sourceURL)
+ contributors.RecoverAuthorPortrait(&expected,raw,sourceURL)
  structured.RemoveSerializedPlayerBlocks(&expected)
- classifyContributorImages(&expected)
+ contributors.ClassifyContributorImages(&expected)
  recovery.ClassifyImagesFromSource(&expected,raw,sourceURL)
- reconcileContributorByline(&expected)
+ contributors.ReconcileContributorByline(&expected)
  contributors.SeparateHeader(&expected)
  recovery.RecoverOpeningSourceFigure(&expected,raw,sourceURL)
- normalizeArticleDocument(&expected,input.Evidence.MetadataImageURL)
+ documentmedia.NormalizeDocument(&expected,input.Evidence.MetadataImageURL)
 
  got := reader.DefaultProcessor().Process(input,raw)
  wantJSON,_ := json.Marshal(expected)
