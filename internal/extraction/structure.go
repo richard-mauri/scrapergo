@@ -21,14 +21,14 @@ func RecoverStructuredDocument(raw string, reader []article.Block, base *url.URL
 		if sourcehtml.InNoisy(candidate, nil) {
 			continue
 		}
-		hs := editorialHeadings(candidate)
+		hs := EditorialHeadings(candidate)
 		if len(hs) < 5 || len(hs) > 150 {
 			continue
 		}
 		// Require substantive text outside headings, avoiding menus/catalogs.
 		prose := 0
 		for _, n := range sourcehtml.Find(candidate, func(n *sourcehtml.Node) bool { return n.Tag == "p" || n.Tag == "li" }) {
-			if !sourcehtml.InNoisy(n, candidate) && !nestedProse(n, candidate) && len(sourcehtml.Normalize(sourcehtml.Text(n))) >= 35 {
+			if !sourcehtml.InNoisy(n, candidate) && !NestedProse(n, candidate) && len(sourcehtml.Normalize(sourcehtml.Text(n))) >= 35 {
 				prose++
 			}
 		}
@@ -36,7 +36,7 @@ func RecoverStructuredDocument(raw string, reader []article.Block, base *url.URL
 			continue
 		}
 		score := len(hs)*10 + prose
-		if score > bestScore || (score == bestScore && scope != nil && nodeDepth(candidate) > nodeDepth(scope)) {
+		if score > bestScore || (score == bestScore && scope != nil && NodeDepth(candidate) > NodeDepth(scope)) {
 			bestScore, scope, heads = score, candidate, hs
 		}
 	}
@@ -60,27 +60,27 @@ func RecoverStructuredDocument(raw string, reader []article.Block, base *url.URL
 	if missing < 2 && len(reader) > 0 && CountWords(reader) >= 100 {
 		return nil, false
 	}
-	photos := serializedCaptionImages(raw, base) // serialized image-caption pairs
+	photos := SerializedCaptionImages(raw, base) // serialized image-caption pairs
 	used := map[string]bool{}
 	blocks := make([]article.Block, 0, len(heads)*5)
 	var walk func(*sourcehtml.Node)
 	walk = func(n *sourcehtml.Node) {
-		if sourcehtml.InNoisy(n, scope) || promotionalRegion(n) || promotionalAncestor(n, scope) {
+		if sourcehtml.InNoisy(n, scope) || PromotionalRegion(n) || PromotionalAncestor(n, scope) {
 			return
 		}
-		if title, links, ok := contextualLinkSection(n, base); ok {
+		if title, links, ok := ContextualLinkSection(n, base); ok {
 			blocks = append(blocks, article.Block{Kind: "topic-title", Text: title})
 			for _, link := range links {
 				blocks = append(blocks, link)
 			}
 			return
 		}
-		if navigationCluster(n) {
+		if NavigationCluster(n) {
 			return
 		}
 		switch n.Tag {
 		case "p", "li", "h2", "h3", "h4", "blockquote", "figcaption":
-			if nestedProse(n, scope) {
+			if NestedProse(n, scope) {
 				return
 			}
 			b := SemanticTextBlock(n, base)
@@ -137,11 +137,11 @@ func RecoverStructuredDocument(raw string, reader []article.Block, base *url.URL
 	}
 	// Keep unrelated recommendations out of the document even when a site's
 	// layout separates their image, caption, and heading into sibling nodes.
-	blocks = trimTrailingRecommendation(blocks)
+	blocks = TrimTrailingRecommendation(blocks)
 	// Contextual indexes are sometimes siblings of the editorial subtree rather
 	// than children. Recover the nearest qualifying index without widening scope.
-	if !hasContextualIndex(blocks) {
-		if title, links, ok := findNearbyContextualIndex(root, scope, base); ok {
+	if !HasContextualIndex(blocks) {
+		if title, links, ok := FindNearbyContextualIndex(root, scope, base); ok {
 			blocks = append(blocks, article.Block{Kind: "topic-title", Text: title})
 			blocks = append(blocks, links...)
 		}
@@ -149,10 +149,10 @@ func RecoverStructuredDocument(raw string, reader []article.Block, base *url.URL
 	return blocks, true
 }
 
-func editorialHeadings(n *sourcehtml.Node) []*sourcehtml.Node {
+func EditorialHeadings(n *sourcehtml.Node) []*sourcehtml.Node {
 	var out []*sourcehtml.Node
 	for _, h := range sourcehtml.Find(n, func(x *sourcehtml.Node) bool { return x.Tag == "h2" || x.Tag == "h3" }) {
-		if sourcehtml.InNoisy(h, n) || inNavigationCluster(h, n) || promotionalAncestor(h, n) || topicHeading(h) {
+		if sourcehtml.InNoisy(h, n) || InNavigationCluster(h, n) || PromotionalAncestor(h, n) || TopicHeading(h) {
 			continue
 		}
 		title := sourcehtml.Normalize(sourcehtml.Text(h))
