@@ -1,6 +1,9 @@
 package main
 
-import "testing"
+import (
+ "testing"
+ "clean-article-reader/internal/bootstrap"
+)
 
 func TestSlateDiagnosticTarget(t *testing.T) {
 	cases := []struct {
@@ -13,8 +16,8 @@ func TestSlateDiagnosticTarget(t *testing.T) {
 		{"https://example.com/cars/2026/10/visiting-slates-first-showroom-as-its-25000-electric-truck-nears-production/", false},
 	}
 	for _, tc := range cases {
-		if got := slateDiagnosticTarget(tc.url); got != tc.want {
-			t.Errorf("slateDiagnosticTarget(%q) = %t, want %t", tc.url, got, tc.want)
+		if got := bootstrap.SlateDiagnosticTarget(tc.url); got != tc.want {
+			t.Errorf("bootstrap.SlateDiagnosticTarget(%q) = %t, want %t", tc.url, got, tc.want)
 		}
 	}
 }
