@@ -52,4 +52,4 @@ Network article retrieval enforces public HTTP(S) URL and redirect restrictions 
 
 ## Project references
 
-[Architecture contract](ARCHITECTURE.md) · [Development and PR workflow](DEVELOPMENT.md) · [Agent instructions](AGENTS.md) · [Historical changes](HISTORY.md) · [Repository layout](docs/repository-layout.md) · [Extraction fixtures](docs/extraction-fixtures.md).
+[Architecture contract](ARCHITECTURE.md) · [Development and PR workflow](DEVELOPMENT.md) · [Agent instructions](AGENTS.md) · [Repository layout](docs/repository-layout.md) · [Extraction fixtures](docs/extraction-fixtures.md).
