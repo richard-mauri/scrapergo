@@ -1,6 +1,7 @@
 package main
 
 import (
+ "clean-article-reader/internal/contributors"
  "clean-article-reader/internal/reader"
  "strings"
  "testing"
@@ -10,14 +11,14 @@ import (
 func TestRecoverAuthorPortraitRejectsPoststoryBiography(t *testing.T) {
  raw:=`<html><body><main><article><figure><img src="/lead.jpg" alt="Editorial story photo"/></figure><p>`+strings.Repeat("This editorial paragraph establishes substantive source content. ",4)+`</p><section class="author-bio"><a href="/author/beth"><img src="/beth.jpg" alt="Photo of Beth Mole"/></a></section></article></main></body></html>`
  a:=Article{Byline:"Beth Mole",Blocks:[]Block{{Kind:"p",Text:"Article narrative retained."}}}
- recoverAuthorPortrait(&a,raw,"https://example.org/health")
+ contributors.RecoverAuthorPortrait(&a,raw,"https://example.org/health")
  for _,b:=range a.Blocks {if b.Kind=="img" && strings.Contains(b.URL,"beth.jpg") {t.Fatalf("post-story biography must not be prepended: %+v",a.Blocks)}}
 }
 
 func TestRecoverAuthorPortraitRetainsOpeningContributor(t *testing.T) {
  raw:=`<html><body><article><section class="byline"><a href="/people/123"><img src="/estrin.jpg" alt="Daniel Estrin"/></a></section><figure><img src="/story.jpg" alt="Story image"/></figure><p>`+strings.Repeat("Substantive article story prose. ",12)+`</p></article></body></html>`
  a:=Article{Byline:"Daniel Estrin",Blocks:[]Block{{Kind:"p",Text:"Story prose."}}}
- recoverAuthorPortrait(&a,raw,"https://example.org/news")
+ contributors.RecoverAuthorPortrait(&a,raw,"https://example.org/news")
  if len(a.Blocks)!=2 || a.Blocks[0].Role!="author" || a.Blocks[0].URL!="https://example.org/estrin.jpg" {t.Fatalf("opening contributor portrait lost: %+v",a.Blocks)}
 }
 
