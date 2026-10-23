@@ -1,4 +1,4 @@
-package main
+package accesspolicy
 
 import (
  "clean-article-reader/internal/ui"
@@ -13,10 +13,10 @@ func TestRestrictionEvidenceDiagnostics(t *testing.T) {
 		{`Subscribe to continue reading`, "subscription-prompt", "restricted"},
 		{`HTTP 403 Forbidden`, "unidentified", ""},
 	} {
-		if got := restrictionEvidence(tc.body); got != tc.evidence {
+		if got := Evidence(tc.body); got != tc.evidence {
 			t.Errorf("evidence %q: got %q", tc.body, got)
 		}
-		if got := accessRestriction(tc.body); got != tc.kind {
+		if got := Restriction(tc.body); got != tc.kind {
 			t.Errorf("kind %q: got %q", tc.body, got)
 		}
 	}

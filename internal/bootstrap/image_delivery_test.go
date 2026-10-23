@@ -1,4 +1,4 @@
-package main
+package bootstrap
 
 import (
  "clean-article-reader/internal/imagedelivery"
@@ -18,7 +18,7 @@ func TestArticleImageRejectsInvalidInput(t *testing.T) {
 	}
 	for _, tc := range cases {
 		w := httptest.NewRecorder()
-		(imagedelivery.Handler{Metadata:newArticleMetadataHandler(newArticleReadHandler())}).ServeHTTP(w, httptest.NewRequest(tc.method, tc.url, nil))
+		(imagedelivery.Handler{Metadata:NewArticleMetadataHandler(NewArticleReadHandler())}).ServeHTTP(w, httptest.NewRequest(tc.method, tc.url, nil))
 		if w.Code != tc.want {
 			t.Errorf("%s %s: got %d want %d", tc.method, tc.url, w.Code, tc.want)
 		}

@@ -1,19 +1,19 @@
-package main
+package ui
 
 import (
- "clean-article-reader/internal/ui"
+
 	"os"
 	"strings"
 	"testing"
 )
 
 func TestSafariFallbackUI(t *testing.T) {
-	if !strings.Contains(ui.Template(), "Open original article in Safari") {
+	if !strings.Contains(Template(), "Open original article in Safari") {
 		t.Fatal("fallback missing")
 	}
 }
 func TestSafariExtensionArtifacts(t *testing.T) {
-	for _, p := range []string{"safari-extension/manifest.json", "safari-extension/background.js", "safari-extension/options.html"} {
+	for _, p := range []string{"../../safari-extension/manifest.json", "../../safari-extension/background.js", "../../safari-extension/options.html"} {
 		if _, err := os.Stat(p); err != nil {
 			t.Fatal(err)
 		}
@@ -21,7 +21,7 @@ func TestSafariExtensionArtifacts(t *testing.T) {
 }
 
 func TestSafariDirectOpenNoPublisherTab(t *testing.T) {
-	contents, err := os.ReadFile("safari-extension/background.js")
+	contents, err := os.ReadFile("../../safari-extension/background.js")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -35,7 +35,7 @@ func TestSafariDirectOpenNoPublisherTab(t *testing.T) {
 }
 
 func TestSafariReusesExistingReaderTab(t *testing.T) {
-	b, err := os.ReadFile("safari-extension/background.js")
+	b, err := os.ReadFile("../../safari-extension/background.js")
 	if err != nil {
 		t.Fatal(err)
 	}

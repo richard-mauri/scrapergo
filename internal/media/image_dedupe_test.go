@@ -1,11 +1,13 @@
-package main
+package media
 
-import ("testing"
- "clean-article-reader/internal/media"
+import (
+ "clean-article-reader/internal/article"
+ "testing"
+
 )
 
 func TestDeduplicateHeroAndInlineImages(t *testing.T) {
-	a := &Article{ImageURL: "https://images.example.org/content/photo-1200x800.jpg?width=1200", Blocks: []Block{
+	a := &article.Article{ImageURL: "https://images.example.org/content/photo-1200x800.jpg?width=1200", Blocks: []article.Block{
 		{Kind: "p", Text: "Opening"},
 		{Kind: "img", URL: "https://images.example.org/content/photo.jpg?width=600"},
 		{Kind: "p", Text: "Credit for hero"},
@@ -14,7 +16,7 @@ func TestDeduplicateHeroAndInlineImages(t *testing.T) {
 		{Kind: "p", Text: "Second photograph credit"},
 		{Kind: "img", URL: "https://images.example.org/content/third.jpg"},
 	}}
-	media.Deduplicate(a)
+	Deduplicate(a)
 	if len(a.Blocks) != 6 {
 		t.Fatalf("expected 6 blocks including metadata-matching lead and 2 distinct inline photos, got %#v", a.Blocks)
 	}
@@ -26,8 +28,8 @@ func TestDeduplicateHeroAndInlineImages(t *testing.T) {
 	}
 }
 func TestDifferentImagesRemain(t *testing.T) {
-	a := &Article{Blocks: []Block{{Kind: "img", URL: "https://img.example.com/a.jpg"}, {Kind: "img", URL: "https://img.example.com/b.jpg"}}}
-	media.Deduplicate(a)
+	a := &article.Article{Blocks: []article.Block{{Kind: "img", URL: "https://img.example.com/a.jpg"}, {Kind: "img", URL: "https://img.example.com/b.jpg"}}}
+	Deduplicate(a)
 	if len(a.Blocks) != 2 {
 		t.Fatal("distinct photographs were removed")
 	}

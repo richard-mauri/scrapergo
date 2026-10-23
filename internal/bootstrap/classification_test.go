@@ -1,4 +1,4 @@
-package main
+package bootstrap
 
 import (
  "clean-article-reader/internal/httpapi"
@@ -15,7 +15,7 @@ func TestClassifyRejectsBadInput(t *testing.T) {
 	}{{"GET", "", 405}, {"POST", "{}", 400}, {"POST", `{"url":"http://127.0.0.1/private"}`, 422}} {
 		r := httptest.NewRequest(tc.method, "/api/classify", strings.NewReader(tc.body))
 		w := httptest.NewRecorder()
-		(&httpapi.Classifier{Read:newArticleReadHandler(),ValidateURL:fetcher.ValidatedURL}).ServeHTTP(w, r)
+		(&httpapi.Classifier{Read:NewArticleReadHandler(),ValidateURL:fetcher.ValidatedURL}).ServeHTTP(w, r)
 		if w.Code != tc.want {
 			t.Fatalf("%s: got %d want %d", tc.body, w.Code, tc.want)
 		}

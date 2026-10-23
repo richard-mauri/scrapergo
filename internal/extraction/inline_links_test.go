@@ -1,14 +1,15 @@
-package main
+package extraction
 
 import (
- "clean-article-reader/internal/extraction"
+ "clean-article-reader/internal/sourcehtml"
+
 	"strings"
 	"testing"
 )
 
 func TestInlineLinksAndLists(t *testing.T) {
 	raw := `<html><head><meta property="og:title" content="Example Act"></head><body><article><h2>Proposed legislation</h2><p>This bill provides essential support for households and families throughout the nation, including the communities that have endured severe economic hardship.</p><p>Lawmakers said the measure would provide health, housing, and public school funding to families. The discussion specifically included improvements to rural healthcare, hospitals, and public schools.</p><ul><li>Provide direct payments to eligible families</li><li>Expand health coverage for seniors</li></ul><p>Read the bill text <a href="/docs/bill.pdf">here</a>.</p><p>Read a <a href="https://example.com/docs/summary.pdf">summary</a> here.</p><p>Read the economic <a href="/docs/analysis.pdf">analysis</a> here.</p></article></body></html>`
-	a, err := extraction.LegacyExtract(raw, "https://example.com/press/release")
+	a, err := LegacyExtract(raw, "https://example.com/press/release")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -37,9 +38,9 @@ func TestInlineLinksAndLists(t *testing.T) {
 	}
 }
 func TestRejectUnsafeInlineLinks(t *testing.T) {
-	root := parseHTML(`<p><a href="javascript:alert(1)">Click</a> <a href="//example.org/doc.pdf">Document</a></p>`)
-	ps := find(root, func(n *Node) bool { return n.Tag == "p" })
-	parts := extraction.InlineTextParts(ps[0], "https://example.com/test")
+	root := sourcehtml.Parse(`<p><a href="javascript:alert(1)">Click</a> <a href="//example.org/doc.pdf">Document</a></p>`)
+	ps := sourcehtml.Find(root, func(n *sourcehtml.Node) bool { return n.Tag == "p" })
+	parts := InlineTextParts(ps[0], "https://example.com/test")
 	found := false
 	for _, p := range parts {
 		if strings.Contains(p.URL, "javascript:") {

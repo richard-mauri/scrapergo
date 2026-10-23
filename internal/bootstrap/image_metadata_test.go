@@ -1,4 +1,4 @@
-package main
+package bootstrap
 
 import (
 	"encoding/json"
@@ -10,12 +10,12 @@ import (
 
 func TestImageMetadataMethodAndBadInput(t *testing.T) {
 	get := httptest.NewRecorder()
-	newArticleMetadataHandler(newArticleReadHandler()).ServeHTTP(get, httptest.NewRequest(http.MethodGet, "/api/image-metadata", nil))
+	NewArticleMetadataHandler(NewArticleReadHandler()).ServeHTTP(get, httptest.NewRequest(http.MethodGet, "/api/image-metadata", nil))
 	if get.Code != http.StatusMethodNotAllowed {
 		t.Fatalf("GET: %d", get.Code)
 	}
 	post := httptest.NewRecorder()
-	newArticleMetadataHandler(newArticleReadHandler()).ServeHTTP(post, httptest.NewRequest(http.MethodPost, "/api/image-metadata", strings.NewReader("{")))
+	NewArticleMetadataHandler(NewArticleReadHandler()).ServeHTTP(post, httptest.NewRequest(http.MethodPost, "/api/image-metadata", strings.NewReader("{")))
 	if post.Code != http.StatusBadRequest {
 		t.Fatalf("malformed JSON: %d", post.Code)
 	}
