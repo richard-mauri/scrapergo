@@ -1,6 +1,7 @@
 package main
 
 import (
+ "clean-article-reader/internal/reader"
  "clean-article-reader/internal/extraction"
  "clean-article-reader/internal/app"
  "clean-article-reader/internal/fetcher"
@@ -335,7 +336,7 @@ func writeExtractedArticle(w http.ResponseWriter, raw, finalURL string) {
 	extracted, extractionErr := extractWithEvidence(cleanedArticleHTML, finalURL)
 	article := extracted.Article
 	if extractionErr == nil {
-		article = assembleArticleDocument(extracted, cleanedArticleHTML)
+		article = reader.DefaultProcessor().Process(extracted, cleanedArticleHTML)
 		logSlateExtractionDiagnostic(article.Blocks, finalURL)
 	}
 	if kind != "" {
