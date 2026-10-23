@@ -10,6 +10,9 @@ func TestVersionSingleSource(t *testing.T) {
 	if !strings.Contains(html, "ScraperGo · v"+appVersion) {
 		t.Fatalf("header version differs from appVersion %s", appVersion)
 	}
+	if !strings.Contains(html, appBuild) || !strings.Contains(appDisplayVersion(), appBuild) {
+		t.Fatal("build label missing from UI or executable version")
+	}
 	if strings.Contains(html, "__APP_VERSION__") {
 		t.Fatal("unexpanded version placeholder")
 	}

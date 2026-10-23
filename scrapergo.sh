@@ -44,3 +44,4 @@ nohup "$CLOUDFLARED" tunnel run \
 disown -a
 
 echo "Started ScraperGo on port 8083 and its Cloudflare Tunnel."
+"$APP" --version

@@ -65,5 +65,5 @@ if(incoming){$('url').value=incoming;if(new URLSearchParams(location.search).get
 
 // renderedIndexHTML injects the single application version into the page.
 func renderedIndexHTML() string {
-	return strings.Replace(indexHTML, "__APP_VERSION__", "v"+appVersion, 1)
+	return strings.Replace(indexHTML, "__APP_VERSION__", "v"+appVersion+" · "+appBuild, 1)
 }
