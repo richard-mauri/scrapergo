@@ -2,8 +2,8 @@ package main
 
 import (
  "clean-article-reader/internal/extraction"
+ "clean-article-reader/internal/app"
  "clean-article-reader/internal/fetcher"
- "clean-article-reader/internal/ui"
  "clean-article-reader/internal/pageclassify"
  "clean-article-reader/internal/structured"
  "clean-article-reader/internal/recovery"
@@ -12,26 +12,21 @@ import (
 	"context"
 	_ "embed"
 	"encoding/json"
-	"errors"
 	"flag"
+	"log"
 	"fmt"
 	"html"
-	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"regexp"
 	"sort"
-	"strconv"
 	"strings"
-	"syscall"
-	"time"
 )
 
 // ScraperGo application version is defined once and shared by all presentation paths.
 const appVersion = "0.2.85"
-const appBuild = "Architecture PR #46"
+const appBuild = "Architecture PR #47"
 
 func appDisplayVersion() string { return "ScraperGo v" + appVersion + " · " + appBuild }
 const sampleURL = "https://247wallst.com/investing/2026/10/16/taiwan-is-planning-4-billion-industrial-parks-in-texas-for-nvidias-suppliers/"
@@ -495,46 +490,12 @@ func mustHostname(address string) string {
 
 // resolvePort selects --port / -port over PORT, with 8080 as the default.
 // Using a dedicated FlagSet allows precise usage errors and unit testing.
-func resolvePort(args []string, envPort string, output io.Writer) (string, error) {
-	fs := flag.NewFlagSet("scrapergo", flag.ContinueOnError)
-	fs.SetOutput(output)
-	fs.Usage = func() {
-		fmt.Fprintln(output, "Usage: scrapergo [--port PORT] [--help]")
-		fmt.Fprintln(output, "\nOptions:")
-		fs.PrintDefaults()
-		fmt.Fprintln(output, "\nExamples:")
-		fmt.Fprintln(output, "  scrapergo --port 8081")
-		fmt.Fprintln(output, "  ./dist/scrapergo-darwin-arm64 --port 8081")
-		fmt.Fprintln(output, "  PORT=8081 scrapergo")
-		fmt.Fprintln(output, "\n--port overrides the PORT environment variable. Default: 8080.")
-	}
-	cliPort := fs.String("port", "", "HTTP listening port (1-65535)")
-	if err := fs.Parse(args); err != nil {
-		return "", err
-	}
-	if fs.NArg() != 0 {
-		return "", fmt.Errorf("unexpected argument %q (use --help)", fs.Arg(0))
-	}
-	port := "8080"
-	if envPort != "" {
-		port = envPort
-	}
-	if *cliPort != "" {
-		port = *cliPort
-	}
-	n, err := strconv.Atoi(port)
-	if err != nil || n < 1 || n > 65535 {
-		return "", fmt.Errorf("invalid port %q: specify a number from 1 to 65535 (example: --port 8081)", port)
-	}
-	return strconv.Itoa(n), nil
-}
-
 func main() {
 	if len(os.Args) == 2 && (os.Args[1] == "--version" || os.Args[1] == "-version") {
 		fmt.Println(appDisplayVersion())
 		return
 	}
-	port, err := resolvePort(os.Args[1:], os.Getenv("PORT"), os.Stderr)
+	port, err := app.ResolvePort(os.Args[1:], os.Getenv("PORT"), os.Stderr)
 	if err == flag.ErrHelp {
 		return
 	}
@@ -542,42 +503,16 @@ func main() {
 		fmt.Fprintln(os.Stderr, "ScraperGo:", err)
 		os.Exit(2)
 	}
-	mux := http.NewServeMux()
-	readHandler := newArticleReadHandler()
-	mux.Handle("/api/read", readHandler)
-	mux.HandleFunc("/api/classify", classifyArticle)
-	mux.Handle("/api/image-metadata", newArticleMetadataHandler(readHandler))
-	mux.HandleFunc("/api/article-image", articleImage)
-	mux.HandleFunc("/api/thumbnail", articleThumbnail)
-	mux.HandleFunc("/api/diagnostic/extract", diagnosticExtract)
-	mux.HandleFunc("/api/diagnostic/image-trace", diagnosticImageTrace)
-	mux.HandleFunc("/tanner.jpg", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet && r.Method != http.MethodHead {
-			w.Header().Set("Allow", "GET, HEAD")
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-		w.Header().Set("Content-Type", "image/jpeg")
-		w.Header().Set("Cache-Control", "public, max-age=86400")
-		w.Write(tannerJPG)
-	})
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/" {
-			http.NotFound(w, r)
-			return
-		}
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		w.Header().Set("Content-Security-Policy", "default-src 'self'; img-src 'self' https: data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; base-uri 'none'; object-src 'none'")
-		fmt.Fprint(w, ui.Render(appVersion,appBuild))
-	})
-	server := &http.Server{Addr: ":" + port, Handler: mux, ReadHeaderTimeout: 5 * time.Second}
-	log.Printf("%s listening on http://localhost:%s", appDisplayVersion(), port)
-	if err := server.ListenAndServe(); err != nil {
-		if errors.Is(err, syscall.EADDRINUSE) {
-			log.Printf("Port %s is already in use. Try a different port:\n  go run . --port 8081\n  ./dist/scrapergo-darwin-amd64 --port 8081\nOr set PORT=8081 before launching.", port)
-		} else {
-			log.Printf("HTTP server failed: %v", err)
-		}
-		os.Exit(1)
-	}
+ readHandler:=newArticleReadHandler()
+ err=app.Run(app.Config{Port:port,Version:appVersion,Build:appBuild},app.Handlers{
+  Read:readHandler,
+  Classify:classifyArticle,
+  ImageMetadata:newArticleMetadataHandler(readHandler),
+  ArticleImage:articleImage,
+  Thumbnail:articleThumbnail,
+  DiagnosticExtract:diagnosticExtract,
+  DiagnosticImageTrace:diagnosticImageTrace,
+  TannerPhoto:tannerJPG,
+ })
+ if err!=nil {os.Exit(1)}
 }
