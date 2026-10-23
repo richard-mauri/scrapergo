@@ -19,7 +19,7 @@ import (
 
 type ImageTraceHandler struct { Extract func(string,string) (extraction.Result,error) }
 
-type traceImage struct {
+type TraceImage struct {
  Stage string `json:"stage"`
  Index int `json:"index"`
  URL string `json:"url"`
@@ -33,17 +33,17 @@ type traceImage struct {
  Gallery string `json:"gallery,omitempty"`
  Ancestors []string `json:"ancestors,omitempty"`
 }
-func traceImageBlocks(stage string, blocks []article.Block) []traceImage {
- out:=[]traceImage{}
+func TraceImageBlocks(stage string, blocks []article.Block) []TraceImage {
+ out:=[]TraceImage{}
  for i,b:=range blocks {
   if b.Kind!="img" {continue}
-  out=append(out,traceImage{Stage:stage,Index:i,URL:b.URL,Role:b.Role,Caption:b.Text,SourceIdentity:media.SourceIdentity(b.URL),Gallery:b.Gallery})
+  out=append(out,TraceImage{Stage:stage,Index:i,URL:b.URL,Role:b.Role,Caption:b.Text,SourceIdentity:media.SourceIdentity(b.URL),Gallery:b.Gallery})
  }
  return out
 }
-func sourceImageTrace(raw,articleURL string) []traceImage {
+func SourceImageTrace(raw,articleURL string) []TraceImage {
  root:=sourcehtml.Parse(raw)
- out:=[]traceImage{}
+ out:=[]TraceImage{}
  for _,n:=range sourcehtml.Find(root,func(n *sourcehtml.Node)bool{return n.Tag=="img"}) {
   parent,gparent:="",""
   pc,gc:="",""
@@ -54,7 +54,7 @@ func sourceImageTrace(raw,articleURL string) []traceImage {
   for ancestor:=n.Parent;ancestor!=nil && len(ancestry)<8;ancestor=ancestor.Parent {
    ancestry=append(ancestry,ancestor.Tag+"#"+ancestor.Attr["id"]+"."+ancestor.Attr["class"])
   }
-  out=append(out,traceImage{Stage:"source-dom",Index:len(out),URL:src,Caption:n.Attr["alt"],Parent:parent,ParentClass:pc,Grandparent:gparent,GrandparentClass:gc,SourceIdentity:media.SourceIdentity(src),Ancestors:ancestry})
+  out=append(out,TraceImage{Stage:"source-dom",Index:len(out),URL:src,Caption:n.Attr["alt"],Parent:parent,ParentClass:pc,Grandparent:gparent,GrandparentClass:gc,SourceIdentity:media.SourceIdentity(src),Ancestors:ancestry})
   if len(out)>=150 {break}
  }
  return out
@@ -62,7 +62,7 @@ func sourceImageTrace(raw,articleURL string) []traceImage {
 
 // traceOpeningBlocks records the extraction representation, including inline
 // link parts that are not represented in Block.Links. Limit output by count.
-func traceOpeningBlocks(stage string, blocks []article.Block) []map[string]any {
+func TraceOpeningBlocks(stage string, blocks []article.Block) []map[string]any {
  out:=make([]map[string]any,0)
  limit:=len(blocks);if limit>45 {limit=45}
  for i:=0;i<limit;i++ {
@@ -77,12 +77,12 @@ func traceOpeningBlocks(stage string, blocks []article.Block) []map[string]any {
 // article using rendition-aware identities. The output is diagnostic only:
 // source images may include logos, ads and navigation, so it cannot justify
 // automatically inserting every missing URL into the article.
-func missingSourceImageReport(source, assembled []traceImage) []traceImage {
+func MissingSourceImageReport(source, assembled []TraceImage) []TraceImage {
  present:=map[string]bool{}
  for _,im:=range assembled {
   if im.Stage=="assembled-final" {present[im.SourceIdentity]=true}
  }
- missing:=[]traceImage{}
+ missing:=[]TraceImage{}
  seen:=map[string]bool{}
  for _,im:=range source {
   key:=im.SourceIdentity
@@ -122,34 +122,34 @@ func (h ImageTraceHandler) ServeHTTP(w http.ResponseWriter,r *http.Request) {
  extracted,err:=h.Extract(cleaned,input.URL)
  article:=extracted.Article
  if err!=nil{http.Error(w,"extraction failed",422);return}
- stages:=[]traceImage{}
+ stages:=[]TraceImage{}
  opening:=[]map[string]any{}
- opening=append(opening,traceOpeningBlocks("readability",article.Blocks)...)
- stages=append(stages,sourceImageTrace(cleaned,input.URL)...)
- stages=append(stages,traceImageBlocks("readability",article.Blocks)...)
+ opening=append(opening,TraceOpeningBlocks("readability",article.Blocks)...)
+ stages=append(stages,SourceImageTrace(cleaned,input.URL)...)
+ stages=append(stages,TraceImageBlocks("readability",article.Blocks)...)
  // Run the exact same stages in the same order as /api/read. Keep
  // historical phase snapshots for existing diagnostic consumers and capture
  // each named stage to expose portrait insertion/removal explicitly.
  for _,stage:=range reader.DefaultProcessor().Stages() {
   stage.Apply(&article,extracted.Evidence,cleaned)
   label:=stage.Name()
-  stages=append(stages,traceImageBlocks(label,article.Blocks)...)
-  opening=append(opening,traceOpeningBlocks(label,article.Blocks)...)
+  stages=append(stages,TraceImageBlocks(label,article.Blocks)...)
+  opening=append(opening,TraceOpeningBlocks(label,article.Blocks)...)
   switch label {
   case "recover-author-portrait":
-   stages=append(stages,traceImageBlocks("recovered",article.Blocks)...)
-   opening=append(opening,traceOpeningBlocks("recovered",article.Blocks)...)
+   stages=append(stages,TraceImageBlocks("recovered",article.Blocks)...)
+   opening=append(opening,TraceOpeningBlocks("recovered",article.Blocks)...)
   case "classify-source-images":
-   stages=append(stages,traceImageBlocks("classified",article.Blocks)...)
-   opening=append(opening,traceOpeningBlocks("classified",article.Blocks)...)
+   stages=append(stages,TraceImageBlocks("classified",article.Blocks)...)
+   opening=append(opening,TraceOpeningBlocks("classified",article.Blocks)...)
   case "normalize":
-   stages=append(stages,traceImageBlocks("normalized",article.Blocks)...)
-   opening=append(opening,traceOpeningBlocks("normalized",article.Blocks)...)
+   stages=append(stages,TraceImageBlocks("normalized",article.Blocks)...)
+   opening=append(opening,TraceOpeningBlocks("normalized",article.Blocks)...)
   }
  }
- finalImages:=traceImageBlocks("assembled-final",article.Blocks)
+ finalImages:=TraceImageBlocks("assembled-final",article.Blocks)
  stages=append(stages,finalImages...)
- missing:=missingSourceImageReport(sourceImageTrace(cleaned,input.URL),finalImages)
+ missing:=MissingSourceImageReport(SourceImageTrace(cleaned,input.URL),finalImages)
  sourceLead:=extracted.Evidence.MetadataImageURL
  _=json.NewEncoder(w).Encode(map[string]any{"url":input.URL,"sourceMetadataImage":sourceLead,"selectedImage":article.ImageURL,"byline":article.Byline,"images":stages,"openingBlocks":opening,"sourceImagesAbsentFromArticle":missing})
 }
