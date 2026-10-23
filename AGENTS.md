@@ -1,54 +1,23 @@
-# ScraperGo — contributor and agent instructions
+# ScraperGo — agent instructions
 
-These are **mandatory operating rules** for human and AI contributors. For details, see [ARCHITECTURE.md](ARCHITECTURE.md) and [DEVELOPMENT.md](DEVELOPMENT.md).
+This is the **entry point for development agents**, not a duplicate of the architecture or contributor manuals. Read the following before changing anything:
 
-## Before starting
+- [ARCHITECTURE.md](ARCHITECTURE.md) — binding package ownership, dependencies, security boundaries and architecture tests.
+- [DEVELOPMENT.md](DEVELOPMENT.md) — authoritative GitHub branch, Issues, PR, testing, Mac acceptance and release procedures.
 
-- Read all three documents above, then inspect current code.
-- Treat GitHub `main` as authoritative for merged production code.
-- Use a short-lived branch and a focused **draft PR**. Historical notes in `docs/` and Git history are not current instructions.
+## Mandatory conduct
 
-## Architecture and behavior
+- Inspect the actual current code and relevant tests before proposing changes; do not follow obsolete migration notes as current instructions.
+- Respect every architectural constraint in **ARCHITECTURE.md**. In particular, do not add migration-only compatibility wrappers or APIs merely to keep old callers or tests compiling.
+- Preserve existing runtime behavior, regression coverage, fixtures and security protections unless a change is explicitly scoped and justified.
+- Apply the bug, branch, PR and validation procedures in **DEVELOPMENT.md**; track unrelated discoveries as separate Issues.
+- Do not silently widen a focused PR into unrelated refactoring or behavior changes.
+- Report precisely which checks passed, failed or were not performed. Do not describe CI as Mac or Safari acceptance.
+- **Do not merge, tag, release or change semantic version without the owner's explicit authorization.**
+- Never expose or change private credentials, tunnel configuration or local build counters.
 
-- Keep `main.go` as the executable entry point. Domain implementations and unit tests belong in their owning `internal/` packages; integration tests belong at the relevant service boundary.
-- Maintain intentional, acyclic dependencies. `internal/reader` must not import HTTP, UI, or fetcher implementations.
-- Use the established validated fetcher/Google News retrieval boundary. Do not add independent network retrieval in processing stages.
-- **Do not introduce compatibility forwarding wrappers**, aliases, obsolete facades, or test-only APIs to keep old callers compiling. Fix callers and move tests to their real owners.
-- Preserve existing behavior, security controls, fixture contracts, and regression coverage. Explain intentional fixture changes; passing tests alone does not prove architecture or live-publisher correctness.
+## Handoff
 
-## Issues and pull requests
+Follow the change-type-specific validation in **DEVELOPMENT.md**. For code/runtime PRs, include its full Mac checkout, test, build and launch sequence with the **actual branch name** substituted. Documentation-only PRs require documentary review and existing CI, not a local application build or Safari acceptance.
 
-- Open a GitHub Issue for a discovered bug or deferred enhancement; ordinarily keep unrelated discoveries out of the current PR.
-- Capture reproduction steps, observed versus expected results, diagnostic evidence, screenshots, and the Issue URL.
-- Reference the Issue from a focused PR; use `Fixes #N` only when the PR genuinely resolves it.
-- Avoid mixing documentation, architecture, and behavioral changes without a clear reason.
-- Verify GitHub Actions on the **exact PR head**, and accurately report passed, failed, pending, and owner-only checks.
-
-## Validation: match the change
-
-- **Code or runtime changes:** run `go test -count=1 ./...` and `go build ./...` (also run by the PR CI workflow). Supply the complete Mac command sequence below for owner acceptance; request Safari testing when runtime/browser behavior may be affected.
-- **Documentation-only changes:** verify the Markdown rendering, links, commands, paths, and factual accuracy. Let existing CI run; **do not require** a local Mac build, restart, or Safari acceptance just for Markdown.
-- The owner's older Git requires `git checkout`, not `git switch`.
-- `./devbuild.sh` tests and builds both macOS architectures with a private sequential build counter; a separate Mac `go build` command is redundant. `./scrapergo.sh` launches the Intel binary and ScraperGo-specific Cloudflare tunnel.
-
-## Authorization and safety
-
-- **Never merge, tag, release, or change semantic application version without owner authorization.** Documentation-only changes must leave `appVersion` at `0.2.85`.
-- Never disclose, reset, commit, or modify private credentials, tunnel configuration, or the local build counter.
-- Do not run `./devbuild.sh --release` unless expressly authorized.
-
-## Mac acceptance for code/runtime PRs
-
-Provide this entire copy-and-pasteable block with the **actual branch substituted**. It is **not required for documentation-only PRs**.
-
-```bash
-cd ~/projects/scrapergo
-git fetch origin
-git checkout <exact-pr-branch>
-git pull --ff-only origin <exact-pr-branch>
-go test -count=1 ./...
-./devbuild.sh
-./scrapergo.sh
-```
-
-For affected browser workflows, the owner validates Safari at http://localhost:8083.
+Historical notes under `docs/` and in Git history are reference material, **not current instructions**.
