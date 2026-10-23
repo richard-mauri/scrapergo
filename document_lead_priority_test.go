@@ -29,7 +29,7 @@ func TestFirstEditorialImageOverridesMetadata(t *testing.T) {
  if leadCount!=1||oliveCount!=1||a.Blocks[0].Role!="author" {t.Fatalf("roles/order corrupted: %+v",a.Blocks)}
 }
 func TestMetadataFallbackWhenNoEditorialImage(t *testing.T) {
- a:=articlemodel.Article{ImageURL:nprWestBankMetadata,Blocks:[]articlemodel.Block{{Kind:"img",Role:"author",URL:"https://example.org/author.jpg"},{Kind:"p",Text:"articlemodel.Article"}}}
+ a:=articlemodel.Article{ImageURL:nprWestBankMetadata,Blocks:[]articlemodel.Block{{Kind:"img",Role:"author",URL:"https://example.org/author.jpg"},{Kind:"p",Text:"Article"}}}
  documentmedia.NormalizeDocument(&a,media.SourceIdentity,nprWestBankMetadata)
  if len(a.Blocks)!=3||a.Blocks[0].Role!="lead"||a.Blocks[1].Role!="author"{t.Fatalf("fallback failed: %+v",a.Blocks)}
 }
