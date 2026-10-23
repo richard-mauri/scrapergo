@@ -1,7 +1,7 @@
-package main
+package extraction
 
 import (
- "clean-article-reader/internal/extraction"
+ "clean-article-reader/internal/article"
  "clean-article-reader/internal/sourcehtml"
 	"bytes"
 	"fmt"
@@ -13,10 +13,10 @@ import (
 
 // extractWithReadability parses already-retrieved HTML; it makes no additional
 // network requests. This preserves the existing SSRF protections and paywall gate.
-func extractWithReadability(raw, source string) (Article, error) {
+func ExtractWithReadability(raw, source string, legacy func(string,string)(article.Article,error), inlineParts func(*sourcehtml.Node,string) []article.TextPart) (article.Article, error) {
 	u, err := url.Parse(source)
 	if err != nil {
-		return Article{}, err
+		return article.Article{}, err
 	}
 	parsed, parseErr := readability.FromReader(strings.NewReader(raw), u)
 	if parseErr == nil {
@@ -24,27 +24,27 @@ func extractWithReadability(raw, source string) (Article, error) {
 		if err = parsed.RenderText(&output); err == nil {
 			text := strings.TrimSpace(output.String())
 			chunks := strings.Split(text, "\n\n")
-			blocks := make([]Block, 0, len(chunks))
+			blocks := make([]article.Block, 0, len(chunks))
 			count := 0
 			for _, chunk := range chunks {
-				line := normalize(chunk)
-				if line == "" || extraction.IsAdvertisingText(line) {
+				line := sourcehtml.Normalize(chunk)
+				if line == "" || IsAdvertisingText(line) {
 					continue
 				}
-				blocks = append(blocks, Block{Kind: "p", Text: line})
+				blocks = append(blocks, article.Block{Kind: "p", Text: line})
 				count += len(strings.Fields(line))
 			}
 			structuredRecovered := false
-			if complete, ok := extraction.RecoverStructuredDocument(raw, blocks, u); ok {
+			if complete, ok := RecoverStructuredDocument(raw, blocks, u); ok {
 				blocks = complete
-				count = extraction.CountWords(blocks)
+				count = CountWords(blocks)
 				structuredRecovered = true
 			}
 			// Restore missing opening paragraphs before accepting an otherwise plausible
 			// Readability selection. Do not shift the remainder of the article.
 			if !structuredRecovered {
-				blocks = recoverLeadingParagraphs(raw, blocks, u)
-				count = extraction.CountWords(blocks)
+				blocks = RecoverLeadingParagraphs(raw, blocks, u, inlineParts)
+				count = CountWords(blocks)
 			}
 			if count >= 60 {
 				title := parsed.Title()
@@ -53,23 +53,23 @@ func extractWithReadability(raw, source string) (Article, error) {
 				}
 				img := sourcehtml.ResolveURL(parsed.ImageURL(), u)
 				if img == "" {
-					img = sourcehtml.ResolveURL(meta(parseHTML(raw), "og:image", "twitter:image"), u)
+					img = sourcehtml.ResolveURL(sourcehtml.Meta(sourcehtml.Parse(raw), "og:image", "twitter:image"), u)
 				}
 				var cleanHTML bytes.Buffer
 				if parsed.RenderHTML(&cleanHTML) == nil {
 					cleaned := cleanHTML.String()
-					preserveSelectedHTMLLinks(blocks, cleaned, u)
+					PreserveSelectedHTMLLinks(blocks, cleaned, u, inlineParts)
 					if !structuredRecovered {
-						ordered := extraction.PositionArticleFigures(blocks, cleaned, u)
+						ordered := PositionArticleFigures(blocks, cleaned, u)
 						if strings.Contains(u.Path, "/gallery/") {
-							ordered = extraction.SupplementGalleryFigures(ordered, raw, u)
+							ordered = SupplementGalleryFigures(ordered, raw, u)
 						}
 						blocks = ordered
 					}
 				}
 				if !structuredRecovered {
-					blocks = extraction.RecoverEditorialContinuity(raw, blocks, u)
-					count = extraction.CountWords(blocks)
+					blocks = RecoverEditorialContinuity(raw, blocks, u)
+					count = CountWords(blocks)
 				}
 				if img == "" {
 					for _, photo := range blocks {
@@ -85,16 +85,16 @@ func extractWithReadability(raw, source string) (Article, error) {
 						break
 					}
 				}
-				return Article{Title: title, Byline: parsed.Byline(), Site: parsed.SiteName(), URL: source, Blocks: blocks, WordCount: count, ImageURL: img, Method: "Go Readability v2"}, nil
+				return article.Article{Title: title, Byline: parsed.Byline(), Site: parsed.SiteName(), URL: source, Blocks: blocks, WordCount: count, ImageURL: img, Method: "Go Readability v2"}, nil
 			}
 		}
 	}
-	fallback, fallbackErr := extract(raw, source)
+	fallback, fallbackErr := legacy(raw, source)
 	if fallbackErr == nil {
 		fallback.Method = "Legacy extractor fallback"
 		return fallback, nil
 	}
-	if partial, ok := extraction.PartialHTMLArticle(raw, source); ok {
+	if partial, ok := PartialHTMLArticle(raw, source); ok {
 		return partial, nil
 	}
 	if parseErr != nil {

@@ -1,7 +1,7 @@
-package main
+package extraction
 
 import (
- "clean-article-reader/internal/extraction"
+ "clean-article-reader/internal/article"
  "clean-article-reader/internal/sourcehtml"
 	"net/url"
 	"strings"
@@ -12,14 +12,14 @@ import (
 // fetches another URL and operates only on the already downloaded HTML.
 // The anchor must occur within an editorial article/main subtree; this
 // avoids turning page-wide teaser or navigation paragraphs into article text.
-func recoverLeadingParagraphs(raw string, blocks []Block, base *url.URL) []Block {
+func RecoverLeadingParagraphs(raw string, blocks []article.Block, base *url.URL, inlineParts func(*sourcehtml.Node,string) []article.TextPart) []article.Block {
 	if len(blocks) == 0 || base == nil {
 		return blocks
 	}
 	first := ""
 	for _, b := range blocks {
-		if b.Kind == "p" && len(normalize(b.Text)) >= 65 {
-			first = normalize(b.Text)
+		if b.Kind == "p" && len(sourcehtml.Normalize(b.Text)) >= 65 {
+			first = sourcehtml.Normalize(b.Text)
 			break
 		}
 	}
@@ -27,12 +27,12 @@ func recoverLeadingParagraphs(raw string, blocks []Block, base *url.URL) []Block
 		return blocks
 	}
 
-	root := parseHTML(raw)
-	var anchor *Node
+	root := sourcehtml.Parse(raw)
+	var anchor *sourcehtml.Node
 	// Prefer a paragraph whose text begins with the first retained paragraph,
 	// avoiding coincidental matches in summaries or recommendation widgets.
-	for _, p := range find(root, func(n *Node) bool { return n.Tag == "p" }) {
-		t := normalize(textOf(p))
+	for _, p := range sourcehtml.Find(root, func(n *sourcehtml.Node) bool { return n.Tag == "p" }) {
+		t := sourcehtml.Normalize(sourcehtml.Text(p))
 		if len(t) >= 65 && (strings.HasPrefix(first, t) || strings.HasPrefix(t, first)) && !sourcehtml.InNoisy(p, nil) {
 			anchor = p
 			break
@@ -42,7 +42,7 @@ func recoverLeadingParagraphs(raw string, blocks []Block, base *url.URL) []Block
 		return blocks
 	}
 
-	var scope *Node
+	var scope *sourcehtml.Node
 	for n := anchor.Parent; n != nil; n = n.Parent {
 		if n.Tag == "article" {
 			scope = n
@@ -61,22 +61,22 @@ func recoverLeadingParagraphs(raw string, blocks []Block, base *url.URL) []Block
 		return blocks
 	}
 
-	paragraphs := find(scope, func(n *Node) bool { return n.Tag == "p" })
-	var intro []Block
+	paragraphs := sourcehtml.Find(scope, func(n *sourcehtml.Node) bool { return n.Tag == "p" })
+	var intro []article.Block
 	for _, p := range paragraphs {
 		if p == anchor {
 			break
 		}
-		if sourcehtml.InNoisy(p, scope) || extraction.PromotionalAncestor(p, scope) || extraction.PromotionalRegion(p) || extraction.NestedProse(p, scope) {
+		if sourcehtml.InNoisy(p, scope) || PromotionalAncestor(p, scope) || PromotionalRegion(p) || NestedProse(p, scope) {
 			continue
 		}
-		t := normalize(textOf(p))
-		if len(t) < 25 || extraction.IsAdvertisingText(t) {
+		t := sourcehtml.Normalize(sourcehtml.Text(p))
+		if len(t) < 25 || IsAdvertisingText(t) {
 			continue
 		}
 		duplicated := false
 		for _, b := range blocks {
-			current := normalize(b.Text)
+			current := sourcehtml.Normalize(b.Text)
 			if current == t || (len(current) >= 65 && (strings.Contains(current, t) || strings.Contains(t, current))) {
 				duplicated = true
 				break
@@ -90,7 +90,7 @@ func recoverLeadingParagraphs(raw string, blocks []Block, base *url.URL) []Block
 		if len(intro) >= 16 {
 			return blocks
 		}
-		intro = append(intro, Block{Kind: "p", Text: t, Parts: inlineTextParts(p, base.String())})
+		intro = append(intro, article.Block{Kind: "p", Text: t, Parts: inlineParts(p, base.String())})
 	}
 	if len(intro) == 0 {
 		return blocks
