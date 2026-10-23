@@ -56,7 +56,7 @@ func RecoverAuthorPortrait(a *article.Article, sourceHTML, baseURL string) {
      return
     }
    }
-   a.Blocks=append([]article.article.Block{{Kind:"img",Role:"author",URL:src,Text:sourcehtml.Normalize(p.Attr["alt"])}},a.Blocks...)
+   a.Blocks=append([]article.Block{{Kind:"img",Role:"author",URL:src,Text:sourcehtml.Normalize(p.Attr["alt"])}},a.Blocks...)
    return
   }
  }
