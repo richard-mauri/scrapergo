@@ -1,6 +1,8 @@
 package main
 
 import (
+ articlemodel "clean-article-reader/internal/article"
+ "clean-article-reader/internal/bootstrap"
  "net/http"
  "net/http/httptest"
  "encoding/json"
@@ -21,11 +23,11 @@ const partialFixture = `<!doctype html><html><head>
 
 func TestPartialExcerptThroughNormalExtractionPipeline(t *testing.T) {
     response := httptest.NewRecorder()
-    writeExtractedArticle(response, partialFixture, "https://example.org/news/report")
+    bootstrap.WriteExtractedArticle(response, partialFixture, "https://example.org/news/report")
     if response.Code != http.StatusOK {
         t.Fatalf("partial article rejected: HTTP %d: %s", response.Code, response.Body.String())
     }
-    var article Article
+    var article articlemodel.Article
     if err := json.Unmarshal(response.Body.Bytes(), &article); err != nil { t.Fatal(err) }
     if article.Method != "Partial HTML excerpt" || article.AccessNote == "" {
         t.Fatalf("missing partial excerpt signaling: method=%q note=%q", article.Method, article.AccessNote)
