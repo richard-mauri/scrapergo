@@ -31,7 +31,7 @@ Report precisely what was tested and what requires owner verification.
 Do not claim all architecture or publisher compatibility concerns have been solved.
 Current architecture: [ARCHITECTURE.md](ARCHITECTURE.md).
 Contributor procedure: [DEVELOPMENT.md](DEVELOPMENT.md).
-Historical rationale: [HISTORY.md](HISTORY.md); prior notes are not current instructions.
+Historical design notes in `docs/` and Git history are not current instructions.
 
 ## Required owner-side PR validation
 
