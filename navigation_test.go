@@ -1,6 +1,7 @@
 package main
 
 import (
+ "clean-article-reader/internal/extraction"
 	"fmt"
 	"net/url"
 	"strings"
@@ -20,7 +21,7 @@ func TestGenericRecoveryDropsTopicNavigationButKeepsFinalProse(t *testing.T) {
 	}
 	b.WriteString(`</div></section></article></main>`)
 	base, _ := url.Parse("https://example.org/report")
-	got, ok := recoverStructuredDocument(b.String(), []Block{{Kind: "p", Text: "Entry 1 heading"}}, base)
+	got, ok := extraction.RecoverStructuredDocument(b.String(), []Block{{Kind: "p", Text: "Entry 1 heading"}}, base)
 	if !ok {
 		t.Fatal("did not recover article")
 	}
@@ -42,7 +43,7 @@ func TestGenericRecoveryDropsTopicNavigationButKeepsFinalProse(t *testing.T) {
 func TestNavigationClusterPreservesEditorialLinkList(t *testing.T) {
 	raw := `<ul><li><a href="/one">Resource one</a> provides a detailed technical analysis with comprehensive guidance and several specific implementation examples.</li><li><a href="/two">Resource two</a> contains an extensive review covering performance requirements and detailed practical limitations.</li><li><a href="/three">Resource three</a> provides comprehensive comparison data and background interpretation with extensive explanation.</li><li><a href="/four">Resource four</a> discusses numerous safety considerations and special operating circumstances in depth.</li><li><a href="/five">Resource five</a> explains the underlying engineering methods and discusses design constraints.</li></ul>`
 	n := find(parseHTML(raw), func(n *Node) bool { return n.Tag == "ul" })[0]
-	if navigationCluster(n) {
+	if extraction.NavigationCluster(n) {
 		t.Fatal("editorial reference list misclassified")
 	}
 }
