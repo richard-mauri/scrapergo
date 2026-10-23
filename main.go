@@ -31,6 +31,9 @@ import (
 
 // ScraperGo application version is defined once and shared by all presentation paths.
 const appVersion = "0.2.85"
+const appBuild = "Architecture PR #43"
+
+func appDisplayVersion() string { return "ScraperGo v" + appVersion + " · " + appBuild }
 const sampleURL = "https://247wallst.com/investing/2026/10/16/taiwan-is-planning-4-billion-industrial-parks-in-texas-for-nvidias-suppliers/"
 
 //go:embed tanner.jpg
@@ -679,6 +682,10 @@ func resolvePort(args []string, envPort string, output io.Writer) (string, error
 }
 
 func main() {
+	if len(os.Args) == 2 && (os.Args[1] == "--version" || os.Args[1] == "-version") {
+		fmt.Println(appDisplayVersion())
+		return
+	}
 	port, err := resolvePort(os.Args[1:], os.Getenv("PORT"), os.Stderr)
 	if err == flag.ErrHelp {
 		return
@@ -716,7 +723,7 @@ func main() {
 		fmt.Fprint(w, renderedIndexHTML())
 	})
 	server := &http.Server{Addr: ":" + port, Handler: mux, ReadHeaderTimeout: 5 * time.Second}
-	log.Printf("ScraperGo v%s listening on http://localhost:%s", appVersion, port)
+	log.Printf("%s listening on http://localhost:%s", appDisplayVersion(), port)
 	if err := server.ListenAndServe(); err != nil {
 		if errors.Is(err, syscall.EADDRINUSE) {
 			log.Printf("Port %s is already in use. Try a different port:\n  go run . --port 8081\n  ./dist/scrapergo-darwin-amd64 --port 8081\nOr set PORT=8081 before launching.", port)
