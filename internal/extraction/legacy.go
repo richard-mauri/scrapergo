@@ -13,7 +13,7 @@ import (
  "strings"
 )
 
-var legacyWhitespace = regexp.MustCompile(`\\s+`)
+var legacyWhitespace = regexp.MustCompile(`\s+`)
 
 // inlineTextParts preserves anchor targets in their exact reading position.
 // The browser renderer creates safe clickable links from these parts.
