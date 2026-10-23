@@ -3,9 +3,7 @@ package extraction
 import (
  "clean-article-reader/internal/article"
  "clean-article-reader/internal/sourcehtml"
- "clean-article-reader/internal/links"
 		"net/url"
- "clean-article-reader/internal/structured"
 	"regexp"
 	"strconv"
 	"strings"
@@ -55,10 +53,6 @@ func SerializedCaptionImages(raw string, base *url.URL) map[string]string {
 	return result
 }
 
-// Preserve legacy entry point while structured conversion is package-owned.
-func SemanticTextBlock(n *sourcehtml.Node, base *url.URL) article.Block {
- return structured.TextBlock(n,base,sourcehtml.ResolveURL,links.IsDocumentURL)
-}
 
 func NestedProse(n, scope *sourcehtml.Node) bool {
 	for p := n.Parent; p != nil && p != scope; p = p.Parent {
