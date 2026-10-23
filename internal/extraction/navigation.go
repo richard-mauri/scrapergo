@@ -11,7 +11,7 @@ import (
 // navigationCluster rejects compact collections of linked topic chips, icons,
 // and other page furniture. It does not use publisher names or heading text.
 // Prose-rich editorial lists with explanatory links are deliberately retained.
-func navigationCluster(n *sourcehtml.Node) bool {
+func NavigationCluster(n *sourcehtml.Node) bool {
 	switch n.Tag {
 	case "section", "div", "ul", "ol":
 	default:
@@ -50,9 +50,9 @@ func navigationCluster(n *sourcehtml.Node) bool {
 
 // inNavigationCluster checks whether a heading or other child belongs to a
 // navigation group before it is counted as editorial content.
-func inNavigationCluster(n, scope *sourcehtml.Node) bool {
+func InNavigationCluster(n, scope *sourcehtml.Node) bool {
 	for p := n; p != nil && p != scope; p = p.Parent {
-		if navigationCluster(p) {
+		if NavigationCluster(p) {
 			return true
 		}
 	}
@@ -63,7 +63,7 @@ func inNavigationCluster(n, scope *sourcehtml.Node) bool {
 // truncating the surrounding article. Text and attributes are both signals.
 var promoLabelRE = regexp.MustCompile(`(?i)\b(next story|up next|read next|you may also like|recommended stories|more stories)\b`)
 
-func promotionalRegion(n *sourcehtml.Node) bool {
+func PromotionalRegion(n *sourcehtml.Node) bool {
 	if n.Tag != "section" && n.Tag != "div" && n.Tag != "h2" && n.Tag != "h3" {
 		return false
 	}
@@ -87,7 +87,7 @@ func promotionalRegion(n *sourcehtml.Node) bool {
 // It requires a semantic heading and at least five short links in a cluster.
 var topicLabelRE = regexp.MustCompile(`(?i)\b(topics?|tags?|categories|subjects?|in this|related topics?)\b`)
 
-func contextualLinkSection(n *sourcehtml.Node, base *url.URL) (string, []article.Block, bool) {
+func ContextualLinkSection(n *sourcehtml.Node, base *url.URL) (string, []article.Block, bool) {
 	if n.Tag != "section" && n.Tag != "div" {
 		return "", nil, false
 	}
@@ -103,7 +103,7 @@ func contextualLinkSection(n *sourcehtml.Node, base *url.URL) (string, []article
 		return "", nil, false
 	}
 	var cluster *sourcehtml.Node
-	for _, c := range sourcehtml.Find(n, func(x *sourcehtml.Node) bool { return x != n && navigationCluster(x) }) {
+	for _, c := range sourcehtml.Find(n, func(x *sourcehtml.Node) bool { return x != n && NavigationCluster(x) }) {
 		// Choose a compact cluster, not a large parent containing the article.
 		if cluster == nil || len(sourcehtml.Find(c, func(x *sourcehtml.Node) bool { return x.Tag == "a" })) < len(sourcehtml.Find(cluster, func(x *sourcehtml.Node) bool { return x.Tag == "a" })) {
 			cluster = c
@@ -129,20 +129,20 @@ func contextualLinkSection(n *sourcehtml.Node, base *url.URL) (string, []article
 	return title, links, len(links) >= 5
 }
 
-func promotionalAncestor(n, stop *sourcehtml.Node) bool {
+func PromotionalAncestor(n, stop *sourcehtml.Node) bool {
 	for p := n; p != nil && p != stop; p = p.Parent {
-		if promotionalRegion(p) {
+		if PromotionalRegion(p) {
 			return true
 		}
 	}
 	return false
 }
-func topicHeading(n *sourcehtml.Node) bool {
+func TopicHeading(n *sourcehtml.Node) bool {
 	if !topicLabelRE.MatchString(sourcehtml.Normalize(sourcehtml.Text(n))) {
 		return false
 	}
 	for p := n.Parent; p != nil; p = p.Parent {
-		if _, _, ok := contextualLinkSection(p, &url.URL{Scheme: "https", Host: "example.org"}); ok {
+		if _, _, ok := ContextualLinkSection(p, &url.URL{Scheme: "https", Host: "example.org"}); ok {
 			return true
 		}
 	}
@@ -152,7 +152,7 @@ func topicHeading(n *sourcehtml.Node) bool {
 // A next-story teaser often appears as three sibling blocks rather than a
 // nicely labeled enclosing section. If a promotional image caption occurs at
 // the tail of an article, remove the preceding linked icon and its teaser.
-func trimTrailingRecommendation(blocks []article.Block) []article.Block {
+func TrimTrailingRecommendation(blocks []article.Block) []article.Block {
 	for i := len(blocks) - 1; i >= 0; i-- {
 		if i < len(blocks)-12 {
 			break
@@ -177,7 +177,7 @@ func trimTrailingRecommendation(blocks []article.Block) []article.Block {
 	return blocks
 }
 
-func hasContextualIndex(blocks []article.Block) bool {
+func HasContextualIndex(blocks []article.Block) bool {
 	for _, b := range blocks {
 		if b.Kind == "topic-title" {
 			return true
@@ -188,17 +188,17 @@ func hasContextualIndex(blocks []article.Block) bool {
 
 // Find topic directories adjacent to a recovered editorial subtree. Restrict
 // this to containers near the article rather than the whole site's header.
-func findNearbyContextualIndex(root, scope *sourcehtml.Node, base *url.URL) (string, []article.Block, bool) {
+func FindNearbyContextualIndex(root, scope *sourcehtml.Node, base *url.URL) (string, []article.Block, bool) {
 	var parent *sourcehtml.Node
 	if scope != nil {
 		parent = scope.Parent
 	}
 	for level := 0; level < 3 && parent != nil; level, parent = level+1, parent.Parent {
 		for _, n := range sourcehtml.Find(parent, func(n *sourcehtml.Node) bool { return n.Tag == "section" || n.Tag == "div" }) {
-			if promotionalRegion(n) || promotionalAncestor(n, parent) {
+			if PromotionalRegion(n) || PromotionalAncestor(n, parent) {
 				continue
 			}
-			title, links, ok := contextualLinkSection(n, base)
+			title, links, ok := ContextualLinkSection(n, base)
 			if ok {
 				return title, links, true
 			}
