@@ -1,13 +1,14 @@
 package main
 
 import (
+ "clean-article-reader/internal/ui"
 	"os"
 	"strings"
 	"testing"
 )
 
 func TestSafariFallbackUI(t *testing.T) {
-	if !strings.Contains(indexHTML, "Open original article in Safari") {
+	if !strings.Contains(ui.Template(), "Open original article in Safari") {
 		t.Fatal("fallback missing")
 	}
 }
