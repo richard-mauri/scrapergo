@@ -23,7 +23,6 @@ import (
 	"net/url"
 	"os"
 	"regexp"
-	"strings"
 )
 
 // ScraperGo application version is defined once and shared by all presentation paths.
