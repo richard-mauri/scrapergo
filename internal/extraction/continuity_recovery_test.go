@@ -113,7 +113,7 @@ func TestEditorialTailRecoveryAfterSelectedParagraph(t *testing.T) {
 	a := "The customization section discusses choosing the interior configuration and describes the truck options available to customers in this showroom."
 	raw := `<html><main><article><p>` + a + `</p><div class="advertisement-wrapper"><div class="advertisement"><p>Sponsored deals for everyone.</p></div><p>The next editorial paragraph explains how the staff can assist people who wish to customize their vehicle in person at the center.</p><figure><img src="/pegboard.jpg"/><figcaption>Headlight and taillight options on display at the showroom.</figcaption></figure></div><p>The service discussion explains maintenance arrangements with a network of shops for future truck buyers.</p><p>The final production paragraph examines the manufacturing challenges and concludes it is time to deliver vehicles.</p></article></main></html>`
 	chosen := []articlemodel.Block{{Kind: "p", Text: a}}
-	got := extraction.RecoverAnchoredEditorialTail(sourcehtml.Parse(raw), chosen, base)
+	got := RecoverAnchoredEditorialTail(sourcehtml.Parse(raw), chosen, base)
 	if len(got) != 5 {
 		t.Fatalf("want five blocks, got %d: %+v", len(got), got)
 	}
