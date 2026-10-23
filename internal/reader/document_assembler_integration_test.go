@@ -1,4 +1,4 @@
-package main
+package reader_test
 
 import (
  articlemodel "clean-article-reader/internal/article"

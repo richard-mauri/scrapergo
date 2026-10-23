@@ -1,4 +1,4 @@
-package main
+package bootstrap_test
 
 import (
  articlemodel "clean-article-reader/internal/article"

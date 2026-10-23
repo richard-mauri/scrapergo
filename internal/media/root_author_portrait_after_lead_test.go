@@ -1,4 +1,4 @@
-package main
+package media_test
 
 import (
  articlemodel "clean-article-reader/internal/article"
@@ -18,7 +18,7 @@ func TestAuthorBioPortraitBelowEditorialLeadExcluded(t *testing.T) {
 }
 
 func TestNPRContributorPortraitBeforeLeadPreserved(t *testing.T) {
- a:=articlemodel.Article{Byline:"Daniel Estrin",Blocks:[]articlemodel.Block{{Kind:"img",Role:"author",URL:estrinPortrait,Text:"Daniel Estrin"},{Kind:"img",Role:"lead",URL:nprWestBankFirst},{Kind:"p",Text:"Story body"}}}
+ a:=articlemodel.Article{Byline:"Daniel Estrin",Blocks:[]articlemodel.Block{{Kind:"img",Role:"author",URL:fxauthorportraitafterleadestrinPortrait,Text:"Daniel Estrin"},{Kind:"img",Role:"lead",URL:fxauthorportraitafterleadnprWestBankFirst},{Kind:"p",Text:"Story body"}}}
  media.RemovePostEditorialAuthorPortraits(&a)
  if len(a.Blocks)!=3 || a.Blocks[0].Role!="author" || a.Blocks[1].Role!="lead" {t.Fatalf("NPR contributor lost: %+v",a.Blocks)}
 }
@@ -28,3 +28,6 @@ func TestEditorialFiguresAfterLeadUnaffected(t *testing.T) {
  media.RemovePostEditorialAuthorPortraits(&a)
  if len(a.Blocks)!=3 {t.Fatalf("editorial figure removed: %+v",a.Blocks)}
 }
+
+const fxauthorportraitafterleadnprWestBankFirst = "https://npr.brightspotcdn.com/dims3/default/strip/false/crop/836x470+0+78/resize/1400/quality/85/format/jpeg/?url=http%3A%2F%2Fnpr-brightspot.s3.amazonaws.com%2F3d%2F13%2F662de40b41cda580069a58be1bbf%2Fimg-2213.jpg"
+const fxauthorportraitafterleadestrinPortrait = "https://media.npr.org/assets/img/2020/01/02/daniel-estrin_sq-4199304dee8cdf91935a65a2d0b069e07311386e.jpg?s=100&c=85&f=jpeg"

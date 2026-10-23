@@ -1,4 +1,4 @@
-package main
+package reader_test
 
 import (
  articlemodel "clean-article-reader/internal/article"
@@ -14,7 +14,7 @@ import (
 // These fixed, wholly synthetic sources characterize extraction behavior.
 // They are NOT archived captures of real publishers.
 func TestFrozenStructuralLeadContract(t *testing.T) {
- raw,err:=os.ReadFile("testdata/structural_lead_contract.html")
+ raw,err:=os.ReadFile("../../testdata/structural_lead_contract.html")
  if err!=nil {t.Fatal(err)}
  cleaned:=structured.StripEmbeddedMedia(string(raw))
  extracted,err:=bootstrap.ExtractWithEvidence(cleaned,"https://news.example.test/report")
@@ -31,7 +31,7 @@ func TestFrozenStructuralLeadContract(t *testing.T) {
 }
 
 func TestFrozenSourceImageRolesContract(t *testing.T) {
- raw,err:=os.ReadFile("testdata/source_role_contract.html")
+ raw,err:=os.ReadFile("../../testdata/source_role_contract.html")
  if err!=nil {t.Fatal(err)}
  article:=articlemodel.Article{Blocks:[]articlemodel.Block{
   {Kind:"img",URL:"https://media.example.test/portrait.jpg"},

@@ -1,4 +1,4 @@
-package main
+package contributors_test
 
 import (
  articlemodel "clean-article-reader/internal/article"
@@ -32,3 +32,5 @@ func TestAssembledPoststoryPortraitAbsentAndLeadPreserved(t *testing.T) {
  for _,b:=range a.Blocks {if b.Kind=="img" && strings.Contains(b.URL,"beth.jpg") {t.Fatalf("author portrait leaked into final body: %+v",a.Blocks)}}
  if a.Byline!="Beth Mole" || a.ImageURL!="https://example.org/lead.jpg" {t.Fatalf("byline or lead changed: %+v",a)}
 }
+
+

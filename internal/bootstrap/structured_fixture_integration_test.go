@@ -1,4 +1,4 @@
-package main
+package bootstrap_test
 
 import (
  articlemodel "clean-article-reader/internal/article"
@@ -11,7 +11,7 @@ import (
 )
 
 func TestFixtureArticleMediaAndAuthor(t *testing.T){
- raw,err:=os.ReadFile("testdata/article_media_and_author.html")
+ raw,err:=os.ReadFile("../../testdata/article_media_and_author.html")
  if err!=nil{t.Fatal(err)}
  rec:=httptest.NewRecorder()
  bootstrap.WriteExtractedArticle(rec,string(raw),"https://news.example.org/report")

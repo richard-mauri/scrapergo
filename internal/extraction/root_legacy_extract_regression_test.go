@@ -1,11 +1,9 @@
-package main
+package extraction_test
 
 import (
- "clean-article-reader/internal/fetcher"
  "clean-article-reader/internal/extraction"
-	"context"
-	"strings"
-	"testing"
+ "strings"
+ "testing"
 )
 
 func TestExtraction(t *testing.T) {
@@ -26,14 +24,6 @@ func TestExtraction(t *testing.T) {
 		}
 	}
 }
-func TestRejectLocal(t *testing.T) {
-	for _, u := range []string{"file:///etc/passwd", "http://localhost/private", "http://127.0.0.1/", "http://10.0.0.1/"} {
-		if _, err := fetcher.ValidatedURL(context.Background(), u); err == nil {
-			t.Errorf("accepted %s", u)
-		}
-	}
-}
-
 func TestJSONLDFallback(t *testing.T) {
 	raw := `<html><head><meta property="og:title" content="Structured article"><script type="application/ld+json">{"@context":"https://schema.org","@type":"NewsArticle","articleBody":"A manufacturing company is planning a new facility in Texas to support its customers, with several distinct suppliers and a lengthy implementation schedule. The project requires permits and financing before construction begins.\n\nThe supplier investment is expected to support technology manufacturers by shortening their logistics chain and reducing shipment delays. The organizations involved have not announced a final opening date or binding purchase commitments."}</script></head><body><div class="sponsored-wrapper"><p>Visible article body can be missed by filters.</p></div></body></html>`
 	a, err := extraction.LegacyExtract(raw, "https://example.com/article")

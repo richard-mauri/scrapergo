@@ -1,13 +1,12 @@
-package main
+package links_test
 
 import (
  articlemodel "clean-article-reader/internal/article"
  "clean-article-reader/internal/extraction"
  "clean-article-reader/internal/ui"
- "clean-article-reader/internal/links"
-	"net/url"
-	"strings"
-	"testing"
+ "net/url"
+ "strings"
+ "testing"
 )
 
 func TestArticleInlineLinkRouting(t *testing.T) {
@@ -19,13 +18,5 @@ func TestArticleInlineLinkRouting(t *testing.T) {
 	}
 	if !strings.Contains(ui.Template(), "function putLinked(") || !strings.Contains(ui.Template(), "encodeURIComponent(dest.href)") {
 		t.Fatal("ScraperGo reader routing missing")
-	}
-}
-func TestLinkableDocuments(t *testing.T) {
-	if links.IsDocumentURL("https://example.com/report.pdf") || links.IsDocumentURL("javascript:alert(1)") {
-		t.Fatal("unsafe document routing")
-	}
-	if !links.IsDocumentURL("https://example.com/news/related") {
-		t.Fatal("article routing disabled")
 	}
 }

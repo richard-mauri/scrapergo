@@ -1,4 +1,4 @@
-package main
+package httpapi_test
 
 import (
  "clean-article-reader/internal/bootstrap"

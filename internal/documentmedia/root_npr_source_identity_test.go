@@ -1,4 +1,4 @@
-package main
+package documentmedia_test
 
 import (
  articlemodel "clean-article-reader/internal/article"
@@ -38,3 +38,5 @@ func TestUnrelatedImagesRemainDistinct(t *testing.T) {
  documentmedia.NormalizeDocument(&a,media.SourceIdentity)
  if len(a.Blocks)!=2{t.Fatalf("distinct photographs lost: %+v",a.Blocks)}
 }
+
+
