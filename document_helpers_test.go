@@ -1,6 +1,7 @@
 package main
 
 import (
+ "clean-article-reader/internal/extraction"
 	"net/url"
 	"strings"
 	"testing"
@@ -9,7 +10,7 @@ import (
 func TestSerializedCaptionImagesGeneric(t *testing.T) {
 	base, _ := url.Parse("https://example.org/articles/guide")
 	raw := `<script type="application/json">["https://cdn.example.org/media/photo.webp","A detailed caption about the main illustration in this technical guide."]</script>`
-	got := serializedCaptionImages(raw, base)
+	got := extraction.SerializedCaptionImages(raw, base)
 	caption := "A detailed caption about the main illustration in this technical guide."
 	if got[caption] != "https://cdn.example.org/media/photo.webp" {
 		t.Fatalf("image/caption association lost: %v", got)
@@ -23,7 +24,7 @@ func TestSemanticTextBlockKeepsMarkup(t *testing.T) {
 	if len(ps) != 1 {
 		t.Fatal("paragraph missing")
 	}
-	b := semanticTextBlock(ps[0], base)
+	b := extraction.SemanticTextBlock(ps[0], base)
 	hasBold, hasNewline, hasLink := false, false, false
 	for _, p := range b.Parts {
 		if p.Bold && strings.Contains(p.Text, "First:") {
