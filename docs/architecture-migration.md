@@ -1,3 +1,5 @@
+> **Historical design record — not current instructions.** This document describes earlier migration/design states and may reference superseded branches, root package owners, aliases, and PR status. Current authority: [ARCHITECTURE.md](../ARCHITECTURE.md), [DEVELOPMENT.md](../DEVELOPMENT.md), and [HISTORY.md](../HISTORY.md).
+
 # Architectural migration plan (v0.2.85 baseline)
 
 ## Current architecture

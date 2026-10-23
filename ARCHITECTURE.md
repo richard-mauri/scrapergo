@@ -1,42 +1,25 @@
 # ScraperGo architecture contract
 
-The production executable is a composition root, not a processing module. ScraperGo uses one canonical transport-independent article model, and its UI, transport, orchestration, and backend services have separate ownership.
+**Status:** current merged `main` after PR #63 (2026-10-23). This is an ownership contract, not a claim that every implementation or test is perfect. See [HISTORY.md](HISTORY.md) for the completed migration.
 
-## Intended responsibility and import directions
+## Runtime and dependency direction
 
-- `main.go`: program entry point only; calls `internal/app`.
-- `internal/app`: configuration, dependency composition, routing and lifecycle.
-- `internal/ui`: browser assets and presentation; talks through the HTTP API, never imports extraction or recovery packages.
-- `internal/httpapi`: HTTP transport and response contracts; delegates article reading to the reader service.
-- `internal/reader`: article processing orchestration, ordered transformations and document assembly; no HTTP, UI or independent networking.
-- `internal/fetcher`: secure network retrieval, redirect and host validation.
-- `internal/extraction`, `internal/sourcehtml`, `internal/media`, `internal/links`, `internal/contributors`: cohesive backend capabilities.
-- `internal/article`: canonical article and block model, independent of application and presentation layers.
+`main.go` is the sole production Go file at repository root. It handles version/build display, port selection and embedded Tanner photo, then calls `internal/bootstrap.Start`. It must not regain extraction, retrieval, HTTP routing, or diagnostic implementations.
 
-Dependencies must be acyclic. Backend capability packages must not depend on `internal/ui`, `internal/httpapi`, or the root executable package. The reader must not depend on HTTP or UI. Network retrieval must remain centralized in the fetcher boundary and must not be initiated by assembly stages.
+`internal/bootstrap` is the production composition root: it injects the secure URL resolution and fetcher into HTTP handlers, runs article extraction/classification and assembles the handler graph. `internal/app` owns port configuration, HTTP route registration, listener and lifecycle; `internal/httpapi` owns transport contracts and adapters, including read, classification, metadata and thumbnails. `internal/ui` owns rendered HTML/CSS/JS presentation and the browser-facing reader experience.
 
-## Migration sequence (six PRs maximum)
+`internal/article` owns canonical transport-independent Article, Block, TextPart and link data. `internal/reader` owns the ordered transformation pipeline and calls the actual backend implementations through `DefaultProcessor`; `internal/assembly` applies stages with document isolation. Reader code must not import `net/http`, `internal/httpapi`, `internal/ui`, `internal/app` or `internal/fetcher`. Do not introduce artificial callback shims merely to make earlier root tests compile.
 
-1. #42: reader ownership of processing orchestration, architectural contract and boundary tests. Legacy callbacks remain temporarily wired by the root adapter.
-2. #43: move the remaining extraction, source recovery, assembly and normalization implementations behind backend boundaries; remove the root callback adapter.
-3. #44: isolate secure retrieval and publisher access policy in fetcher.
-4. #45: move browser HTML/CSS/JS and rendering into UI.
-5. #46: introduce app composition and move HTTP wiring, configuration and lifecycle out of root.
-6. #47: remove remaining root production implementations and temporary compatibility aliases; tighten boundaries and verify the minimal main.go.
+`internal/extraction` owns Readability integration, extraction results/source evidence, partial-article recognition, navigation and figure extraction. `internal/sourcehtml` owns HTML parsing, traversal, metadata and source URL helpers. `internal/structured` owns serialized inline text and embedded-media cleanup. `internal/recovery` owns source-backed missing photograph/link and lead/gallery recovery; `internal/media` owns image source identity, roles, ordering and deduplication; `internal/documentmedia` owns final document/image normalization. `internal/contributors` owns bylines, contributor headers and portraits; `internal/links` owns article link policy, selection and reconciliation support. `internal/pageclassify` separates article pages from landing/index/portal pages.
 
-Each PR must report production root-file/line deltas, migration exceptions, package dependency changes, tests and functional contracts. Target release version remains 0.2.85 during migration. Preserve current launch commands, HTTP behavior and article/image/link behavior until an explicitly approved release. Owner approves all merges.
+`internal/fetcher` owns public URL validation, secure HTTP download, redirects and network access restrictions; `internal/googlenews` resolves Google News URLs using the existing validated retrieval path. `internal/accesspolicy` owns publisher access restrictions and readable-preview notices. `internal/imagedelivery` delivers selected article images using shared metadata/retrieval rules. `internal/thumbnail` owns thumbnail sizing, processing and cache primitives. `internal/diagnostics` owns loopback-only HTML extraction and image tracing.
 
-Passing functional tests alone does not satisfy architectural acceptance. Each milestone must move a cohesive responsibility and establish a usable package API.
+Dependencies are intentional and acyclic: entry point → bootstrap → application adapters and backend services; reader → article/assembly and backend transformations; domain/backend packages never depend on UI, HTTP APIs or executable root. Only established retrieval paths may contact publishers: transformation and assembly stages must not download or bypass URL/redirect defenses. Handler code may delegate to the established validated retrieval boundary; it must not invent another fetch mechanism. Image delivery's network behavior must retain its security validation.
 
+## Tests and enforcement
 
-## Compatibility bridge audit — PR #46
+Unit and regression tests live beside their owning implementations. Integration tests live at the service boundary (`internal/bootstrap`, `internal/reader`, `internal/httpapi`, etc.). Two root tests remain: `architecture_boundary_test.go` and `version_test.go`. `TestProductionRootBoundary` checks sole production root `main.go`, approved root functions/imports and absent obsolete adapters. `internal/reader/architecture_test.go` enforces the reader's transport, presentation, lifecycle and retrieval import exclusions. Other package tests cover contract and behavior regressions. Current enforcement is specific, not a whole-repository import DAG validator.
 
-The root `ui.go` compatibility bridge is deleted during PR #46; the live HTTP handler and presentation tests use `internal/ui` directly.
+No compatibility forwarding wrappers, test-only aliases, migration facades or deliberately misplaced tests. Refactoring is not complete if old adapters or tests are stranded; passing Go tests is necessary but not sufficient if ownership constraints are broken.
 
-The following root delegates remain technical debt, not permanent architecture:
-- `document_assembler.go`: legacy `articleAssemblyStages` and `assembleArticleDocument` entry points; callers/tests should transition to `internal/reader` before the file is deleted.
-- `gallery_groups.go`, `source_image_roles.go`, `source_lead_recovery.go`, `link_recovery.go`, `structured_document.go`: old source recovery, contributor and identity wrappers; migrate their remaining callers and tests to `internal/recovery`, `internal/contributors` and `internal/media`.
-- `main.go`: compatibility aliases for the canonical article model, source parser helpers, secure fetcher functions and article image helpers; remove only after root extraction callers have been relocated.
-- `app_wiring.go`: real HTTP wiring today, not merely a compatibility bridge. Move into application composition in the next milestone and delete it from root.
-
-These are separate from the completed UI ownership move. Do not recreate deleted UI wrappers for test convenience. The migration finish line remains a bootstrap-only executable with no backend or presentation implementation in root.
+See [DEVELOPMENT.md](DEVELOPMENT.md) for validation and acceptance; [docs/extraction-fixtures.md](docs/extraction-fixtures.md) for synthetic fixture scope. Additional publisher HTML captures and Mac/Safari behavior still require explicit verification.
