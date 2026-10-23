@@ -1,7 +1,6 @@
 package main
 
 import (
- articlemodel "clean-article-reader/internal/article"
  "clean-article-reader/internal/bootstrap"
  "strings"
  "testing"
