@@ -1,6 +1,6 @@
 # ScraperGo — agent instructions
 
-This is the **entry point for development agents**, not a duplicate of the architecture or contributor manuals. Read the following before changing anything:
+This is the **entry point for development agents**, not a duplicate of the architecture or contributor manuals. At the start of a session, read [CURRENT_WORK.md](CURRENT_WORK.md) for the active PR cycle, unresolved decisions and deferred TODOs. Then read:
 
 - [ARCHITECTURE.md](ARCHITECTURE.md) — binding package ownership, dependencies, security boundaries and architecture tests.
 - [DEVELOPMENT.md](DEVELOPMENT.md) — authoritative GitHub branch, Issues, PR, testing, Mac acceptance and release procedures.
