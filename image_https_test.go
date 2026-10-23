@@ -1,6 +1,9 @@
 package main
 
-import "testing"
+import (
+ "testing"
+ "clean-article-reader/internal/imagedelivery"
+)
 
 func TestHTTPSImageURL(t *testing.T) {
  cases := []struct{input,want string; valid bool}{
@@ -10,7 +13,7 @@ func TestHTTPSImageURL(t *testing.T) {
   {"javascript:alert(1)","",false},
  }
  for _,tc:=range cases {
-  got,err:=httpsImageURL(tc.input)
+  got,err:=imagedelivery.HTTPSImageURL(tc.input)
   if tc.valid && (err!=nil||got!=tc.want) { t.Errorf("%s: got %q err %v",tc.input,got,err) }
   if !tc.valid&&err==nil { t.Errorf("%s unexpectedly accepted",tc.input) }
  }
