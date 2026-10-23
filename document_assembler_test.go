@@ -34,7 +34,7 @@ func TestAssembleArticleDocumentMatchesExistingPipeline(t *testing.T) {
  contributors.ReconcileContributorByline(&expected)
  contributors.SeparateHeader(&expected)
  recovery.RecoverOpeningSourceFigure(&expected,raw,sourceURL)
- documentmedia.NormalizeDocument(&expected,input.Evidence.MetadataImageURL)
+ documentmedia.NormalizeDocument(&expected,media.SourceIdentity,input.Evidence.MetadataImageURL)
 
  got := reader.DefaultProcessor().Process(input,raw)
  wantJSON,_ := json.Marshal(expected)
