@@ -1,4 +1,4 @@
-package main
+package diagnostics
 
 import (
 	"encoding/json"
@@ -9,9 +9,13 @@ import (
 	"strings"
 )
 
+const MaxHTML = 5 << 20
+
+type HTMLHandler struct { WriteExtracted func(http.ResponseWriter,string,string) }
+
 // diagnosticExtract examines supplied HTML without fetching the URL or any assets.
 // It is intentionally disabled for callers whose direct TCP peer is not loopback.
-func diagnosticExtract(w http.ResponseWriter, r *http.Request) {
+func (h HTMLHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")
 	if r.Method != http.MethodPost {
@@ -26,7 +30,7 @@ func diagnosticExtract(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "diagnostic endpoint accepts localhost clients only"})
 		return
 	}
-	r.Body = http.MaxBytesReader(w, r.Body, maxHTML+8192)
+	r.Body = http.MaxBytesReader(w, r.Body, MaxHTML+8192)
 	dec := json.NewDecoder(r.Body)
 	var input struct {
 		URL  string `json:"url"`
@@ -44,10 +48,10 @@ func diagnosticExtract(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	u, err := url.Parse(input.URL)
-	if err != nil || (u.Scheme != "https" && u.Scheme != "http") || u.Hostname() == "" || u.User != nil || u.Fragment != "" || strings.ContainsAny(input.URL, "\r\n") || len(input.HTML) == 0 || len(input.HTML) > maxHTML {
+	if err != nil || (u.Scheme != "https" && u.Scheme != "http") || u.Hostname() == "" || u.User != nil || u.Fragment != "" || strings.ContainsAny(input.URL, "\r\n") || len(input.HTML) == 0 || len(input.HTML) > MaxHTML {
 		w.WriteHeader(http.StatusBadRequest)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "valid HTTP(S) article URL and HTML (maximum 5 MiB) required"})
 		return
 	}
-	writeExtractedArticle(w, input.HTML, input.URL)
+	h.WriteExtracted(w, input.HTML, input.URL)
 }
