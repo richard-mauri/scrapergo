@@ -1,6 +1,8 @@
 package main
 
 import (
+ "clean-article-reader/internal/documentmedia"
+ "clean-article-reader/internal/media"
  "testing"
  "clean-article-reader/internal/recovery"
 )
@@ -10,11 +12,11 @@ func TestRealNPRSourceContainerRoles(t *testing.T) {
  a:=Article{ImageURL:nprWestBankMetadata,Blocks:[]Block{{Kind:"img",URL:estrinPortrait,Text:"Daniel Estrin"},{Kind:"img",URL:nprWestBankFirst,Text:"Israeli security forces"},{Kind:"p",Text:"Article paragraph."},{Kind:"img",URL:nprWestBankInline,Text:"Olive harvesting"}}}
  recovery.ClassifyImagesFromSource(&a,raw,"https://www.npr.org/article")
  if a.Blocks[0].Role!="author" || a.Blocks[1].Role!="editorial" || a.Blocks[3].Role!="editorial" {t.Fatalf("source roles wrong: %+v",a.Blocks)}
- normalizeArticleDocument(&a,nprWestBankMetadata)
+ documentmedia.NormalizeDocument(&a,media.SourceIdentity,nprWestBankMetadata)
  if a.ImageURL!=nprWestBankFirst || a.Blocks[0].Role!="author" || a.Blocks[1].Role!="lead" || a.Blocks[3].Role!="editorial" {t.Fatalf("incorrect image precedence: %+v",a.Blocks)}
 }
 func TestUnclassifiedContributorCannotOverrideConfirmedEditorial(t *testing.T) {
  a:=Article{ImageURL:nprWestBankMetadata,Blocks:[]Block{{Kind:"img",URL:estrinPortrait,Text:"Daniel Estrin"},{Kind:"img",Role:"editorial",URL:nprWestBankFirst,Text:"Israeli security forces"}}}
- normalizeArticleDocument(&a,nprWestBankMetadata)
+ documentmedia.NormalizeDocument(&a,media.SourceIdentity,nprWestBankMetadata)
  if a.ImageURL!=nprWestBankFirst||a.Blocks[1].Role!="lead" {t.Fatalf("portrait displaced source-confirmed figure: %+v",a.Blocks)}
 }
