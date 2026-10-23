@@ -5,27 +5,12 @@ import (
  "clean-article-reader/internal/assembly"
  "clean-article-reader/internal/extraction"
  "clean-article-reader/internal/reader"
- "clean-article-reader/internal/recovery"
 )
 
-// The executable package temporarily adapts historical source transforms.
-// The reader owns sequencing and isolation; PR #43 relocates these callbacks.
-func articleProcessor() reader.Processor {
- return reader.New(reader.Dependencies{
-  RecoverPhotographs: recoverArticlePhotographs,
-  RecoverLinks: recovery.RecoverMissingArticleLinks,
-  RecoverAuthorPortrait: recoverAuthorPortrait,
-  ClassifyContributors: classifyContributorImages,
-  ClassifySourceImages: recovery.ClassifyImagesFromSource,
-  ReconcileByline: reconcileContributorByline,
-  RecoverOpeningFigure: recovery.RecoverOpeningSourceFigure,
-  Normalize: func(a *article.Article, lead string) { normalizeArticleDocument(a, lead) },
-  RestoreGalleryGroups: recovery.GroupArticleGalleryImages,
- })
-}
+// Compatibility entry points for existing root-package tests and extraction.
+// The production stage graph is now exclusively defined in internal/reader.
+func articleAssemblyStages() []assembly.Stage { return reader.DefaultProcessor().Stages() }
 
-func articleAssemblyStages() []assembly.Stage { return articleProcessor().Stages() }
-
-func assembleArticleDocument(extracted extraction.Result, sourceHTML string) article.Article {
- return articleProcessor().Process(extracted, sourceHTML)
+func assembleArticleDocument(result extraction.Result, sourceHTML string) article.Article {
+ return reader.DefaultProcessor().Process(result,sourceHTML)
 }
