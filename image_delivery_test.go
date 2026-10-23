@@ -1,6 +1,7 @@
 package main
 
 import (
+ "clean-article-reader/internal/imagedelivery"
 	"net/http/httptest"
 	"testing"
 )
@@ -17,14 +18,14 @@ func TestArticleImageRejectsInvalidInput(t *testing.T) {
 	}
 	for _, tc := range cases {
 		w := httptest.NewRecorder()
-		articleImage(w, httptest.NewRequest(tc.method, tc.url, nil))
+		(imagedelivery.Handler{Metadata:newArticleMetadataHandler(newArticleReadHandler())}).ServeHTTP(w, httptest.NewRequest(tc.method, tc.url, nil))
 		if w.Code != tc.want {
 			t.Errorf("%s %s: got %d want %d", tc.method, tc.url, w.Code, tc.want)
 		}
 	}
 }
 func TestSelectedImageRejectsNonPublicURL(t *testing.T) {
-	if _, _, err := retrieveSelectedImage(httptest.NewRequest("GET", "/", nil).Context(), "http://127.0.0.1/image.jpg", "https://example.com/article"); err == nil {
+	if _, _, err := imagedelivery.RetrieveSelectedImage(httptest.NewRequest("GET", "/", nil).Context(), "http://127.0.0.1/image.jpg", "https://example.com/article"); err == nil {
 		t.Fatal("private image URL accepted")
 	}
 }

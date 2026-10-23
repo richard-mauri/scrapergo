@@ -1,4 +1,4 @@
-package main
+package imagedelivery
 
 import (
 	"context"
@@ -12,13 +12,18 @@ import (
 	"net/url"
 	"strings"
 	"time"
+ "clean-article-reader/internal/fetcher"
 )
 
 const maxDeliveredImage = 4 << 20
 
 // articleImage serves only an image selected by the existing article extractor.
 // It does not accept a caller-supplied image URL.
-func articleImage(w http.ResponseWriter, r *http.Request) {
+type Handler struct {
+ Metadata http.Handler
+}
+
+func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	if r.Method != http.MethodGet {
@@ -31,7 +36,7 @@ func articleImage(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "article URL too long", 400)
 		return
 	}
-	if _, err := validatedURL(r.Context(), articleURL); err != nil {
+	if _, err := fetcher.ValidatedURL(r.Context(), articleURL); err != nil {
 		http.Error(w, "invalid public article URL", 422)
 		return
 	}
@@ -44,7 +49,7 @@ func articleImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	rec := newResponseCapture()
-	newArticleMetadataHandler(newArticleReadHandler()).ServeHTTP(rec, req)
+	h.Metadata.ServeHTTP(rec, req)
 	if rec.status != http.StatusOK {
 		w.Header().Set("X-Image-Failure-Stage", "metadata")
 		http.Error(w, "article image lookup failed", http.StatusBadGateway)
@@ -76,7 +81,7 @@ func articleImage(w http.ResponseWriter, r *http.Request) {
 		attempts = 3
 	}
 	for _, candidate := range meta.Candidates[:attempts] {
-		b, typ, err = retrieveSelectedImage(ctx, candidate, articleURL)
+		b, typ, err = RetrieveSelectedImage(ctx, candidate, articleURL)
 		if err == nil {
 			break
 		}
@@ -85,7 +90,7 @@ func articleImage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if err != nil {
-		w.Header().Set("X-Image-Failure-Stage", imageRetrievalFailureKind(err))
+		w.Header().Set("X-Image-Failure-Stage", FailureKind(err))
 		http.Error(w, "selected image unavailable", http.StatusBadGateway)
 		return
 	}
@@ -110,7 +115,7 @@ func (r *responseCapture) Write(p []byte) (int, error) { return r.body.Write(p) 
 
 // httpsImageURL upgrades publisher-selected image references, never permitting
 // a plaintext fetch. HTTPS validation and safe-host checks still run afterward.
-func httpsImageURL(raw string) (string, error) {
+func HTTPSImageURL(raw string) (string, error) {
  u, err := url.Parse(raw)
  if err != nil { return "", err }
  if u.Scheme != "http" && u.Scheme != "https" { return "", errors.New("image URL scheme unsupported") }
@@ -118,10 +123,10 @@ func httpsImageURL(raw string) (string, error) {
  return u.String(), nil
 }
 
-func retrieveSelectedImage(ctx context.Context, raw, articleURL string) ([]byte, string, error) {
-	normalized, err := httpsImageURL(raw)
+func RetrieveSelectedImage(ctx context.Context, raw, articleURL string) ([]byte, string, error) {
+	normalized, err := HTTPSImageURL(raw)
 	if err != nil { return nil, "", err }
-	u, err := validatedURL(ctx, normalized)
+	u, err := fetcher.ValidatedURL(ctx, normalized)
 	if err != nil {
 		return nil, "", err
 	}
@@ -139,7 +144,7 @@ func retrieveSelectedImage(ctx context.Context, raw, articleURL string) ([]byte,
 		if e != nil {
 			return nil, e
 		}
-		if e = safeHost(c, host); e != nil {
+		if e = fetcher.SafeHost(c, host); e != nil {
 			return nil, e
 		}
 		return (&net.Dialer{Timeout: 5 * time.Second}).DialContext(c, network, net.JoinHostPort(host, port))
@@ -149,7 +154,7 @@ func retrieveSelectedImage(ctx context.Context, raw, articleURL string) ([]byte,
 		if len(via) >= 3 {
 			return errors.New("too many redirects")
 		}
-		v, e := validatedURL(req.Context(), req.URL.String())
+		v, e := fetcher.ValidatedURL(req.Context(), req.URL.String())
 		if e != nil {
 			return e
 		}
@@ -167,7 +172,7 @@ func retrieveSelectedImage(ctx context.Context, raw, articleURL string) ([]byte,
 	// Preserve the full publisher article as referrer for images protected by
 	// normal anti-hotlink rules. The image URL is still selected by extraction,
 	// and all public-host, HTTPS, redirect and byte limits remain enforced.
-	req.Header.Set("Referer", articleReferrer(article))
+	req.Header.Set("Referer", ArticleReferrer(article))
 	res, err := client.Do(req)
 	if err != nil {
 		return nil, "", err
@@ -196,7 +201,7 @@ func retrieveSelectedImage(ctx context.Context, raw, articleURL string) ([]byte,
 
 // articleReferrer uses a validated publisher article URL, without credentials,
 // fragment or query parameters that may contain private tracking tokens.
-func articleReferrer(article *url.URL) string {
+func ArticleReferrer(article *url.URL) string {
 	copy := *article
 	copy.User = nil
 	copy.RawQuery = ""
@@ -208,7 +213,7 @@ func articleReferrer(article *url.URL) string {
 
 // imageRetrievalFailureKind exposes a fixed diagnostic category, never a publisher
 // URL, response body, hostname, or internal network error to public clients.
-func imageRetrievalFailureKind(err error) string {
+func FailureKind(err error) string {
 	if err == nil {
 		return "none"
 	}

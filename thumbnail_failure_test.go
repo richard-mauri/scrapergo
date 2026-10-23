@@ -1,6 +1,7 @@
 package main
 
 import (
+ "clean-article-reader/internal/imagedelivery"
  "clean-article-reader/internal/httpapi"
  "clean-article-reader/internal/fetcher"
 	"context"
@@ -30,7 +31,7 @@ func TestImageRetrievalFailureKind(t *testing.T) {
 		{&url.Error{Op: "Get", Err: &net.OpError{Op: "dial", Net: "tcp", Err: errors.New("refused")}}, "connection"},
 	}
 	for _, tc := range cases {
-		if got := imageRetrievalFailureKind(tc.err); got != tc.want {
+		if got := imagedelivery.FailureKind(tc.err); got != tc.want {
 			t.Errorf("%v: got %q want %q", tc.err, got, tc.want)
 		}
 	}
@@ -39,7 +40,7 @@ func TestImageRetrievalFailureKind(t *testing.T) {
 func TestThumbnailMethodRejectionStillWorks(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/api/thumbnail", strings.NewReader(""))
 	w := httptest.NewRecorder()
-	httpapi.NewThumbnailHandler(fetcher.ValidatedURL,http.HandlerFunc(articleImage)).ServeHTTP(w, req)
+	httpapi.NewThumbnailHandler(fetcher.ValidatedURL,imagedelivery.Handler{Metadata:newArticleMetadataHandler(newArticleReadHandler())}).ServeHTTP(w, req)
 	if w.Code != http.StatusMethodNotAllowed {
 		t.Fatalf("status %d", w.Code)
 	}
