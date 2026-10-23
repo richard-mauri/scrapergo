@@ -2,6 +2,7 @@ package main
 
 import (
  "clean-article-reader/internal/extraction"
+ "clean-article-reader/internal/fetcher"
  "clean-article-reader/internal/pageclassify"
  "clean-article-reader/internal/structured"
  "clean-article-reader/internal/recovery"
@@ -31,7 +32,7 @@ import (
 
 // ScraperGo application version is defined once and shared by all presentation paths.
 const appVersion = "0.2.85"
-const appBuild = "Architecture PR #43"
+const appBuild = "Architecture PR #45"
 
 func appDisplayVersion() string { return "ScraperGo v" + appVersion + " · " + appBuild }
 const sampleURL = "https://247wallst.com/investing/2026/10/16/taiwan-is-planning-4-billion-industrial-parks-in-texas-for-nvidias-suppliers/"
@@ -305,167 +306,15 @@ func extract(raw, src string) (Article, error) {
 	}
 	return a, nil
 }
-func safeHost(ctx context.Context, host string) error {
-	if host == "" {
-		return errors.New("missing hostname")
-	}
-	if strings.EqualFold(host, "localhost") || strings.HasSuffix(strings.ToLower(host), ".localhost") {
-		return errors.New("local addresses are not allowed")
-	}
-	ips, err := net.DefaultResolver.LookupIPAddr(ctx, host)
-	if err != nil {
-		return fmt.Errorf("DNS lookup failed: %w", err)
-	}
-	for _, ip := range ips {
-		v := ip.IP
-		if !v.IsGlobalUnicast() || v.IsPrivate() || v.IsLoopback() || v.IsLinkLocalUnicast() || v.IsLinkLocalMulticast() {
-			return errors.New("private or reserved network addresses are not allowed")
-		}
-	}
-	return nil
-}
-func validatedURL(ctx context.Context, s string) (*url.URL, error) {
-	u, err := url.Parse(strings.TrimSpace(s))
-	if err != nil {
-		return nil, err
-	}
-	if u.Scheme != "http" && u.Scheme != "https" {
-		return nil, errors.New("only HTTP and HTTPS URLs are supported")
-	}
-	if u.User != nil {
-		return nil, errors.New("URL credentials are not supported")
-	}
-	if err := safeHost(ctx, u.Hostname()); err != nil {
-		return nil, err
-	}
-	return u, nil
-}
-
-// setBrowserHeaders uses ordinary Chrome-style navigation headers. These can
-// improve compatibility, but cannot reproduce Safari's TLS fingerprint or cookies.
-func setBrowserHeaders(req *http.Request) {
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36")
-	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8")
-	req.Header.Set("Accept-Language", "en-US,en;q=0.8")
-	req.Header.Set("Upgrade-Insecure-Requests", "1")
-	req.Header.Set("Sec-Fetch-Dest", "document")
-	req.Header.Set("Sec-Fetch-Mode", "navigate")
-	req.Header.Set("Sec-Fetch-Site", "none")
-	req.Header.Set("Sec-Fetch-User", "?1")
-}
-
-// setReadeckLikeHeaders provides a second, internally consistent Chromium
-// request profile. This is an independently implemented approximation, not
-// Readeck code, and does not reproduce its TLS fingerprint.
-func setReadeckLikeHeaders(req *http.Request) {
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36")
-	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/jpeg,image/png,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7")
-	req.Header.Set("Accept-Language", "en-US,en;q=0.8")
-	req.Header.Set("Cache-Control", "max-age=0")
-	req.Header.Set("Upgrade-Insecure-Requests", "1")
-	req.Header.Set("Sec-CH-UA", `"Google Chrome";v="144", "Chromium";v="144"`)
-	req.Header.Set("Sec-CH-UA-Mobile", "?0")
-	req.Header.Set("Sec-CH-UA-Platform", `"Windows"`)
-	req.Header.Set("Sec-Fetch-Site", "none")
-	req.Header.Set("Sec-Fetch-Mode", "navigate")
-}
-
-// alternateHeaderRetry applies only to a publisher's explicit refusal.
-// A second 403 is returned normally rather than classified as a paywall.
-func alternateHeaderRetry(status int) bool { return status == http.StatusForbidden }
-
-func download(ctx context.Context, address string) (string, string, error) {
-	u, err := validatedURL(ctx, address)
-	if err != nil {
-		return "", "", err
-	}
-	transport := http.DefaultTransport.(*http.Transport).Clone()
-	transport.Proxy = nil
-	transport.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
-		host, port, err := net.SplitHostPort(addr)
-		if err != nil {
-			return nil, err
-		}
-		if err := safeHost(ctx, host); err != nil {
-			return nil, err
-		}
-		return (&net.Dialer{Timeout: 8 * time.Second}).DialContext(ctx, network, net.JoinHostPort(host, port))
-	}
-	jar, _ := cookiejar.New(nil)
-	client := &http.Client{Timeout: 18 * time.Second, Transport: transport, Jar: jar, CheckRedirect: func(req *http.Request, via []*http.Request) error {
-		if len(via) >= 5 {
-			return errors.New("too many redirects")
-		}
-		_, err := validatedURL(req.Context(), req.URL.String())
-		return err
-	}}
-	// The initial attempt preserves v0.2.14 behavior. Only a 403 triggers
-	// one alternative request, with a fresh cookie jar and no publisher tab.
-	started := time.Now()
-	var res *http.Response
-	for attempt := 0; attempt < 2; attempt++ {
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
-		if err != nil {
-			return "", "", err
-		}
-		profile := "existing"
-		if attempt == 0 {
-			setBrowserHeaders(req)
-		} else {
-			profile = "readeck-like"
-			setReadeckLikeHeaders(req)
-		}
-		res, err = client.Do(req)
-		if err != nil {
-			log.Printf("fetch host=%s profile=%s error=%v elapsed=%s", u.Hostname(), profile, err, time.Since(started))
-			return "", "", err
-		}
-		log.Printf("fetch host=%s profile=%s status=%d redirect_host=%s content_type=%q elapsed=%s",
-			u.Hostname(), profile, res.StatusCode, res.Request.URL.Hostname(), res.Header.Get("Content-Type"), time.Since(started))
-		if attempt == 0 && alternateHeaderRetry(res.StatusCode) {
-			_ = res.Body.Close()
-			// A retry should not carry over cookies from the rejected response.
-			freshJar, _ := cookiejar.New(nil)
-			client.Jar = freshJar
-			continue
-		}
-		break
-	}
-	defer res.Body.Close()
-	if res.StatusCode != http.StatusOK {
-		return "", "", &publisherHTTPError{Host: res.Request.URL.Hostname(), StatusCode: res.StatusCode}
-	}
-	if c := res.Header.Get("Content-Type"); c != "" && !strings.Contains(strings.ToLower(c), "html") {
-		return "", "", errors.New("URL did not return an HTML page")
-	}
-	data, err := io.ReadAll(io.LimitReader(res.Body, maxHTML+1))
-	if err != nil {
-		return "", "", err
-	}
-	if len(data) > maxHTML {
-		return "", "", errors.New("page exceeds 5 MB limit")
-	}
-	return string(data), res.Request.URL.String(), nil
-}
-
-// publisherHTTPError preserves the HTTP status without assuming why access was denied.
-type publisherHTTPError struct {
-	Host       string
-	StatusCode int
-}
-
-func (e *publisherHTTPError) Error() string {
-	return fmt.Sprintf("article request to %s returned HTTP %d (%s)", e.Host, e.StatusCode, http.StatusText(e.StatusCode))
-}
-
-// A 401 or 403 is an access denial, not proof of a subscription requirement.
-func publisherAccessMessage(err error) (string, bool) {
-	var denied *publisherHTTPError
-	if errors.As(err, &denied) && (denied.StatusCode == http.StatusUnauthorized || denied.StatusCode == http.StatusForbidden) {
-		return "Publisher access restricted. The publisher declined ScraperGo's request. Open the original website to view any available preview, sign-in, or subscription options.", true
-	}
-	return "", false
-}
+// Legacy entry points delegate all request validation and HTML retrieval to internal/fetcher.
+func safeHost(ctx context.Context, host string) error { return fetcher.SafeHost(ctx, host) }
+func validatedURL(ctx context.Context, address string) (*url.URL, error) { return fetcher.ValidatedURL(ctx,address) }
+func setBrowserHeaders(req *http.Request) { fetcher.SetBrowserHeaders(req) }
+func setReadeckLikeHeaders(req *http.Request) { fetcher.SetReadeckLikeHeaders(req) }
+func alternateHeaderRetry(code int) bool { return fetcher.AlternateHeaderRetry(code) }
+func download(ctx context.Context, address string) (string,string,error) { return fetcher.Download(ctx,address) }
+type publisherHTTPError = fetcher.PublisherHTTPError
+func publisherAccessMessage(err error) (string,bool) { return fetcher.PublisherAccessMessage(err) }
 
 func api(w http.ResponseWriter, r *http.Request) {
  newArticleReadHandler().ServeHTTP(w,r)
