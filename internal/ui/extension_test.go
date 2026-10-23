@@ -13,7 +13,7 @@ func TestSafariFallbackUI(t *testing.T) {
 	}
 }
 func TestSafariExtensionArtifacts(t *testing.T) {
-	for _, p := range []string{"safari-extension/manifest.json", "safari-extension/background.js", "safari-extension/options.html"} {
+	for _, p := range []string{"../../safari-extension/manifest.json", "../../safari-extension/background.js", "../../safari-extension/options.html"} {
 		if _, err := os.Stat(p); err != nil {
 			t.Fatal(err)
 		}
@@ -21,7 +21,7 @@ func TestSafariExtensionArtifacts(t *testing.T) {
 }
 
 func TestSafariDirectOpenNoPublisherTab(t *testing.T) {
-	contents, err := os.ReadFile("safari-extension/background.js")
+	contents, err := os.ReadFile("../../safari-extension/background.js")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -35,7 +35,7 @@ func TestSafariDirectOpenNoPublisherTab(t *testing.T) {
 }
 
 func TestSafariReusesExistingReaderTab(t *testing.T) {
-	b, err := os.ReadFile("safari-extension/background.js")
+	b, err := os.ReadFile("../../safari-extension/background.js")
 	if err != nil {
 		t.Fatal(err)
 	}
