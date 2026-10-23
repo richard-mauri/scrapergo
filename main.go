@@ -10,7 +10,6 @@ import (
  "clean-article-reader/internal/imagedelivery"
  "clean-article-reader/internal/pageclassify"
  "clean-article-reader/internal/structured"
- "clean-article-reader/internal/recovery"
 	articlemodel "clean-article-reader/internal/article"
  sourcehtml "clean-article-reader/internal/sourcehtml"
 	"context"
@@ -19,12 +18,10 @@ import (
 	"flag"
 	"log"
 	"fmt"
-	"html"
 	"net/http"
 	"net/url"
 	"os"
 	"regexp"
-	"sort"
 	"strings"
 )
 
