@@ -11,7 +11,7 @@ import (
 
 func TestRecoverAuthorPortraitRejectsPoststoryBiography(t *testing.T) {
  raw:=`<html><body><main><article><figure><img src="/lead.jpg" alt="Editorial story photo"/></figure><p>`+strings.Repeat("This editorial paragraph establishes substantive source content. ",4)+`</p><section class="author-bio"><a href="/author/beth"><img src="/beth.jpg" alt="Photo of Beth Mole"/></a></section></article></main></body></html>`
- a:=articlemodel.Article{Byline:"Beth Mole",Blocks:[]articlemodel.Block{{Kind:"p",Text:"articlemodel.Article narrative retained."}}}
+ a:=articlemodel.Article{Byline:"Beth Mole",Blocks:[]articlemodel.Block{{Kind:"p",Text:"Article narrative retained."}}}
  contributors.RecoverAuthorPortrait(&a,raw,"https://example.org/health")
  for _,b:=range a.Blocks {if b.Kind=="img" && strings.Contains(b.URL,"beth.jpg") {t.Fatalf("post-story biography must not be prepended: %+v",a.Blocks)}}
 }
