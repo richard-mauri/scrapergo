@@ -2,6 +2,7 @@ package main
 
 import (
  "clean-article-reader/internal/extraction"
+ "clean-article-reader/internal/app"
  "clean-article-reader/internal/fetcher"
  "clean-article-reader/internal/ui"
  "clean-article-reader/internal/pageclassify"
@@ -17,7 +18,6 @@ import (
 	"fmt"
 	"html"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -25,7 +25,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 )
 
@@ -542,42 +541,16 @@ func main() {
 		fmt.Fprintln(os.Stderr, "ScraperGo:", err)
 		os.Exit(2)
 	}
-	mux := http.NewServeMux()
-	readHandler := newArticleReadHandler()
-	mux.Handle("/api/read", readHandler)
-	mux.HandleFunc("/api/classify", classifyArticle)
-	mux.Handle("/api/image-metadata", newArticleMetadataHandler(readHandler))
-	mux.HandleFunc("/api/article-image", articleImage)
-	mux.HandleFunc("/api/thumbnail", articleThumbnail)
-	mux.HandleFunc("/api/diagnostic/extract", diagnosticExtract)
-	mux.HandleFunc("/api/diagnostic/image-trace", diagnosticImageTrace)
-	mux.HandleFunc("/tanner.jpg", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet && r.Method != http.MethodHead {
-			w.Header().Set("Allow", "GET, HEAD")
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-		w.Header().Set("Content-Type", "image/jpeg")
-		w.Header().Set("Cache-Control", "public, max-age=86400")
-		w.Write(tannerJPG)
-	})
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/" {
-			http.NotFound(w, r)
-			return
-		}
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		w.Header().Set("Content-Security-Policy", "default-src 'self'; img-src 'self' https: data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; base-uri 'none'; object-src 'none'")
-		fmt.Fprint(w, ui.Render(appVersion,appBuild))
-	})
-	server := &http.Server{Addr: ":" + port, Handler: mux, ReadHeaderTimeout: 5 * time.Second}
-	log.Printf("%s listening on http://localhost:%s", appDisplayVersion(), port)
-	if err := server.ListenAndServe(); err != nil {
-		if errors.Is(err, syscall.EADDRINUSE) {
-			log.Printf("Port %s is already in use. Try a different port:\n  go run . --port 8081\n  ./dist/scrapergo-darwin-amd64 --port 8081\nOr set PORT=8081 before launching.", port)
-		} else {
-			log.Printf("HTTP server failed: %v", err)
-		}
-		os.Exit(1)
-	}
+ readHandler:=newArticleReadHandler()
+ err=app.Run(app.Config{Port:port,Version:appVersion,Build:appBuild},app.Handlers{
+  Read:readHandler,
+  Classify:classifyArticle,
+  ImageMetadata:newArticleMetadataHandler(readHandler),
+  ArticleImage:articleImage,
+  Thumbnail:articleThumbnail,
+  DiagnosticExtract:diagnosticExtract,
+  DiagnosticImageTrace:diagnosticImageTrace,
+  TannerPhoto:tannerJPG,
+ })
+ if err!=nil {os.Exit(1)}
 }
