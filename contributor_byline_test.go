@@ -1,6 +1,7 @@
 package main
 
 import (
+ "clean-article-reader/internal/ui"
  "strings"
  "testing"
 )
@@ -31,6 +32,6 @@ func TestNoBylineFragmentsPreservesEditorialLinks(t *testing.T) {
  if a.Byline!="Writer"||len(a.Blocks)!=2 {t.Fatalf("ordinary content altered: %+v",a)}
 }
 func TestOrdinaryArticleParagraphsCollapseWhitespace(t *testing.T){
- page:=renderedIndexHTML()
+ page:=ui.Render(appVersion,appBuild)
  if !strings.Contains(page,".content p{margin:1.1em 0;white-space:normal}") {t.Fatal("ordinary paragraphs should collapse source whitespace")}
 }
