@@ -1,6 +1,8 @@
 package main
 
 import (
+ articlemodel "clean-article-reader/internal/article"
+ "clean-article-reader/internal/bootstrap"
  "clean-article-reader/internal/recovery"
  "clean-article-reader/internal/reader"
  "clean-article-reader/internal/structured"
@@ -15,9 +17,9 @@ func TestFrozenStructuralLeadContract(t *testing.T) {
  raw,err:=os.ReadFile("testdata/structural_lead_contract.html")
  if err!=nil {t.Fatal(err)}
  cleaned:=structured.StripEmbeddedMedia(string(raw))
- extracted,err:=extractWithEvidence(cleaned,"https://news.example.test/report")
+ extracted,err:=bootstrap.ExtractWithEvidence(cleaned,"https://news.example.test/report")
  if err!=nil {t.Fatalf("extract fixture: %v",err)}
- if extracted.Article.WordCount<60 {t.Fatalf("unexpectedly short extraction: %d",extracted.Article.WordCount)}
+ if extracted.articlemodel.Article.WordCount<60 {t.Fatalf("unexpectedly short extraction: %d",extracted.articlemodel.Article.WordCount)}
  if extracted.Evidence.MetadataImageURL!="https://media.example.test/preview.jpg" {
   t.Fatalf("source metadata lost: %q",extracted.Evidence.MetadataImageURL)
  }
@@ -31,7 +33,7 @@ func TestFrozenStructuralLeadContract(t *testing.T) {
 func TestFrozenSourceImageRolesContract(t *testing.T) {
  raw,err:=os.ReadFile("testdata/source_role_contract.html")
  if err!=nil {t.Fatal(err)}
- article:=Article{Blocks:[]Block{
+ article:=articlemodel.Article{Blocks:[]articlemodel.Block{
   {Kind:"img",URL:"https://media.example.test/portrait.jpg"},
   {Kind:"img",URL:"https://media.example.test/field-photo.jpg"},
   {Kind:"img",URL:"https://media.example.test/linked-portrait.jpg"},
