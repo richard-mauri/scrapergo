@@ -1,7 +1,8 @@
 package media
 
 import (
- "clean-article-reader/internal/article""testing"
+ "clean-article-reader/internal/article"
+ "testing"
 
 )
 
