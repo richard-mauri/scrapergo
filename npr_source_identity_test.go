@@ -1,6 +1,7 @@
 package main
 
 import (
+ articlemodel "clean-article-reader/internal/article"
  "clean-article-reader/internal/documentmedia"
  "clean-article-reader/internal/media"
  "strings"
@@ -17,7 +18,7 @@ func TestNPRSourceImageIdentity(t *testing.T) {
 }
 func TestNPRLeadCaptionAndPortrait(t *testing.T) {
  caption:="In this file photo from July 2026, President Trump shows off an executive order he signed in the Oval Office of the White House."
- a:=Article{Title:"A report",ImageURL:nprLead,Blocks:[]Block{
+ a:=articlemodel.Article{Title:"A report",ImageURL:nprLead,Blocks:[]articlemodel.Block{
   {Kind:"img",Role:"author",URL:nprAuthor,Text:"Headshot of Stephen Fowler"},
   {Kind:"img",URL:nprInline,Text:caption},
   {Kind:"p",Text:"Reporting continues."},
@@ -33,7 +34,7 @@ func TestNPRLeadCaptionAndPortrait(t *testing.T) {
  if images!=2||leads!=1||authors!=1 {t.Fatalf("images=%d leads=%d authors=%d blocks=%+v",images,leads,authors,a.Blocks)}
 }
 func TestUnrelatedImagesRemainDistinct(t *testing.T) {
- a:=Article{Blocks:[]Block{{Kind:"img",URL:"https://example.com/a.jpg"},{Kind:"img",URL:"https://example.com/b.jpg"}}}
+ a:=articlemodel.Article{Blocks:[]articlemodel.Block{{Kind:"img",URL:"https://example.com/a.jpg"},{Kind:"img",URL:"https://example.com/b.jpg"}}}
  documentmedia.NormalizeDocument(&a,media.SourceIdentity)
  if len(a.Blocks)!=2{t.Fatalf("distinct photographs lost: %+v",a.Blocks)}
 }
