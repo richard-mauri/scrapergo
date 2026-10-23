@@ -4,6 +4,7 @@ import (
  "clean-article-reader/internal/reader"
  "clean-article-reader/internal/extraction"
  "clean-article-reader/internal/app"
+ "clean-article-reader/internal/httpapi"
  "clean-article-reader/internal/fetcher"
  "clean-article-reader/internal/pageclassify"
  "clean-article-reader/internal/structured"
@@ -27,7 +28,7 @@ import (
 
 // ScraperGo application version is defined once and shared by all presentation paths.
 const appVersion = "0.2.85"
-const appBuild = "Architecture PR #48"
+const appBuild = "Architecture PR #49"
 
 func appDisplayVersion() string { return "ScraperGo v" + appVersion + " · " + appBuild }
 const sampleURL = "https://247wallst.com/investing/2026/10/16/taiwan-is-planning-4-billion-industrial-parks-in-texas-for-nvidias-suppliers/"
@@ -507,7 +508,7 @@ func main() {
  readHandler:=newArticleReadHandler()
  err=app.Run(app.Config{Port:port,Version:appVersion,Build:appBuild},app.Handlers{
   Read:readHandler,
-  Classify:classifyArticle,
+  Classify:(&httpapi.Classifier{Read:readHandler,ValidateURL:fetcher.ValidatedURL}).ServeHTTP,
   ImageMetadata:newArticleMetadataHandler(readHandler),
   ArticleImage:articleImage,
   Thumbnail:articleThumbnail,
