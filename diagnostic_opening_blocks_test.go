@@ -1,6 +1,7 @@
 package main
 
 import (
+ articlemodel "clean-article-reader/internal/article"
  "clean-article-reader/internal/diagnostics"
  "encoding/json"
  "net/http"
@@ -10,7 +11,7 @@ import (
 )
 
 func TestOpeningBlockTracePreservesPartsAndLinks(t *testing.T) {
- blocks:=[]Block{{Kind:"p",Text:"Ruth Sherlock",Parts:[]TextPart{{Text:"Ruth Sherlock",URL:"https://www.npr.org/people/123"}}},{Kind:"p",Text:","},{Kind:"img",Role:"author",URL:"https://example.org/portrait.jpg"}}
+ blocks:=[]articlemodel.Block{{Kind:"p",Text:"Ruth Sherlock",Parts:[]articlemodel.TextPart{{Text:"Ruth Sherlock",URL:"https://www.npr.org/people/123"}}},{Kind:"p",Text:","},{Kind:"img",Role:"author",URL:"https://example.org/portrait.jpg"}}
  got:=diagnostics.TraceOpeningBlocks("readability",blocks)
  if len(got)!=3||got[0]["stage"]!="readability"||got[0]["index"]!=0 {t.Fatalf("trace missing blocks: %+v",got)}
  data,err:=json.Marshal(got);if err!=nil{t.Fatal(err)}
