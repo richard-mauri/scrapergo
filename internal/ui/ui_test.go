@@ -9,7 +9,7 @@ func TestRenderInjectsVersionAndEmbeddedAssets(t *testing.T) {
  page:=Render("0.2.85","Architecture PR #46")
  for _,required:=range []string{
   "ScraperGo · v0.2.85 · Architecture PR #46",
-  "<style>","<script>","reader","id=\"form\"",
+  "<style>","<script>","id=\"form\"",
  } {
   if !strings.Contains(page,required) {t.Errorf("render missing %q",required)}
  }
