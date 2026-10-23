@@ -3,7 +3,6 @@ package extraction
 import (
  "clean-article-reader/internal/article"
  "clean-article-reader/internal/sourcehtml"
- "clean-article-reader/internal/recovery"
  "encoding/json"
  "fmt"
  "html"
@@ -165,8 +164,6 @@ func ChooseArticle(root *sourcehtml.Node) *sourcehtml.Node {
 	return ranked[0].n
 }
 
-// Compatibility entrypoint for extraction callers during the main-package migration.
-func RecoverArticlePhotographs(a *article.Article, raw, baseURL string) { recovery.RecoverArticlePhotographs(a,raw,baseURL) }
 
 // JSON-LD often contains a clean articleBody even if visible markup is wrapped
 // in advertisement-related containers. Prefer the normal page body when viable.
