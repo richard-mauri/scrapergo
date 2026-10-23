@@ -1,6 +1,7 @@
 package main
 
 import (
+ "clean-article-reader/internal/contributors"
  "clean-article-reader/internal/ui"
  "strings"
  "testing"
@@ -18,7 +19,7 @@ func TestContributorBylineReconciliation(t *testing.T) {
   {Kind:"img",Role:"lead",URL:"https://example.org/security.jpg"},
   {Kind:"p",Text:"Real reporting remains."},
  }}
- reconcileContributorByline(&a)
+ contributors.ReconcileContributorByline(&a)
  expected:="Ruth Sherlock, Samantha Balaban, Nuha Musleh, Daniel Estrin"
  if a.Byline!=expected {t.Fatalf("byline=%q, want %q",a.Byline,expected)}
  for _,b:=range a.Blocks {
@@ -28,7 +29,7 @@ func TestContributorBylineReconciliation(t *testing.T) {
 }
 func TestNoBylineFragmentsPreservesEditorialLinks(t *testing.T) {
  a:=Article{Byline:"Writer",Blocks:[]Block{{Kind:"p",Text:"A story about someone."},{Kind:"p",Text:"Further reading",Links:[]InlineLink{{Text:"Further reading",URL:"https://example.org/story"}}}}}
- reconcileContributorByline(&a)
+ contributors.ReconcileContributorByline(&a)
  if a.Byline!="Writer"||len(a.Blocks)!=2 {t.Fatalf("ordinary content altered: %+v",a)}
 }
 func TestOrdinaryArticleParagraphsCollapseWhitespace(t *testing.T){
