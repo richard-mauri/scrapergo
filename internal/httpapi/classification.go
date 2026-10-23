@@ -1,14 +1,20 @@
-package main
+package httpapi
 
 import (
 	"context"
 	"encoding/json"
 	"net/http"
+ "net/url"
 	"net/http/httptest"
 	"strings"
 	"sync"
 	"time"
 )
+
+type Classifier struct {
+ Read http.Handler
+ ValidateURL func(context.Context,string) (*url.URL,error)
+}
 
 // Classification follows /api/read. Confirmed extraction failures are rejected;
 // transient upstream and transport failures are unavailable, never accepted.
@@ -29,7 +35,7 @@ var classificationCache = struct {
 }{entries: make(map[string]classificationCacheEntry)}
 var classificationSlots = make(chan struct{}, 6)
 
-func classifyArticle(w http.ResponseWriter, r *http.Request) {
+func (h *Classifier) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
@@ -48,7 +54,7 @@ func classifyArticle(w http.ResponseWriter, r *http.Request) {
 	}
 	// Preserve all the SSRF validation in /api/read, even for cached results.
 	// Do not cache invalid URL responses.
-	if _, err := validatedURL(r.Context(), input.URL); err != nil {
+	if _, err := h.ValidateURL(r.Context(), input.URL); err != nil {
 		http.Error(w, "invalid public article URL", 422)
 		return
 	}
@@ -79,7 +85,7 @@ func classifyArticle(w http.ResponseWriter, r *http.Request) {
 	payload, _ := json.Marshal(input)
 	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, "http://localhost/api/read", strings.NewReader(string(payload)))
 	rec := httptest.NewRecorder()
-	api(rec, req)
+	h.Read.ServeHTTP(rec, req)
 	result := classificationResult{Classification: "unknown", Reason: "extraction_unavailable"}
 	if ctx.Err() != nil {
 		result.Reason = "timeout"

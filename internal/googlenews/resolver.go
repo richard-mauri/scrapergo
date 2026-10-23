@@ -1,7 +1,7 @@
-package main
+package googlenews
 
 import (
- "clean-article-reader/internal/googlenews"
+ "clean-article-reader/internal/fetcher"
  "context"
  "fmt"
  "html"
@@ -11,16 +11,16 @@ import (
  "time"
 )
 
-func resolveGoogleNewsURL(ctx context.Context, address string) (string, error) {
-	id, isNews, err := googlenews.ArticleID(address)
+func ResolveURL(ctx context.Context, address string) (string, error) {
+	id, isNews, err := ArticleID(address)
 	if err != nil {
 		return "", err
 	}
 	if !isNews {
 		return address, nil
 	}
-	if legacy := googlenews.LegacyPublisherURL(id); legacy != "" {
-		if _, err := validatedURL(ctx, legacy); err != nil {
+	if legacy := LegacyPublisherURL(id); legacy != "" {
+		if _, err := fetcher.ValidatedURL(ctx, legacy); err != nil {
 			return "", err
 		}
 		return legacy, nil
@@ -51,12 +51,12 @@ func resolveGoogleNewsURL(ctx context.Context, address string) (string, error) {
 	if readErr != nil {
 		return "", readErr
 	}
-	signature := googlenews.NewsSignatureRE.FindSubmatch(body)
-	timestamp := googlenews.NewsTimestampRE.FindSubmatch(body)
+	signature := NewsSignatureRE.FindSubmatch(body)
+	timestamp := NewsTimestampRE.FindSubmatch(body)
 	if len(signature) < 2 || len(timestamp) < 2 {
 		return "", fmt.Errorf("Google News signature lookup failed (HTTP %d; missing article signature or timestamp). The page may require consent or Google may have changed its format", resp.StatusCode)
 	}
-	values, err := googlenews.RPCPayload(id, string(timestamp[1]), html.UnescapeString(string(signature[1])))
+	values, err := RPCPayload(id, string(timestamp[1]), html.UnescapeString(string(signature[1])))
 	if err != nil {
 		return "", err
 	}
@@ -79,11 +79,11 @@ func resolveGoogleNewsURL(ctx context.Context, address string) (string, error) {
 	if result.StatusCode != 200 {
 		return "", fmt.Errorf("Google News Fbv4je RPC returned HTTP %d", result.StatusCode)
 	}
-	publisher, err := googlenews.ParseRPCResponse(rpcData)
+	publisher, err := ParseRPCResponse(rpcData)
 	if err != nil {
 		return "", err
 	}
-	if _, err = validatedURL(ctx, publisher); err != nil {
+	if _, err = fetcher.ValidatedURL(ctx, publisher); err != nil {
 		return "", fmt.Errorf("invalid publisher destination: %w", err)
 	}
 	return publisher, nil

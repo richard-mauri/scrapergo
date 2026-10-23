@@ -1,6 +1,7 @@
 package main
 
 import (
+ "clean-article-reader/internal/googlenews"
  "clean-article-reader/internal/reader"
  "clean-article-reader/internal/structured"
  "encoding/json"
@@ -103,7 +104,7 @@ func diagnosticImageTrace(w http.ResponseWriter,r *http.Request) {
  u,err:=url.Parse(input.URL)
  if err!=nil|| (u.Scheme!="http"&&u.Scheme!="https")||u.Hostname()==""||u.User!=nil||u.Fragment!=""||strings.ContainsAny(input.URL,"\r\n")||len(input.HTML)>maxHTML{http.Error(w,"invalid URL or HTML",400);return}
  if input.HTML=="" {
-  resolved,err:=resolveGoogleNewsURL(r.Context(),input.URL)
+  resolved,err:=googlenews.ResolveURL(r.Context(),input.URL)
   if err!=nil {http.Error(w,"URL resolution failed",422);return}
   raw,final,err:=download(r.Context(),resolved)
   if err!=nil {http.Error(w,"article retrieval failed",422);return}
