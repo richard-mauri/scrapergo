@@ -1,6 +1,7 @@
 package main
 
 import (
+ articlemodel "clean-article-reader/internal/article"
  "clean-article-reader/internal/extraction"
 	"fmt"
 	"net/url"
@@ -16,7 +17,7 @@ func TestGenericStructuredDocument(t *testing.T) {
 	}
 	raw.WriteString(`</article></main><footer><h2>Footer</h2></footer></html>`)
 	base, _ := url.Parse("https://example.org/guide")
-	got, ok := extraction.RecoverStructuredDocument(raw.String(), []Block{{Kind: "p", Text: "Model 1 overview"}}, base)
+	got, ok := extraction.RecoverStructuredDocument(raw.String(), []articlemodel.Block{{Kind: "p", Text: "Model 1 overview"}}, base)
 	if !ok {
 		t.Fatal("missed structured content")
 	}
