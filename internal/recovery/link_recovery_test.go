@@ -25,7 +25,7 @@ func TestRecoverMissingArticleLinksFromSelectedParagraphs(t *testing.T) {
 }
 func TestRecoverLinksRejectUnsafeAndDoNotReplaceExisting(t *testing.T) {
 	raw := `<article><p>Read the document <a href="javascript:alert(1)">here</a>.</p><p>Another document <a href="/safe.pdf">here</a>.</p></article>`
-	a := article.Article{Blocks: []article.Block{{Kind: "p", Text: "Read the document here."}, {Kind: "p", Text: "Another document here.", Parts: []TextPart{{Text: "Another document "}, {Text: "here", URL: "https://example.com/original.pdf"}, {Text: "."}}}}}
+	a := article.Article{Blocks: []article.Block{{Kind: "p", Text: "Read the document here."}, {Kind: "p", Text: "Another document here.", Parts: []article.TextPart{{Text: "Another document "}, {Text: "here", URL: "https://example.com/original.pdf"}, {Text: "."}}}}}
 	RecoverMissingArticleLinks(&a, raw, "https://example.com/article")
 	if len(a.Blocks[0].Links) != 0 {
 		t.Fatal("javascript link recovered")
