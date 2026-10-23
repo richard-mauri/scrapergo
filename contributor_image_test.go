@@ -1,6 +1,11 @@
 package main
 
-import "testing"
+import (
+ "testing"
+ "clean-article-reader/internal/contributors"
+ "clean-article-reader/internal/documentmedia"
+ "clean-article-reader/internal/media"
+)
 
 const estrinPortrait = "https://media.npr.org/assets/img/2020/01/02/daniel-estrin_sq-4199304dee8cdf91935a65a2d0b069e07311386e.jpg?s=100&c=85&f=jpeg"
 
