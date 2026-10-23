@@ -70,7 +70,7 @@ func TestEditorialContinuityRejectsUnverifiedContent(t *testing.T) {
 
 func TestEditorialContinuityMixedWrapperAndCaptionOnce(t *testing.T) {
 	base, _ := url.Parse("https://example.org/story")
-	raw := `<html><main><h1>articlemodel.Article</h1>
+	raw := `<html><main><h1>Article</h1>
 <p>First editorial paragraph contains enough distinctive information to establish that it belongs to this long article, and matches the reader selection exactly.</p>
 <div class="advertisement-wrapper">
 <div class="advertisement"><p>Sponsored offers and deals that should not appear in reading view.</p></div>
