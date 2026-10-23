@@ -18,7 +18,7 @@ func articleProcessor() reader.Processor {
   ClassifySourceImages: classifyImagesFromSource,
   ReconcileByline: reconcileContributorByline,
   RecoverOpeningFigure: recoverOpeningSourceFigure,
-  Normalize: normalizeArticleDocument,
+  Normalize: func(a *article.Article, lead string) { normalizeArticleDocument(a, lead) },
   RestoreGalleryGroups: groupArticleGalleryImages,
  })
 }
