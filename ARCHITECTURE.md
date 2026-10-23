@@ -1,6 +1,6 @@
 # ScraperGo architecture contract
 
-**Status:** current merged `main` after PR #63 (2026-10-23). This is an ownership contract, not a claim that every implementation or test is perfect. See [HISTORY.md](HISTORY.md) for the completed migration.
+**Status:** current merged `main` after PR #63 (2026-10-23). This is an ownership contract, not a claim that every implementation or test is perfect.
 
 ## Runtime and dependency direction
 
