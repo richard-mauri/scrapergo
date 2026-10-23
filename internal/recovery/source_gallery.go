@@ -43,7 +43,7 @@ func SourceGalleryCandidate(n *sourcehtml.Node) bool {
 // groupArticleGalleryImages restores photo layouts using publisher-neutral
 // structural evidence. Editorial images without a compact shared layout stay
 // independent, regardless of their proximity in the extracted text.
-func GroupArticleGalleryImages(a *article.Article, sourceHTML, baseURL string, resolveImage func(*sourcehtml.Node,string) string) {
+func GroupArticleGalleryImages(a *article.Article, sourceHTML, baseURL string) {
  if a==nil||len(a.Blocks)==0{return}
  root:=sourcehtml.Parse(sourceHTML)
  groups:=[][]string{}
@@ -55,7 +55,7 @@ func GroupArticleGalleryImages(a *article.Article, sourceHTML, baseURL string, r
   urls:=[]string{}
   seen:=map[string]bool{}
   for _,img:=range sourcehtml.Find(n,func(x *sourcehtml.Node)bool{return x.Tag=="img"}) {
-   u:=resolveImage(img,baseURL)
+   u:=sourcehtml.ImageURL(img,baseURL)
    key:=media.Identity(u)
    if u==""||key==""||seen[key]||claimed[key] {continue}
    seen[key]=true
