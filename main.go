@@ -12,8 +12,8 @@ import (
 	"context"
 	_ "embed"
 	"encoding/json"
-	"errors"
 	"flag"
+	"log"
 	"fmt"
 	"html"
 	"net/http"
@@ -22,7 +22,6 @@ import (
 	"regexp"
 	"sort"
 	"strings"
-	"time"
 )
 
 // ScraperGo application version is defined once and shared by all presentation paths.
