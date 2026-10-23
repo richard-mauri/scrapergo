@@ -54,36 +54,7 @@ func parseHTML(raw string) *Node { return sourcehtml.Parse(raw) }
 func find(root *Node, test func(*Node) bool) []*Node { return sourcehtml.Find(root,test) }
 func textOf(n *Node) string { return sourcehtml.Text(n) }
 func meta(root *Node, keys ...string) string { return sourcehtml.Meta(root, keys...) }
-func articleImageURL(n *Node, baseURL string) string {
-	if n.Tag != "img" {
-		return ""
-	}
-	// Prefer actual lazy-loaded URLs over transparent placeholder src values.
-	candidates := []string{n.Attr["data-src"], n.Attr["data-original"], n.Attr["data-lazy-src"], n.Attr["src"]}
-	for _, ss := range []string{n.Attr["data-srcset"], n.Attr["srcset"]} {
-		if ss != "" {
-			fields := strings.Fields(strings.TrimSpace(strings.Split(ss, ",")[0]))
-			if len(fields) > 0 {
-				candidates = append(candidates, fields[0])
-			}
-		}
-	}
-	base, err := url.Parse(baseURL)
-	if err != nil {
-		return ""
-	}
-	for _, raw := range candidates {
-		u, err := url.Parse(strings.TrimSpace(raw))
-		if err != nil || u.String() == "" {
-			continue
-		}
-		dest := base.ResolveReference(u)
-		if (dest.Scheme == "https" || dest.Scheme == "http") && dest.Host != "" && dest.User == nil && !strings.HasSuffix(strings.ToLower(dest.Path), ".svg") {
-			return dest.String()
-		}
-	}
-	return ""
-}
+func articleImageURL(n *Node, baseURL string) string { return sourcehtml.ImageURL(n,baseURL) }
 
 // inlineTextParts preserves anchor targets in their exact reading position.
 // The browser renderer creates safe clickable links from these parts.
