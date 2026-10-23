@@ -511,7 +511,7 @@ func main() {
   Classify:(&httpapi.Classifier{Read:readHandler,ValidateURL:fetcher.ValidatedURL}).ServeHTTP,
   ImageMetadata:newArticleMetadataHandler(readHandler),
   ArticleImage:articleImage,
-  Thumbnail:articleThumbnail,
+  Thumbnail:httpapi.NewThumbnailHandler(fetcher.ValidatedURL,http.HandlerFunc(articleImage)).ServeHTTP,
   DiagnosticExtract:diagnosticExtract,
   DiagnosticImageTrace:diagnosticImageTrace,
   TannerPhoto:tannerJPG,
