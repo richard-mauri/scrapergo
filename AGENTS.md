@@ -5,6 +5,14 @@ This is the **entry point for development agents**, not a duplicate of the archi
 - [ARCHITECTURE.md](ARCHITECTURE.md) — binding package ownership, dependencies, security boundaries and architecture tests.
 - [DEVELOPMENT.md](DEVELOPMENT.md) — authoritative GitHub branch, Issues, PR, testing, Mac acceptance and release procedures.
 
+## Mandatory workflow acknowledgment — before development
+
+Before creating a branch, modifying source or documentation, opening an Issue or PR, or carrying out other development work, **read this file, CURRENT_WORK.md, ARCHITECTURE.md and DEVELOPMENT.md from the current GitHub working branch**. Check the actual GitHub branch and PR state; handoff notes may be stale.
+
+**State the applicable workflow back to the owner before proceeding.** The acknowledgment must cover: (1) the authoritative merged baseline, active branch/PR and current work; (2) Issue, scoped-branch and draft-PR procedure; (3) code/test and architecture constraints; (4) CI checks and their limits; (5) the complete Mac checkout, test, build and launch commands with the real branch name for code/runtime work; and (6) owner-side Safari acceptance and explicit authorization before merge, tag or release.
+
+Do not substitute a generic promise to follow instructions for this concrete summary. **At code/runtime handoff, repeat the entire copy-and-pasteable Mac command block from DEVELOPMENT.md with the actual branch name**, even if it was shown earlier. For documentation-only work, state the applicable documentation/CI checks instead. Clearly identify checks not performed and blockers; never imply CI validates Safari or a live publisher.
+
 ## Mandatory conduct
 
 - Inspect the actual current code and relevant tests before proposing changes; do not follow obsolete migration notes as current instructions.
