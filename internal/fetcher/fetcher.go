@@ -144,6 +144,21 @@ func Download(ctx context.Context, address string) (string, string, error) {
 		break
 	}
 	defer res.Body.Close()
+	if res.StatusCode == http.StatusAccepted {
+		// Capture bounded response characteristics without logging page text.
+		sample, sampleErr := io.ReadAll(io.LimitReader(res.Body, 4096))
+		if sampleErr != nil {
+			log.Printf("fetch accepted-response host=%s sample_error=%v", res.Request.URL.Hostname(), sampleErr)
+		} else {
+			lower := strings.ToLower(string(sample))
+			log.Printf("fetch accepted-response host=%s sample_bytes=%d html_hint=%t article_hint=%t challenge_hint=%t retry_after_present=%t",
+				res.Request.URL.Hostname(), len(sample),
+				strings.Contains(lower, "<html") || strings.Contains(lower, "<!doctype html"),
+				strings.Contains(lower, "<article"),
+				strings.Contains(lower, "challenge") || strings.Contains(lower, "cf-browser-verification") || strings.Contains(lower, "captcha"),
+				res.Header.Get("Retry-After") != "")
+		}
+	}
 	if res.StatusCode != http.StatusOK {
 		return "", "", &PublisherHTTPError{Host: res.Request.URL.Hostname(), StatusCode: res.StatusCode}
 	}
