@@ -3,6 +3,9 @@ package fetcher
 
 import (
  "context"
+ "encoding/json"
+ "html"
+ "path"
  "errors"
  "fmt"
  "io"
@@ -144,6 +147,7 @@ func Download(ctx context.Context, address string) (string, string, error) {
 		break
 	}
 	defer res.Body.Close()
+	challenge := false
 	if res.StatusCode == http.StatusAccepted {
 		// Capture bounded response characteristics without logging page text.
 		sample, sampleErr := io.ReadAll(io.LimitReader(res.Body, 4096))
@@ -151,12 +155,21 @@ func Download(ctx context.Context, address string) (string, string, error) {
 			log.Printf("fetch accepted-response host=%s sample_error=%v", res.Request.URL.Hostname(), sampleErr)
 		} else {
 			lower := strings.ToLower(string(sample))
+			challenge = strings.Contains(lower, "challenge") || strings.Contains(lower, "cf-browser-verification") || strings.Contains(lower, "captcha")
 			log.Printf("fetch accepted-response host=%s sample_bytes=%d html_hint=%t article_hint=%t challenge_hint=%t retry_after_present=%t",
 				res.Request.URL.Hostname(), len(sample),
 				strings.Contains(lower, "<html") || strings.Contains(lower, "<!doctype html"),
 				strings.Contains(lower, "<article"),
-				strings.Contains(lower, "challenge") || strings.Contains(lower, "cf-browser-verification") || strings.Contains(lower, "captcha"),
+				challenge,
 				res.Header.Get("Retry-After") != "")
+		}
+	}
+	if res.StatusCode == http.StatusAccepted && challenge {
+		// A challenge is not article HTML. Try only the publisher's public
+		// WordPress post API, without copying browser verification tokens.
+		if fallbackHTML, ok := wordpressFallback(ctx, client, u); ok {
+			log.Printf("fetch wordpress-fallback host=%s success=true", u.Hostname())
+			return fallbackHTML, u.String(), nil
 		}
 	}
 	if res.StatusCode != http.StatusOK {
@@ -194,3 +207,64 @@ func PublisherAccessMessage(err error) (string, bool) {
 	return "", false
 }
 
+
+type wpPublicPost struct {
+ Slug string `json:"slug"`
+ Link string `json:"link"`
+ Status string `json:"status"`
+ Title struct { Rendered string `json:"rendered"` } `json:"title"`
+ Content struct { Rendered string `json:"rendered"`; Protected bool `json:"protected"` } `json:"content"`
+}
+
+func canonicalWPURL(u *url.URL) string {
+ copy := *u
+ copy.RawQuery = ""
+ copy.Fragment = ""
+ copy.Path = strings.TrimSuffix(copy.EscapedPath(), "/")
+ copy.RawPath = ""
+ return copy.String()
+}
+
+// decodePublicWPPost rejects mismatched slugs/canonical URLs and protected content.
+func decodePublicWPPost(data []byte, original *url.URL, slug string) (string, bool) {
+ var posts []wpPublicPost
+ if err := json.Unmarshal(data, &posts); err != nil || len(posts) != 1 { return "", false }
+ p := posts[0]
+ link, err := url.Parse(p.Link)
+ if err != nil || link.Scheme != original.Scheme || !strings.EqualFold(link.Host, original.Host) ||
+ canonicalWPURL(link) != canonicalWPURL(original) ||
+ p.Slug != slug || p.Status != "publish" || p.Content.Protected || strings.TrimSpace(p.Content.Rendered) == "" { return "", false }
+ // Existing HTML extraction remains the single source of article rendering.
+ return "<!doctype html><html><head><meta charset=\"utf-8\"><title>" +
+ html.EscapeString(p.Title.Rendered) + "</title><link rel=\"canonical\" href=\"" +
+ html.EscapeString(original.String()) + "\"></head><body><article><h1>" +
+ html.EscapeString(p.Title.Rendered) + "</h1>" + p.Content.Rendered +
+ "</article></body></html>", true
+}
+
+// wordpressFallback performs one same-origin, bounded lookup after a challenge.
+// Its network client retains the existing SSRF, redirect and timeout safeguards.
+func wordpressFallback(ctx context.Context, client *http.Client, original *url.URL) (string, bool) {
+ slug := path.Base(strings.TrimSuffix(original.Path, "/"))
+ if slug == "" || slug == "." || slug == "/" || strings.Contains(slug, ".") { return "", false }
+ api := *original
+ api.Path = "/wp-json/wp/v2/posts"
+ api.RawPath = ""
+ q := url.Values{}
+ q.Set("slug",slug)
+ q.Set("_fields","id,slug,link,status,title,content")
+ api.RawQuery = q.Encode()
+ api.Fragment = ""
+ req, err := http.NewRequestWithContext(ctx, http.MethodGet, api.String(), nil)
+ if err != nil { return "", false }
+ req.Header.Set("Accept","application/json")
+ response, err := client.Do(req)
+ if err != nil { return "", false }
+ defer response.Body.Close()
+ if response.StatusCode != http.StatusOK || response.Request.URL.Scheme != original.Scheme ||
+ !strings.EqualFold(response.Request.URL.Host, original.Host) ||
+ !strings.Contains(strings.ToLower(response.Header.Get("Content-Type")), "application/json") { return "", false }
+ payload, err := io.ReadAll(io.LimitReader(response.Body, MaxHTML+1))
+ if err != nil || len(payload)>MaxHTML { return "", false }
+ return decodePublicWPPost(payload, original, slug)
+}
