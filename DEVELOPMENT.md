@@ -2,6 +2,10 @@
 
 GitHub [main](https://github.com/richard-mauri/scrapergo/tree/main) is the authoritative merged code baseline. Start with [AGENTS.md](AGENTS.md) and consult [ARCHITECTURE.md](ARCHITECTURE.md) for technical constraints. Keep branches short-lived and scoped (for example `docs/consolidate-reference`, `fix/issue-N-description`, `test/area-contract`). Open a **draft PR** against `main` with rationale, changed boundaries, issue references, regression risks, CI and Mac/Safari acceptance. The owner decides when to merge, tag or release. Do not bump `appVersion` during documentation or ordinary development PRs.
 
+## Session acknowledgment and handoff gate
+
+Before development actions, explicitly summarize the workflow required by [AGENTS.md](AGENTS.md) to the owner, using the current working branch and verified PR state. This is a required checkpoint, not proof that later validation has happened. For a code/runtime change, the final handoff must include the full local Mac command block below with the actual branch substituted, followed by the relevant Safari acceptance steps and precise CI/test status. For documentation-only changes, report Markdown/link/path checks and applicable CI; do not require a local app restart.
+
 ## Bugs and GitHub Issues
 
 1. Reproduce the defect; open an Issue in the affected repository before broadening scope.
