@@ -4,6 +4,7 @@ import (
  "context"
  "errors"
  "net/http"
+ "net/url"
  "strings"
  "testing"
 )
@@ -46,5 +47,28 @@ func TestRequestProfiles(t *testing.T) {
   if req.Header.Get("User-Agent")=="" || req.Header.Get("Accept")=="" || req.Header.Get("Accept-Language")=="" {
    t.Fatal("missing expected request profile headers")
   }
+ }
+}
+
+func TestWordPressPublicPostValidation(t *testing.T) {
+ original, _ := url.Parse("https://sailinganarchy.com/2026/10/22/ferraris-100-foot-flying-yellow-monster-gets-its-hull/")
+ const slug = "ferraris-100-foot-flying-yellow-monster-gets-its-hull"
+ good := `[{"slug":"`+slug+`","link":"https://sailinganarchy.com/2026/10/22/`+slug+`/","status":"publish","title":{"rendered":"Ferrari"},"content":{"rendered":"<p>Valid article text</p>","protected":false}}]`
+ if html, ok := decodePublicWPPost([]byte(good), original, slug); !ok || !strings.Contains(html,"Valid article text") {
+  t.Fatalf("public post rejected: %v",ok)
+ }
+ for name, data := range map[string]string{
+  "invalid-json": "{",
+  "no-match": "[]",
+  "duplicate": good[:len(good)-1]+","+good[1:],
+  "protected": strings.Replace(good, `"protected":false`,`"protected":true`,1),
+  "draft": strings.Replace(good, `"publish"`,`"draft"`,1),
+  "mismatched-link": strings.Replace(good, "https://sailinganarchy.com/2026/10/22/", "https://another.example/2026/10/22/",1),
+  "mismatched-slug": strings.Replace(good, `"slug":"`+slug+`"`, `"slug":"wrong"`,1),
+  "empty-body": strings.Replace(good, "<p>Valid article text</p>", "",1),
+ } {
+  t.Run(name,func(t *testing.T) {
+   if _,ok:=decodePublicWPPost([]byte(data),original,slug);ok { t.Fatal("untrusted response accepted") }
+  })
  }
 }
