@@ -1,5 +1,14 @@
 # ScraperGo — Current work
 
+## Current documentation-only branch (2026-10-24)
+
+- Working branch: `docs/branch-lifecycle-20261024` → `main`. Scope: document safe post-merge branch deletion, prevent accumulated stale heads, preserve owner-controlled releases.
+- Updated `DEVELOPMENT.md` while keeping `AGENTS.md` as its existing agent entry point.
+- Existing historical branches are **not deleted**. ScraperGo currently has 66 remote branches, 63 matching heads of merged PRs; bulk cleanup requires a separately approved safety audit.
+- No runtime code or user state changes. Check final-head CI before handoff; owner approval required to merge this documentation PR.
+- Previous PR-cycle notes below are historical context and should be reconciled with live GitHub state, not treated as current open PRs.
+
+
 **Snapshot:** October 23, 2026 · **Repository:** https://github.com/richard-mauri/scrapergo
 
 ## Active PR: #64 — documentation consolidation
