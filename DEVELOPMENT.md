@@ -2,6 +2,22 @@
 
 GitHub [main](https://github.com/richard-mauri/scrapergo/tree/main) is the authoritative merged code baseline. Start with [AGENTS.md](AGENTS.md) and consult [ARCHITECTURE.md](ARCHITECTURE.md) for technical constraints. Keep branches short-lived and scoped (for example `docs/consolidate-reference`, `fix/issue-N-description`, `test/area-contract`). Open a **draft PR** against `main` with rationale, changed boundaries, issue references, regression risks, CI and Mac/Safari acceptance. The owner decides when to merge, tag or release. Do not bump `appVersion` during documentation or ordinary development PRs.
 
+## Branch lifecycle and post-merge cleanup
+
+- `main` is the authoritative merged baseline. Start each new Issue's feature/fix/documentation branch from the current `main`; one focused draft PR per scoped task. Do not reuse an old shared `dev` branch or previous feature branch.
+- After **owner-authorized PR merge** and verification that the PR is actually merged into `main`, remove its short-lived remote head branch and prune its local counterpart. This is normal completion of the approved PR cycle, not authorization to merge unrelated changes.
+- Before branch deletion, check that it is not the default branch, is not used by an open PR, and contains no unmerged work requiring preservation. Check PR status and merge ancestry; a closed-but-unmerged PR is **not** a deletion signal. If any check is uncertain, preserve the branch and ask the owner.
+- Never delete `main`, an active feature branch, or a designated archive/release branch without separate owner authorization. **Bulk cleanup of historical branches requires a separately reviewed candidate list and explicit approval**; do not infer it from this policy.
+- After the PR is merged, typical local cleanup on the owner's Mac (substitute the actual branch) is:
+  ```bash
+  git checkout main
+  git pull --ff-only origin main
+  git branch -d ACTUAL-MERGED-BRANCH
+  git fetch --prune origin
+  ```
+  Delete the merged remote branch through GitHub's **Delete branch** control (or `git push origin --delete ACTUAL-MERGED-BRANCH`) only after the safety checks. Do not use `git branch -D` or force-push as a shortcut.
+- GitHub repository setting **Automatically delete head branches** may be enabled by the owner. It acts after PR merge; still verify any unusual protected, release or archive branch is excluded. Git retains commits that are part of `main` after branch names are deleted.
+
 ## Session acknowledgment and handoff gate
 
 Before development actions, explicitly summarize the workflow required by [AGENTS.md](AGENTS.md) to the owner, using the current working branch and verified PR state. This is a required checkpoint, not proof that later validation has happened. For a code/runtime change, the final handoff must include the full local Mac command block below with the actual branch substituted, followed by the relevant Safari acceptance steps and precise CI/test status. For documentation-only changes, report Markdown/link/path checks and applicable CI; do not require a local app restart.
