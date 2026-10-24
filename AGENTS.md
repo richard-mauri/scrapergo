@@ -34,6 +34,8 @@ Do not substitute a generic promise to follow instructions for this concrete sum
 
 ## Handoff
 
+**Before handing a PR to the owner for review, update the existing GitHub PR title and description to reflect the actual latest scope and implementation.** Replace obsolete diagnostic-only, proposed-work, test-pending, or other stale statements. Include the current head commit, relevant Issue links, changed files/behavior, exact CI result at that head, Mac/Safari acceptance evidence, outstanding checks, known limitations, and explicit draft/no-merge status. Verify the saved PR text on GitHub after the update; never hand off a stale PR description or claim unperformed checks passed.
+
 Follow the change-type-specific validation in **DEVELOPMENT.md**. For code/runtime PRs, include its full Mac checkout, test, build and launch sequence with the **actual branch name** substituted. Documentation-only PRs require documentary review and existing CI, not a local application build or Safari acceptance.
 
 Historical notes under `docs/` and in Git history are reference material, **not current instructions**.
