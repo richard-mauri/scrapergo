@@ -2,6 +2,12 @@ package imagedelivery
 
 import (
 	"context"
+ "bytes"
+ "image"
+ _ "image/gif"
+ _ "image/jpeg"
+ _ "image/png"
+ "strconv"
 	"crypto/tls"
 	"encoding/json"
 	"errors"
@@ -71,6 +77,16 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Image-Failure-Stage", "no-selected-image")
 		http.Error(w, "article has no selected image", http.StatusNotFound)
 		return
+	}
+	// An explicit candidate index preserves each editorial image's identity.
+	// Without index, retain the existing hero-first fallback contract for NewsGo.
+	if rawIndex := r.URL.Query().Get("index"); rawIndex != "" {
+		index, parseErr := strconv.Atoi(rawIndex)
+		if parseErr != nil || index < 0 || index >= len(meta.Candidates) {
+			http.Error(w, "invalid selected image index", http.StatusBadRequest)
+			return
+		}
+		meta.Candidates = meta.Candidates[index : index+1]
 	}
 	var b []byte
 	var typ string
@@ -193,7 +209,13 @@ func RetrieveSelectedImage(ctx context.Context, raw, articleURL string) ([]byte,
 	}
 	detected := http.DetectContentType(b)
 	switch detected {
-	case "image/jpeg", "image/png", "image/gif", "image/webp":
+	case "image/jpeg", "image/png", "image/gif":
+		config, _, decodeErr := image.DecodeConfig(bytes.NewReader(b))
+		if decodeErr != nil || config.Width <= 1 || config.Height <= 1 {
+			return nil, "", errors.New("image placeholder or invalid dimensions")
+		}
+		return b, detected, nil
+	case "image/webp":
 		return b, detected, nil
 	}
 	return nil, "", errors.New("unsupported or nonimage response")
@@ -223,6 +245,9 @@ func FailureKind(err error) string {
 	if strings.Contains(err.Error(), "image too large") {
 		return "size-limit"
 	}
+	if strings.Contains(err.Error(), "image placeholder or invalid dimensions") {
+        return "image-placeholder"
+    }
 	if strings.Contains(err.Error(), "unsupported or nonimage response") {
 		return "unsupported-source"
 	}
