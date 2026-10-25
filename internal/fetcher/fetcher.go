@@ -89,7 +89,7 @@ func SetReadeckLikeHeaders(req *http.Request) {
 // A second 403 is returned normally rather than classified as a paywall.
 func AlternateHeaderRetry(status int) bool { return status == http.StatusForbidden }
 
-func Download(ctx context.Context, address string) (string, string, error) {
+func downloadUncached(ctx context.Context, address string) (string, string, error) {
 	u, err := ValidatedURL(ctx, address)
 	if err != nil {
 		return "", "", err
