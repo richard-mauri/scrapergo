@@ -23,6 +23,8 @@ type classificationResult struct {
 	ReadableArticle bool   `json:"readableArticle"`
 	Reason          string `json:"reason,omitempty"`
 	ImageAvailable  bool   `json:"imageAvailable"`
+ ContentStatus string `json:"contentStatus,omitempty"`
+ ContentReason string `json:"contentReason,omitempty"`
 }
 type classificationCacheEntry struct {
 	result  classificationResult
@@ -92,9 +94,12 @@ func (h *Classifier) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	} else if rec.Code == http.StatusOK {
 		var article struct {
 			ImageURL string `json:"imageUrl"`
+ AccessType string `json:"accessType"`
+ AccessNote string `json:"accessNote"`
 		}
 		if json.Unmarshal(rec.Body.Bytes(), &article) == nil {
-			result = classificationResult{Classification: "article", ReadableArticle: true, ImageAvailable: article.ImageURL != ""}
+			status, reason := classifyContentStatus(article.AccessType, article.AccessNote)
+            result = classificationResult{Classification: "article", ReadableArticle: true, ImageAvailable: article.ImageURL != "", ContentStatus: status, ContentReason: reason}
 		}
 	} else {
 		var issue struct {
