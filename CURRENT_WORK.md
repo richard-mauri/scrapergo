@@ -1,6 +1,6 @@
 # Active candidate — Issue #72 (2026-10-25)
 
-- Baseline: main; isolated branch: `fix/issue-72-shared-article-fetch` (draft PR pending).
+- Baseline: main; isolated branch: `fix/issue-72-shared-article-fetch` (draft PR #73 open: https://github.com/richard-mauri/scrapergo/pull/73).
 - Issue: https://github.com/richard-mauri/scrapergo/issues/72
 - Scope: share in-flight article HTML downloads across classification, thumbnail metadata and reader paths; keep successful HTML in a bounded 30-second in-memory cache (12 entries / 12 MiB), without caching errors or canceled downloads.
 - Architectural boundary: the new coordinator lives in `internal/fetcher`; the underlying secure URL validation, redirect and transport logic stays in that package. No NewsGo API or UI changes.
