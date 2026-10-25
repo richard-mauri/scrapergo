@@ -45,3 +45,16 @@ func TestArticleImageRejectsOutOfRangeCandidateIndex(t *testing.T) {
   }
  }
 }
+
+func TestArticleImageRejectsDifferentSelectedPhoto(t *testing.T) {
+ metadata := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+  w.Header().Set("Content-Type", "application/json")
+  _, _ = w.Write([]byte(`{"imageCandidates":["https://example.com/portrait.jpg","https://example.com/football.jpg"]}`))
+ })
+ w := httptest.NewRecorder()
+ req := httptest.NewRequest(http.MethodGet, "/api/article-image?url=https%3A%2F%2Fexample.com%2Fstory&image=https%3A%2F%2Fexample.com%2Fwrong.jpg",nil)
+ (imagedelivery.Handler{Metadata:metadata}).ServeHTTP(w,req)
+ if w.Code != http.StatusNotFound {
+  t.Fatalf("unselected photo: got %d, want 404",w.Code)
+ }
+}
