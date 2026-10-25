@@ -52,6 +52,7 @@ func (p Processor) Stages() []assembly.Stage {
   source("recover-links", d.RecoverLinks),
   source("recover-author-portrait", d.RecoverAuthorPortrait),
   plain("remove-player-blocks", structured.RemoveSerializedPlayerBlocks),
+  plain("remove-access-chrome", removeAccessChrome),
   plain("classify-contributors", d.ClassifyContributors),
   source("classify-source-images", d.ClassifySourceImages),
   plain("exclude-poststory-author-portraits", media.RemovePostEditorialAuthorPortraits),

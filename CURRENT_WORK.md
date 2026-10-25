@@ -1,3 +1,13 @@
+# Active candidate — Issue #75 (2026-10-25)
+
+- Base: current `main` containing merged PR #73; branch `fix/issue-75-nyt-preview-extraction`. Issue: https://github.com/richard-mauri/scrapergo/issues/75.
+- Diagnosis: Safari captured HTML includes additional embedded `ParagraphBlock` data, but the extracted 372-word output mostly represents the rendered preview and includes publisher access UI. Hidden structured blocks must not be treated as public article text.
+- Narrow implementation: `internal/reader/access_chrome.go` removes only identified access-check/login/subscribe UI paragraphs after Readability and serialized-player cleanup; retains publisher restriction notice and editorial content. Tests update the reader stage order and verify preservation of regular prose and images.
+- Limitations: pattern matching is conservative and currently tied to specific access UI wording. No general embedded-JSON article recovery, no subscriber content reconstruction, no retrieval/NewsGo changes.
+- CI and Mac/Safari acceptance NOT verified. Do not merge, tag, release, or bump semantic version without explicit owner authorization. Issue #74 performance follow-up and #69 image delivery are separate.
+
+---
+
 # Active candidate — Issue #72 (2026-10-25)
 
 - Baseline: main; isolated branch: `fix/issue-72-shared-article-fetch` (draft PR #73 open: https://github.com/richard-mauri/scrapergo/pull/73).
