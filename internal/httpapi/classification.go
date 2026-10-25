@@ -119,11 +119,9 @@ func (h *Classifier) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	ttl := time.Minute
-	if result.Classification == "article" || result.Classification == "homepage" || result.Classification == "unreadable" {
-		ttl = 30 * time.Minute
-	}
-	if ctx.Err() == nil {
+	// Never cache failed or indeterminate retrieval/extraction outcomes.
+	// A later request may succeed when the publisher or network recovers.
+	if ctx.Err() == nil && result.Classification == "article" {
 		classificationCache.Lock()
 		if len(classificationCache.entries) >= 512 {
 			for k := range classificationCache.entries {
@@ -131,7 +129,7 @@ func (h *Classifier) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				break
 			}
 		}
-		classificationCache.entries[input.URL] = classificationCacheEntry{result, time.Now().Add(ttl)}
+		classificationCache.entries[input.URL] = classificationCacheEntry{result, time.Now().Add(30*time.Minute)}
 		classificationCache.Unlock()
 	}
 	_ = json.NewEncoder(w).Encode(result)
