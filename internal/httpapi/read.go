@@ -6,6 +6,7 @@ import (
  "log"
  "net/http"
  "strings"
+ "clean-article-reader/internal/accesspolicy"
 )
 
 // ReadDependencies supplies the application's existing URL resolution,
@@ -54,6 +55,7 @@ func ReadHandler(d ReadDependencies) http.Handler {
    _=json.NewEncoder(w).Encode(map[string]string{"error":err.Error(),"kind":"access_error"})
    return
   }
+  if accesspolicy.ExplicitPreview(raw) { w.Header().Set("X-ScraperGo-Content-Status", "partial") }
   d.WriteExtracted(w,raw,finalURL)
  })
 }
