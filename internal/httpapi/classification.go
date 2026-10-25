@@ -112,8 +112,10 @@ func (h *Classifier) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				result = classificationResult{Classification: "homepage", Reason: "homepage_or_index"}
 			case "extraction_error":
 				result = classificationResult{Classification: "unreadable", Reason: "no_readable_article"}
-			case "publisher_access_denied", "access_error":
-				result = classificationResult{Classification: "unavailable", Reason: "publisher_unavailable"}
+			case "publisher_access_denied":
+                result = classificationResult{Classification: "unavailable", Reason: "publisher_access_denied"}
+            case "access_error":
+                result = classificationResult{Classification: "unknown", Reason: "extraction_unavailable"}
 			}
 		}
 	}
