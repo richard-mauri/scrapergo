@@ -1,7 +1,7 @@
 # Active candidate — Issue #77 (2026-10-25)
 
 - Authoritative base: GitHub main; branch `feat/issue-77-content-status`, dedicated draft PR pending.
-- Goal: add conservative contentStatus to classification, preserve existing article eligibility, do not equate access restrictions with truncation; return unknown until independent truncation evidence exists.
+- Goal: add conservative contentStatus to classification, preserve existing article eligibility, do not equate access restrictions with truncation; return partial only for explicit publisher preview notices in rendered HTML, unknown for generic access restrictions.
 - Related: ScraperGo #77, NewsGo #20. Deploy ScraperGo before NewsGo. No automatic full-text extraction or paywall circumvention.
 - Regression tests added; exact-head CI and owner Mac/Safari acceptance not verified. No merge/tag/release/version change without owner authorization. Existing unrelated issue branches remain independent.
 
