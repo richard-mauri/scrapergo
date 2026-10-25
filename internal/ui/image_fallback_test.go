@@ -17,7 +17,7 @@ func TestFailedImageFallbackInReader(t *testing.T) {
   "editorialCaption(item.text,data.title)",
   "img.naturalWidth<=1",
   "/api/article-image?url=",
-  "image="+encodeURIComponent(source)",
+  `"image="+encodeURIComponent(source)`,
   "removeFailedImage(im,b.url,data)",
  } {
   if !strings.Contains(js,want) { t.Errorf("missing safe image fallback: %s",want) }
