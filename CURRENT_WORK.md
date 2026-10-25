@@ -1,3 +1,15 @@
+# Current active work — Issue #69 (2026-10-25)
+
+- Authoritative baseline: `main`; dedicated branch: `fix/issue-69-la-times-image-delivery` (not merged).
+- Goal: avoid Brightspot 1x1 hotlink placeholders in the article reader without modifying NewsGo's default image API behavior.
+- Safari evidence: original LA Times image URL directly opens a full photograph; embedded request redirects to `placeholder-1x1.png` and reports intrinsic 1x1.
+- Changes: client retries missing/1x1 images via same-origin `/api/article-image`, with candidate index preserving distinct images; server validates explicit index and rejects 1x1 PNG/JPEG/GIF results.
+- Tests: UI fallback assertions and HTTP invalid candidate index regression; Go CI and owner Mac/Safari acceptance pending.
+- Regression URLs: https://www.latimes.com/sports/ucla/story/2026-10-25/ucla-perfect-start-glaring-flaw-bob-chesney and the two earlier UCLA links in Issue #69.
+- Next: open draft PR, verify exact-head CI, owner Mac/Safari test, adjust if needed. Do not merge/tag/release or bump semantic version without owner authorization.
+- Deferred: diagnose publishers that serve placeholders in other image formats; image API remains restricted to extractor-selected candidates.
+
+---
 # ScraperGo — Current work
 
 ## Current documentation-only branch (2026-10-24)
