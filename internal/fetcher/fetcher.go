@@ -194,7 +194,10 @@ type PublisherHTTPError struct {
 	StatusCode int
 }
 
-// PublisherStatusCode exposes the upstream response without coupling API adapters to fetcher.\nfunc (e *PublisherHTTPError) PublisherStatusCode() int { return e.StatusCode }\n\nfunc (e *PublisherHTTPError) Error() string {
+// PublisherStatusCode exposes the upstream response without coupling API adapters to fetcher.
+func (e *PublisherHTTPError) PublisherStatusCode() int { return e.StatusCode }
+
+func (e *PublisherHTTPError) Error() string {
 	return fmt.Sprintf("article request to %s returned HTTP %d (%s)", e.Host, e.StatusCode, http.StatusText(e.StatusCode))
 }
 
