@@ -1,3 +1,16 @@
+# Active candidate — Issue #72 (2026-10-25)
+
+- Baseline: main; isolated branch: `fix/issue-72-shared-article-fetch` (draft PR pending).
+- Issue: https://github.com/richard-mauri/scrapergo/issues/72
+- Scope: share in-flight article HTML downloads across classification, thumbnail metadata and reader paths; keep successful HTML in a bounded 30-second in-memory cache (12 entries / 12 MiB), without caching errors or canceled downloads.
+- Architectural boundary: the new coordinator lives in `internal/fetcher`; the underlying secure URL validation, redirect and transport logic stays in that package. No NewsGo API or UI changes.
+- Tests added for simultaneous identical requests, cache hits, publisher denials/recovery, canceled waiters, canceled fetches, and oversized results.
+- Validation: Go tests, exact-head CI and owner Mac/Safari acceptance not yet verified. No release or merge authorization; no semantic version change.
+- Limitation: this reduces repeat requests but does not demonstrate why NYT temporarily returned 403.
+- Other active issue #69 LA Times image delivery remains separate and unmerged. Do not combine branches.
+
+---
+
 # Current active work — Issue #69 (2026-10-25)
 
 - Authoritative baseline: `main`; dedicated branch: `fix/issue-69-la-times-image-delivery` (not merged).
