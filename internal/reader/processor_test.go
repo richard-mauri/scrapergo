@@ -32,7 +32,7 @@ func TestProcessorStageOrderAndEvidence(t *testing.T) {
  })
  want:=[]string{
   "recover-photographs","deduplicate-images","recover-links","recover-author-portrait",
-  "remove-player-blocks","classify-contributors","classify-source-images",
+  "remove-player-blocks","remove-access-chrome","classify-contributors","classify-source-images",
   "exclude-poststory-author-portraits","reconcile-byline","separate-contributor-header",
   "recover-opening-figure","normalize","restore-gallery-groups",
  }
