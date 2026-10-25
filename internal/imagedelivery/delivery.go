@@ -78,9 +78,27 @@ func (h Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "article has no selected image", http.StatusNotFound)
 		return
 	}
-	// An explicit candidate index preserves each editorial image's identity.
-	// Without index, retain the existing hero-first fallback contract for NewsGo.
-	if rawIndex := r.URL.Query().Get("index"); rawIndex != "" {
+	// Explicit image selection requires exact membership in the freshly
+	// extracted candidate list. An index alone can select a different image if
+	// a second extraction returns candidates in a different order.
+	if selected := r.URL.Query().Get("image"); selected != "" {
+		if len(selected) > 4096 {
+			http.Error(w, "selected image URL too long", http.StatusBadRequest)
+			return
+		}
+		found := false
+		for _, candidate := range meta.Candidates {
+			if candidate == selected {
+				meta.Candidates = []string{candidate}
+				found = true
+				break
+			}
+		}
+		if !found {
+			http.Error(w, "image not selected for article", http.StatusNotFound)
+			return
+		}
+	} else if rawIndex := r.URL.Query().Get("index"); rawIndex != "" {
 		index, parseErr := strconv.Atoi(rawIndex)
 		if parseErr != nil || index < 0 || index >= len(meta.Candidates) {
 			http.Error(w, "invalid selected image index", http.StatusBadRequest)
