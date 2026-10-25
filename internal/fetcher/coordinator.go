@@ -2,8 +2,6 @@ package fetcher
 
 import (
 	"context"
-	"net/url"
-	"strings"
 	"sync"
 	"time"
 )
@@ -117,14 +115,3 @@ func (c *htmlCoordinator) get(ctx context.Context, key string, fetch func(contex
 	return html, finalURL, err
 }
 
-// canonicalPublicURL trims whitespace and fragments without removing query
-// parameters, which may legitimately identify different publisher resources.
-func canonicalPublicURL(raw string) string {
-	u, err := url.Parse(strings.TrimSpace(raw))
-	if err != nil {
-		return raw
-	}
-	u.Fragment = ""
-	u.RawFragment = ""
-	return u.String()
-}
