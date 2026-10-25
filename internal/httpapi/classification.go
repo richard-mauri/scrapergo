@@ -99,6 +99,7 @@ func (h *Classifier) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		if json.Unmarshal(rec.Body.Bytes(), &article) == nil {
 			status, reason := classifyContentStatus(article.AccessType, article.AccessNote)
+            if rec.Header().Get("X-ScraperGo-Content-Status") == "partial" {status, reason = "partial", "publisher_explicit_preview"}
             result = classificationResult{Classification: "article", ReadableArticle: true, ImageAvailable: article.ImageURL != "", ContentStatus: status, ContentReason: reason}
 		}
 	} else {
