@@ -1,5 +1,6 @@
 # Active candidate — Issue #77 (2026-10-25)
 
+- Updated 2026-10-25: Confirmed publisher access denials now use `classification: unavailable` with `reason: publisher_access_denied`, while generic access_error is `unknown`.
 - Authoritative base: GitHub main; branch `feat/issue-77-content-status`, dedicated draft PR pending.
 - Goal: add conservative contentStatus to classification, preserve existing article eligibility, do not equate access restrictions with truncation; return partial only for explicit publisher preview notices in rendered HTML, unknown for generic access restrictions.
 - Related: ScraperGo #77, NewsGo #20. Deploy ScraperGo before NewsGo. No automatic full-text extraction or paywall circumvention.
