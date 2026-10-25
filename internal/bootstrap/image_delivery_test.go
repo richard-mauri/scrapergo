@@ -3,6 +3,7 @@ package bootstrap
 import (
  "clean-article-reader/internal/imagedelivery"
 	"net/http/httptest"
+ "net/http"
 	"testing"
 )
 
@@ -28,4 +29,19 @@ func TestSelectedImageRejectsNonPublicURL(t *testing.T) {
 	if _, _, err := imagedelivery.RetrieveSelectedImage(httptest.NewRequest("GET", "/", nil).Context(), "http://127.0.0.1/image.jpg", "https://example.com/article"); err == nil {
 		t.Fatal("private image URL accepted")
 	}
+}
+
+func TestArticleImageRejectsOutOfRangeCandidateIndex(t *testing.T) {
+ metadata := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+  w.Header().Set("Content-Type", "application/json")
+  _, _ = w.Write([]byte(`{"imageUrl":"https://example.com/photo.jpg","imageCandidates":["https://example.com/photo.jpg"]}`))
+ })
+ for _, index := range []string{"-1", "abc", "1"} {
+  w := httptest.NewRecorder()
+  req := httptest.NewRequest(http.MethodGet, "/api/article-image?url=https%3A%2F%2Fexample.com%2Fstory&index="+index,nil)
+  (imagedelivery.Handler{Metadata:metadata}).ServeHTTP(w,req)
+  if w.Code != http.StatusBadRequest {
+   t.Errorf("candidate index %q: got %d, want 400",index,w.Code)
+  }
+ }
 }
