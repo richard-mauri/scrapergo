@@ -16,6 +16,8 @@ func TestFailedImageFallbackInReader(t *testing.T) {
   "editorialCaption(b.text,data.title)",
   "editorialCaption(item.text,data.title)",
   "img.naturalWidth<=1",
+  "im.loading='eager'",
+  "pic.loading='eager'",
   "/api/article-image?url=",
   "encodeURIComponent(source)",
   "removeFailedImage(im,b.url,data)",
