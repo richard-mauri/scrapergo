@@ -1,3 +1,11 @@
+# Current active work — publisher HTTP status, Issue #81
+
+- Base: GitHub main, independent branch `fix/issue-81-publisher-http-status`.
+- Scope: preserve actual upstream HTTP status as optional `publisherHttpStatus` on /api/read error JSON and /api/classify classification JSON, and show the HTTP code in the reader's existing error text when available. The existing HTTP 422 API status remains unchanged.
+- No changes to fetch behavior, classification decisions, successful caching, failed caching, request headers, NewsGo, or Safari coupling.
+- Synthetic, offline read and classification tests added; CI and owner Mac/Safari verification pending.
+- Prior experimental draft ScraperGo PR #78 and static contract PR #80 remain separate. Do not merge or release without owner approval.
+
 # Active candidate — Issue #75 (2026-10-25)
 
 - Base: current `main` containing merged PR #73; branch `fix/issue-75-nyt-preview-extraction`. Issue: https://github.com/richard-mauri/scrapergo/issues/75.
