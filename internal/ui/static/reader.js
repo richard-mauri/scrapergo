@@ -9,13 +9,8 @@ function removeFailedImage(img,source,article){
  const retry=()=>{
   if(retried||!article||!article.url||!source){discard();return}
   retried=true;
-  const candidates=[];const add=u=>{if(u&&!candidates.includes(u))candidates.push(u)};
-  add(article.imageUrl);
-  for(const block of article.blocks||[])if(block.kind==='img')add(block.url);
-  const index=candidates.indexOf(source);
-  if(index<0){discard();return}
   img.referrerPolicy='same-origin';
-  img.src='/api/article-image?url='+encodeURIComponent(article.url)+'&index='+index;
+  img.src='/api/article-image?url='+encodeURIComponent(article.url)+'&image='+encodeURIComponent(source);
  };
  img.addEventListener('error',retry);
  img.addEventListener('load',()=>{if(img.naturalWidth<=1||img.naturalHeight<=1)retry()});
