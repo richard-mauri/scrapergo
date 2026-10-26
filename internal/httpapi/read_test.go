@@ -2,6 +2,7 @@ package httpapi
 
 import (
  "context"
+ "encoding/json"
  "errors"
  "net/http"
  "net/http/httptest"
@@ -38,5 +39,36 @@ func TestReadHandlerPreservesErrorAndMethodHandling(t *testing.T) {
   w:=httptest.NewRecorder()
   h.ServeHTTP(w,httptest.NewRequest(tc.method,"/api/read",strings.NewReader(tc.body)))
   if w.Code!=tc.status||!strings.Contains(w.Body.String(),tc.kind){t.Fatalf("%s status=%d body=%q",tc.method,w.Code,w.Body.String())}
+ }
+}
+
+
+type testPublisherStatusError struct { status int }
+func (e testPublisherStatusError) Error() string { return "simulated publisher error" }
+func (e testPublisherStatusError) PublisherStatusCode() int {return e.status}
+
+func TestReadPublisherStatusMetadata(t *testing.T) {
+ for _,tc:=range []struct{name string;err error;denied bool;wantStatus int;wantKind string}{
+  {"forbidden",testPublisherStatusError{403},true,403,"publisher_access_denied"},
+  {"unauthorized",testPublisherStatusError{401},true,401,"publisher_access_denied"},
+  {"rate limited",testPublisherStatusError{429},false,429,"access_error"},
+  {"transport failure",errors.New("dial failure"),false,0,"access_error"},
+ } {
+  t.Run(tc.name,func(t *testing.T){
+   handler:=ReadHandler(ReadDependencies{
+    Resolve:func(_ context.Context,s string)(string,error){return s,nil},
+    Download:func(context.Context,string)(string,string,error){return "","",tc.err},
+    PublisherAccessMessage:func(error)(string,bool){return "Publisher access restricted",tc.denied},
+    Hostname:func(string)string{return "fixture.example.test"},
+   })
+   w:=httptest.NewRecorder()
+   handler.ServeHTTP(w,httptest.NewRequest(http.MethodPost,"/api/read",strings.NewReader(`{"url":"https://fixture.example.test/story"}`)))
+   if w.Code!=422 {t.Fatalf("status %d",w.Code)}
+   var payload struct { Kind string `json:"kind"`; PublisherHTTPStatus int `json:"publisherHttpStatus"`; Error string `json:"error"` }
+   if err:=json.Unmarshal(w.Body.Bytes(),&payload);err!=nil {t.Fatal(err)}
+   if payload.Kind!=tc.wantKind || payload.PublisherHTTPStatus!=tc.wantStatus {t.Fatalf("response: %+v",payload)}
+   if tc.denied && !strings.Contains(payload.Error,"Publisher HTTP") {t.Fatalf("no visible publisher status: %s",payload.Error)}
+   if tc.wantStatus==0 && strings.Contains(w.Body.String(),"publisherHttpStatus") {t.Fatalf("invented status: %s",w.Body.String())}
+  })
  }
 }

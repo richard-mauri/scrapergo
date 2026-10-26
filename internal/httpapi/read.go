@@ -2,6 +2,8 @@ package httpapi
 
 import (
  "context"
+ "errors"
+ "fmt"
  "encoding/json"
  "log"
  "net/http"
@@ -45,13 +47,23 @@ func ReadHandler(d ReadDependencies) http.Handler {
   w.Header().Set("Content-Type","application/json; charset=utf-8")
   w.Header().Set("Cache-Control","no-store")
   if err!=nil {
+   var upstream interface{ PublisherStatusCode() int }
+   publisherStatus := 0
+   if errors.As(err, &upstream) { publisherStatus = upstream.PublisherStatusCode() }
    if message,denied:=d.PublisherAccessMessage(err);denied {
     w.WriteHeader(http.StatusUnprocessableEntity)
-    _=json.NewEncoder(w).Encode(map[string]string{"error":message,"kind":"publisher_access_denied","url":address})
+    response := map[string]any{"error":message,"kind":"publisher_access_denied","url":address}
+    if publisherStatus >= 100 && publisherStatus <= 599 {
+     response["publisherHttpStatus"] = publisherStatus
+     response["error"] = fmt.Sprintf("Publisher HTTP %d (%s). %s", publisherStatus, http.StatusText(publisherStatus), message)
+    }
+    _=json.NewEncoder(w).Encode(response)
     return
    }
    w.WriteHeader(http.StatusUnprocessableEntity)
-   _=json.NewEncoder(w).Encode(map[string]string{"error":err.Error(),"kind":"access_error"})
+   response := map[string]any{"error":err.Error(),"kind":"access_error"}
+   if publisherStatus >= 100 && publisherStatus <= 599 { response["publisherHttpStatus"] = publisherStatus }
+   _=json.NewEncoder(w).Encode(response)
    return
   }
   d.WriteExtracted(w,raw,finalURL)

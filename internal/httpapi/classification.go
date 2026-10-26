@@ -23,6 +23,7 @@ type classificationResult struct {
 	ReadableArticle bool   `json:"readableArticle"`
 	Reason          string `json:"reason,omitempty"`
 	ImageAvailable  bool   `json:"imageAvailable"`
+ PublisherHTTPStatus int `json:"publisherHttpStatus,omitempty"`
 }
 type classificationCacheEntry struct {
 	result  classificationResult
@@ -99,6 +100,7 @@ func (h *Classifier) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	} else {
 		var issue struct {
 			Kind string `json:"kind"`
+ PublisherHTTPStatus int `json:"publisherHttpStatus"`
 		}
 		if json.Unmarshal(rec.Body.Bytes(), &issue) == nil {
 			switch issue.Kind {
@@ -107,7 +109,7 @@ func (h *Classifier) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			case "extraction_error":
 				result = classificationResult{Classification: "unreadable", Reason: "no_readable_article"}
 			case "publisher_access_denied", "access_error":
-				result = classificationResult{Classification: "unavailable", Reason: "publisher_unavailable"}
+				result = classificationResult{Classification: "unavailable", Reason: "publisher_unavailable", PublisherHTTPStatus: issue.PublisherHTTPStatus}
 			}
 		}
 	}
