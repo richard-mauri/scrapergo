@@ -75,3 +75,14 @@ func TestRestoreAppleStyleDivCopy(t *testing.T) {
  got:=RestoreHeadingAnchoredProse(raw,selected,u)
  if len(got)!=6 || got[0].Text!=intro || got[0].Kind!="p" || got[2].Text!=middle || got[4].Text!=end {t.Fatalf("missing real article div copy: %#v",got)}
 }
+
+func TestRestoreHeadingAnchoredProseRemovesCopyWidgetAfterPrefixStripped(t *testing.T) {
+ intro:="The company announced a powerful new computer with major improvements in performance, connectivity and battery life for users across a broad range of applications."
+ source:="<article><h2>Performance</h2><h2>Environment</h2><h2>Pricing</h2></article>"
+ source+="<div class='docsanddownloads text component'><ul><li><p>Text of this article</p><div data-copy-content=''><p>"+intro+"</p></div></li></ul></div>"
+ u,_:=url.Parse("https://example.org/release")
+ giant:=intro+strings.Repeat(" Additional duplicate article content with more paragraphs.",210)
+ in:=[]article.Block{{Kind:"h2",Text:"Performance"},{Kind:"h2",Text:"Environment"},{Kind:"h2",Text:"Pricing"},{Kind:"h2",Text:"Media"},{Kind:"li",Text:giant},{Kind:"li",Text:"Actual short list item"}}
+ got:=RestoreHeadingAnchoredProse(source,in,u)
+ if len(got)!=4 || got[3].Text!="Actual short list item" {t.Fatalf("source-backed copy widget still present: %d blocks",len(got))}
+}
