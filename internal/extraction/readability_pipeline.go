@@ -73,6 +73,7 @@ func ExtractWithReadability(raw, source string, legacy func(string,string)(artic
 					blocks = RecoverEditorialContinuity(raw, blocks, u)
 				}
 				blocks = RecoverInstitutionalTail(raw, blocks, u)
+				blocks = RestoreHeadingAnchoredProse(raw, blocks, u)
 				count = CountWords(blocks)
 				if img == "" {
 					for _, photo := range blocks {

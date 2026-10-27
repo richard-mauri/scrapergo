@@ -1,3 +1,24 @@
+# Active draft PR #90 — Issue #89 Apple article paragraphs (2026-10-27)
+
+- Issue: https://github.com/richard-mauri/scrapergo/issues/89; draft PR: https://github.com/richard-mauri/scrapergo/pull/90; branch: `fix/issue-89-apple-article-completeness`, base main `04d7132`.
+- Owner supplied live /api/read JSON: 48 blocks, only press contacts as ordinary `p` blocks, many retained headings/lists/images, plus enormous `li` containing `Text of this article` and a duplicate full text copy. The source text is fetched but document structure is wrong.
+- Candidate in `internal/extraction/heading_prose.go`: recover HTML `p` between at least three source-matched section headings, excluding noisy blocks, and omit giant copy-text list item; invoked after other extraction stages. Synthetic tests cover order/idempotence and absence of unwanted copy widget. Introductory paragraphs before first heading remain an acknowledged gap.
+- CI on PR code head `003860f47cc20ebb970b9b667c617270cfd3f7a4` was in progress at last check; live Apple source HTML exact DOM and Mac/Safari acceptance unverified. This is a candidate, NOT a validated complete fix. Preserve source/security policy, no unrelated scope, merge/version/release only with explicit owner authorization.
+
+---
+
+# Active investigation — Issue #89 Apple Newsroom completeness (2026-10-27)
+
+- Issue: https://github.com/richard-mauri/scrapergo/issues/89; branch `fix/issue-89-apple-article-completeness` from `main` at `04d7132`.
+- Source URL: https://www.apple.com/newsroom/2026/10/apple-introduces-the-new-14-inch-macbook-pro-with-m6/
+- The public page has performance, upgrade, macOS, environment and pricing sections following opening paragraphs. User reports substantial omissions in ScraperGo; exact missing spans in extracted output and ScraperGo's fetched HTML are not yet available.
+- Read `internal/extraction/readability_pipeline.go` and `continuity_recovery.go`. Multiple source-backed recovery/replacement paths may drop content, but none has been proven responsible for this page. Avoid global extraction heuristic changes until diagnostic evidence identifies the stage.
+- Need sanitized locally fetched HTML and corresponding full ScraperGo article JSON/text, or a reproducible controlled fixture matching Apple's DOM, to distinguish upstream missing content from Readability, structured replacement and downstream reader cleanup.
+- No runtime changes implemented; CI, Mac/Safari verification, and PR remain pending. No merge, version or release without owner authorization.
+- Closed and merged Issue #87 is historical work; don't reopen typography changes.
+
+---
+
 # Current active work — Issue #87 reader typography (2026-10-27)
 
 - Issue: https://github.com/richard-mauri/scrapergo/issues/87; draft PR #88: https://github.com/richard-mauri/scrapergo/pull/88; branch: `fix/issue-87-sans-serif-reader` from merged main.
