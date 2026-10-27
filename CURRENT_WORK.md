@@ -1,3 +1,12 @@
+# Current active work — Issue #87 reader typography (2026-10-27)
+
+- Issue: https://github.com/richard-mauri/scrapergo/issues/87; draft PR #88: https://github.com/richard-mauri/scrapergo/pull/88; branch: `fix/issue-87-sans-serif-reader` from merged main.
+- Scope: CSS-only replacement of Georgia serif with system sans-serif for reading-view article title/body; retain current sizing, color, dark mode, table styles, exports and extraction. Regression test added in `internal/ui/reader_typography_test.go`.
+- Validation: CI and owner's local Mac/Safari acceptance pending. No merge, semantic version, tag or release without explicit approval.
+- Previous Issue #85 was squash-merged into main as `c80b4d8` and closed. Its prior notes below are historical, not active.
+
+---
+
 # Active Issue #85 — press-release institutional tail (2026-10-27)
 
 - Issue: https://github.com/richard-mauri/scrapergo/issues/85; draft PR #86: https://github.com/richard-mauri/scrapergo/pull/86; branch `fix/issue-85-press-release-tail` from `main` (commit `23e6987`).
