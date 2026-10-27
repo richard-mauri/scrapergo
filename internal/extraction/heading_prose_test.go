@@ -60,3 +60,18 @@ func TestRestoreHeadingAnchoredProseDoesNotImportPageWideIntro(t *testing.T) {
  got:=RestoreHeadingAnchoredProse(raw,in,u)
  if len(got)!=len(in) {t.Fatalf("page-wide introduction was imported: %#v",got)}
 }
+
+func TestRestoreAppleStyleDivCopy(t *testing.T) {
+ intro:="The company announced a new professional computer with major performance improvements, additional capabilities and a significant upgrade for customers working in demanding environments."
+ middle:="The new processor offers faster performance for creative workflows, local artificial intelligence models and productivity applications used by professionals worldwide."
+ end:="The updated operating system introduces additional tools, reliability improvements and new features to make computing more efficient across several applications."
+ raw:="<main><article class='article'><div class='pagebody text component'><div class='component-content'><div class='pagebody-copy'>"+intro+"</div></div></div>"+
+  "<div class='pagebody text component'><div class='component-content'><h2>Performance</h2><div class='pagebody-copy'>"+middle+"</div></div></div>"+
+  "<div class='pagebody text component'><div class='component-content'><h2>Environment</h2><div class='pagebody-copy'>"+end+"</div></div></div>"+
+  "<div class='pagebody text component'><div class='component-content'><h2>Pricing</h2></div></div>"+
+  "<div class='docsanddownloads'><ul><li>Text of this article "+strings.Repeat("duplicate contents ",600)+"</li></ul></div></article></main>"
+ u,_:=url.Parse("https://example.org/newsroom/article")
+ selected:=[]article.Block{{Kind:"h2",Text:"Performance"},{Kind:"h2",Text:"Environment"},{Kind:"h2",Text:"Pricing"},{Kind:"li",Text:"Text of this article "+strings.Repeat("duplicate contents ",600)}}
+ got:=RestoreHeadingAnchoredProse(raw,selected,u)
+ if len(got)!=6 || got[0].Text!=intro || got[0].Kind!="p" || got[2].Text!=middle || got[4].Text!=end {t.Fatalf("missing real article div copy: %#v",got)}
+}
