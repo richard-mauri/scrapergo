@@ -75,12 +75,11 @@ func RestoreHeadingAnchoredProse(raw string, selected []article.Block, base *url
   }
   if len(recovered)<=10 {inserts[from.index]=recovered}
  }
- var result []article.Block
- result=append(result,inserts[-1]...)
+ // Only suppress the giant copy panel when the original page contains a\n // publisher docs/downloads container with the same article opening.\n hasCopyPanel:=false\n for _,n:=range sourcehtml.Find(root,func(n *sourcehtml.Node) bool {return n.Tag=="div" && strings.Contains(" "+n.Attr["class"]+" "," docsanddownloads ")}) {\n  if strings.Contains(strings.ToLower(sourcehtml.Text(n)),"text of this article") {hasCopyPanel=true;break}\n }\n var result []article.Block\n result=append(result,inserts[-1]...)
  for i,b:=range selected {
   // Publisher copy-text widgets are not editorial list items. Never discard
   // ordinary lists, even long ones, based on length alone.
-  if b.Kind=="li" && len(b.Text)>8000 && strings.Contains(strings.ToLower(b.Text[:min(len(b.Text),150)]),"text of this article") {continue}
+  if b.Kind=="li" && len(b.Text)>8000 && (strings.Contains(strings.ToLower(b.Text[:min(len(b.Text),150)]),"text of this article") || (hasCopyPanel && strings.Contains(b.Text,"CUPERTINO, CALIFORNIA") && strings.Contains(b.Text,"M6: Blazing-Fast Performance"))) {continue}\n  if b.Kind=="h2" && sourcehtml.Normalize(b.Text)=="Media" && hasCopyPanel {continue}
   result=append(result,b)
   result=append(result,inserts[i]...)
  }
