@@ -41,9 +41,8 @@ func RecoverInstitutionalTail(raw string, selected []article.Block, base *url.UR
   heading:=sourcehtml.Normalize(sourcehtml.Text(n))
   if !strings.HasPrefix(strings.ToLower(heading),"about ") || len(heading)>110 {return selected}
   if excludedInstitutionalNode(n) {return selected}
-  // Restrict recovery to the same page's main editorial region, but allow
-  // sibling publisher-controlled sections under that main region.
-  if !shareEditorialRegion(nodes[anchorIndex],n) {return selected}
+  // The immediately adjacent publisher-controlled information panel may
+  // be a sibling of main/article. Proximity and excluded ancestors guard it.
   tail:=[]article.Block{structured.TextBlock(n,base,sourcehtml.ResolveURL,links.IsDocumentURL)}
   substantive:=false
   for j:=i+1; j<len(nodes) && j<=i+4; j++ {
