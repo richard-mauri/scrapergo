@@ -37,3 +37,13 @@ func TestRecoverInstitutionalTailRetainsShortFinalParagraph(t *testing.T) {
  if len(got)!=5 {t.Fatalf("expected heading and two paragraphs, got %#v",got)}
  if got[4].Text!=second {t.Fatalf("short final paragraph not preserved: %#v",got)}
 }
+
+func TestRecoverInstitutionalTailInAdjacentPublisherPanel(t *testing.T) {
+ anchor:="A public initiative will bring new programs to communities and offer participating families opportunities to learn more about the national collection."
+ body:="Established over two centuries ago, the public agency performs essential responsibilities for the nation through a broad range of operational programs. Its ongoing public mission includes production, administration and stewardship of specialized materials while carrying out legislative directives and serving communities across the country."
+ raw:="<div><main><article><p>"+anchor+"</p><p>Learn more about the collection.</p></article></main><section><h2>About the Agency</h2><p>"+body+"</p><p>These programs operate at no cost to taxpayers.</p></section><section><h2>Additional Resources</h2><p>Sign up and follow us.</p></section></div>"
+ u,_:=url.Parse("https://example.org/press-release")
+ got:=RecoverInstitutionalTail(raw,[]article.Block{{Kind:"p",Text:anchor},{Kind:"p",Text:"Learn more about the collection."}},u)
+ if len(got)!=5 {t.Fatalf("publisher sibling panel not recovered: %#v",got)}
+ if got[4].Text!="These programs operate at no cost to taxpayers." {t.Fatalf("wrong ending: %#v",got)}
+}
