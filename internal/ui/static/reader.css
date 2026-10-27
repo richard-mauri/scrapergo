@@ -15,3 +15,9 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(-
 .content a,.source a,.fallback a{color:var(--accent)}
 @media print{body{background:white;color:#172534}.paper{background:white;color:#172534}.content blockquote{color:#445b6b}}
 .content .source-gallery{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start;margin:20px 0 26px}.content .source-gallery figure{margin:0}.content .source-gallery figure img{width:100%;height:auto;object-fit:contain}@media(max-width:650px){.content .source-gallery{grid-template-columns:1fr}}.content figure.lead-photo{margin:24px 0 30px}.content figure.lead-photo img{width:100%;max-width:980px;height:auto;object-fit:contain}\n.content figure.author-photo img{width:80px;height:80px;object-fit:cover}.content figure.author-photo{margin:16px 0 22px}\n
+/* Semantic tables from article source; never flatten column associations. */
+.content .table-scroll{max-width:100%;overflow-x:auto;margin:1.2em 0;-webkit-overflow-scrolling:touch}
+.content .table-scroll table{border-collapse:collapse;width:100%;min-width:480px;font:16px/1.5 -apple-system,BlinkMacSystemFont,sans-serif}
+.content .table-scroll th,.content .table-scroll td{border:1px solid var(--border);padding:12px 14px;text-align:left;vertical-align:top;overflow-wrap:normal}
+.content .table-scroll th{font-weight:700;background:var(--soft)}
+@media print{.content .table-scroll{overflow:visible}.content .table-scroll table{min-width:0;font-size:11px;page-break-inside:auto}.content .table-scroll tr{break-inside:avoid}}

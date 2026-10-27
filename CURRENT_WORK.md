@@ -1,3 +1,14 @@
+# Active draft — Issue #83 table preservation (2026-10-27)
+
+- Issue: https://github.com/richard-mauri/scrapergo/issues/83 ; draft PR: https://github.com/richard-mauri/scrapergo/pull/84 ; branch: `fix/issue-83-preserve-tables` → `main`.
+- Source diagnosis: `internal/extraction/readability_pipeline.go` uses Readability `RenderText` and paragraphs, losing HTML table grid semantics; legacy extractor also flattened tables.
+- Implemented: typed table rows/cells in `internal/article/model.go`; source-backed `TableBlock` and `RestoreSourceTables` plus fallback handling; browser semantic tables, responsive CSS and exports; synthetic extraction tests.
+- CI: [Go CI #397](https://github.com/richard-mauri/scrapergo/actions/runs/40520565739) passed at commit `6535075c9c84a0267f8ab24632a19dd84998f4cb`. Any newer commit requires a new exact-head check.
+- Still required: owner's Mac checkout/tests/build/restart, live US Mint reproduction, Safari/mobile viewport, print and Markdown/text export acceptance. Current matching requires >=3 separate cell text matches; fallback for a single merged paragraph not proven. Check exact source table location and false-positive injection risk before release.
+- Keep draft. No semantic version, merger, release, NewsGo or unrelated active branch changes. Owner authorization required.
+
+---
+
 # Current active work — publisher HTTP status, Issue #81
 
 - Base: GitHub main, independent branch `fix/issue-81-publisher-http-status`.

@@ -16,9 +16,22 @@ type TextPart struct {
  URL string `json:"url,omitempty"`
 }
 
-// Block is a paragraph, heading or media item in reading order.
+// TableCell is a source-backed cell. Header cells retain their table semantics.
+type TableCell struct {
+ Text string `json:"text"`
+ Parts []TextPart `json:"parts,omitempty"`
+ Header bool `json:"header,omitempty"`
+ ColSpan int `json:"colspan,omitempty"`
+ RowSpan int `json:"rowspan,omitempty"`
+}
+
+// TableRow contains ordered cells in one source table row.
+type TableRow struct { Cells []TableCell `json:"cells"` }
+
+// Block is a paragraph, heading, table or media item in reading order.
 type Block struct {
  Parts []TextPart `json:"parts,omitempty"`
+ Rows []TableRow `json:"rows,omitempty"`
  Kind string `json:"kind"`
  Role string `json:"role,omitempty"`
  Gallery string `json:"gallery,omitempty"`
