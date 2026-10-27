@@ -36,3 +36,27 @@ func TestRestoreHeadingAnchoredProseSuppressesCopyWidget(t *testing.T) {
  got:=RestoreHeadingAnchoredProse(raw,in,u)
  if len(got)!=4 || got[3].Text!="Authentic feature list item" {t.Fatalf("copy widget retained or real list removed: %#v",got)}
 }
+
+func TestRestoreHeadingAnchoredProseRecoversIntroduction(t *testing.T) {
+ intro1:="The company announced a new professional computer with improved performance and longer battery life, bringing substantial benefits to creative professionals across many workflows."
+ intro2:="The new system introduces more capable processing, faster memory, and enhancements that make it appealing to developers and customers working with demanding creative applications."
+ first:="The performance section includes important technical details and concrete improvements that should remain adjacent to the section heading."
+ raw:="<div><p>Unrelated page introduction and promotional description outside the article container must never be included by recovery.</p><article><p>"+intro1+"</p><p>"+intro2+"</p><h2>Performance</h2><p>"+first+"</p><h2>Environment</h2><h2>Pricing</h2></article></div>"
+ u,_:=url.Parse("https://example.org/newsroom/release")
+ blocks:=[]article.Block{{Kind:"h2",Text:"Performance"},{Kind:"h2",Text:"Environment"},{Kind:"h2",Text:"Pricing"}}
+ got:=RestoreHeadingAnchoredProse(raw,blocks,u)
+ if len(got)!=6 || got[0].Text!=intro1 || got[1].Text!=intro2 || got[2].Text!="Performance" || got[3].Text!=first {
+  t.Fatalf("missing or misplaced introduction: %#v",got)
+ }
+ repeat:=RestoreHeadingAnchoredProse(raw,got,u)
+ if len(repeat)!=len(got) {t.Fatalf("intro recovery duplicated text: %#v",repeat)}
+}
+
+func TestRestoreHeadingAnchoredProseDoesNotImportPageWideIntro(t *testing.T) {
+ outside:="The promotional landing page includes a lengthy introduction, unrelated to this article, that must not be recovered into the article reader."
+ raw:="<main><p>"+outside+"</p><h2>Performance</h2><h2>Environment</h2><h2>Pricing</h2></main>"
+ u,_:=url.Parse("https://example.org/news")
+ in:=[]article.Block{{Kind:"h2",Text:"Performance"},{Kind:"h2",Text:"Environment"},{Kind:"h2",Text:"Pricing"}}
+ got:=RestoreHeadingAnchoredProse(raw,in,u)
+ if len(got)!=len(in) {t.Fatalf("page-wide introduction was imported: %#v",got)}
+}
