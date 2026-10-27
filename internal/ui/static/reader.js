@@ -16,9 +16,9 @@ function putLinkedCell(td,c){if(!Array.isArray(c.parts)||!c.parts.length){td.tex
  if(p.url){try{const u=new URL(p.url);if(['http:','https:'].includes(u.protocol)&&!u.username&&!u.password){const a=document.createElement('a');a.href=articleLinkHref(u);a.appendChild(e);td.appendChild(a);continue}}catch(_){}}
  td.appendChild(e)}
 }
-function exportTable(b,md){const rows=(b.rows||[]).map(r=>(r.cells||[]).map(c=>String(c.text||'').replace(/\\s+/g,' ').trim()));if(!rows.length)return '';
- if(md){const escape=x=>x.replace(/\\|/g,'\\\\|');const widths=Math.max(...rows.map(r=>r.length));const all=rows.map(r=>'| '+Array.from({length:widths},(_,i)=>escape(r[i]||'')).join(' | ')+' |');all.splice(1,0,'| '+Array(widths).fill('---').join(' | ')+' |');return all.join('\\n')}
- return rows.map(r=>r.join('\\t')).join('\\n')
+function exportTable(b,md){const rows=(b.rows||[]).map(r=>(r.cells||[]).map(c=>String(c.text||'').replace(/\s+/g,' ').trim()));if(!rows.length)return '';
+ if(md){const escape=x=>x.replace(/\|/g,'\\|');const widths=Math.max(...rows.map(r=>r.length));const all=rows.map(r=>'| '+Array.from({length:widths},(_,i)=>escape(r[i]||'')).join(' | ')+' |');all.splice(1,0,'| '+Array(widths).fill('---').join(' | ')+' |');return all.join('\n')}
+ return rows.map(r=>r.join('\t')).join('\n')
 }
 
 // Remove failed publisher images rather than leaving a large broken frame or
