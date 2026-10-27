@@ -46,7 +46,7 @@ func ExtractWithReadability(raw, source string, legacy func(string,string)(artic
 				blocks = RecoverLeadingParagraphs(raw, blocks, u, inlineParts)
 				count = CountWords(blocks)
 			}
-			if count >= 60 {
+			if count >= 60 {\n                blocks = RestoreSourceTables(blocks,raw,source)\n                count = CountWords(blocks)
 				title := parsed.Title()
 				if title == "" {
 					title = "Untitled article"
