@@ -75,11 +75,27 @@ func RestoreHeadingAnchoredProse(raw string, selected []article.Block, base *url
   }
   if len(recovered)<=10 {inserts[from.index]=recovered}
  }
- // Only suppress the giant copy panel when the original page contains a\n // publisher docs/downloads container with the same article opening.\n hasCopyPanel:=false\n copyMarker:=""\n for _,n:=range sourcehtml.Find(root,func(n *sourcehtml.Node) bool {return n.Tag=="div" && strings.Contains(" "+n.Attr["class"]+" "," docsanddownloads ")}) {\n  if strings.Contains(strings.ToLower(sourcehtml.Text(n)),"text of this article") {\n   hasCopyPanel=true\n   for _,p:=range sourcehtml.Find(n,func(p *sourcehtml.Node) bool {return p.Tag=="p"}) {\n    v:=sourcehtml.Normalize(sourcehtml.Text(p))\n    if len(v)>=90 {copyMarker=v[:90];break}\n   }\n   break\n  }\n }\n var result []article.Block\n result=append(result,inserts[-1]...)
+ // Only suppress the giant copy panel when the original page contains a
+ // publisher docs/downloads container with the same article opening.
+ hasCopyPanel:=false
+ copyMarker:=""
+ for _,n:=range sourcehtml.Find(root,func(n *sourcehtml.Node) bool {return n.Tag=="div" && strings.Contains(" "+n.Attr["class"]+" "," docsanddownloads ")}) {
+  if strings.Contains(strings.ToLower(sourcehtml.Text(n)),"text of this article") {
+   hasCopyPanel=true
+   for _,p:=range sourcehtml.Find(n,func(p *sourcehtml.Node) bool {return p.Tag=="p"}) {
+    v:=sourcehtml.Normalize(sourcehtml.Text(p))
+    if len(v)>=90 {copyMarker=v[:90];break}
+   }
+   break
+  }
+ }
+ var result []article.Block
+ result=append(result,inserts[-1]...)
  for i,b:=range selected {
   // Publisher copy-text widgets are not editorial list items. Never discard
   // ordinary lists, even long ones, based on length alone.
-  if b.Kind=="li" && len(b.Text)>8000 && (strings.Contains(strings.ToLower(b.Text[:min(len(b.Text),150)]),"text of this article") || (hasCopyPanel && copyMarker!="" && strings.Contains(sourcehtml.Normalize(b.Text),copyMarker))) {continue}\n  if b.Kind=="h2" && sourcehtml.Normalize(b.Text)=="Media" && hasCopyPanel {continue}
+  if b.Kind=="li" && len(b.Text)>8000 && (strings.Contains(strings.ToLower(b.Text[:min(len(b.Text),150)]),"text of this article") || (hasCopyPanel && copyMarker!="" && strings.Contains(sourcehtml.Normalize(b.Text),copyMarker))) {continue}
+  if b.Kind=="h2" && sourcehtml.Normalize(b.Text)=="Media" && hasCopyPanel {continue}
   result=append(result,b)
   result=append(result,inserts[i]...)
  }
