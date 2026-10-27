@@ -69,7 +69,7 @@ func ExtractBlocks(root *sourcehtml.Node, bases ...string) []article.Block {
 		if sourcehtml.Noisy(n) {
 			return
 		}
-		if n.Tag == "img" {
+		if n.Tag == "table" {\n            if table,ok:=TableBlock(n,baseURL);ok {blocks=append(blocks,table)}\n            return\n        }\n\t\tif n.Tag == "img" {
 			if src := sourcehtml.ImageURL(n, baseURL); src != "" {
 				alt := sourcehtml.Normalize(n.Attr["alt"])
 				if len(alt) > 180 {
