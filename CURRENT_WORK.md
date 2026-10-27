@@ -1,3 +1,15 @@
+# Active investigation — Issue #89 Apple Newsroom completeness (2026-10-27)
+
+- Issue: https://github.com/richard-mauri/scrapergo/issues/89; branch `fix/issue-89-apple-article-completeness` from `main` at `04d7132`.
+- Source URL: https://www.apple.com/newsroom/2026/10/apple-introduces-the-new-14-inch-macbook-pro-with-m6/
+- The public page has performance, upgrade, macOS, environment and pricing sections following opening paragraphs. User reports substantial omissions in ScraperGo; exact missing spans in extracted output and ScraperGo's fetched HTML are not yet available.
+- Read `internal/extraction/readability_pipeline.go` and `continuity_recovery.go`. Multiple source-backed recovery/replacement paths may drop content, but none has been proven responsible for this page. Avoid global extraction heuristic changes until diagnostic evidence identifies the stage.
+- Need sanitized locally fetched HTML and corresponding full ScraperGo article JSON/text, or a reproducible controlled fixture matching Apple's DOM, to distinguish upstream missing content from Readability, structured replacement and downstream reader cleanup.
+- No runtime changes implemented; CI, Mac/Safari verification, and PR remain pending. No merge, version or release without owner authorization.
+- Closed and merged Issue #87 is historical work; don't reopen typography changes.
+
+---
+
 # Current active work — Issue #87 reader typography (2026-10-27)
 
 - Issue: https://github.com/richard-mauri/scrapergo/issues/87; draft PR #88: https://github.com/richard-mauri/scrapergo/pull/88; branch: `fix/issue-87-sans-serif-reader` from merged main.
