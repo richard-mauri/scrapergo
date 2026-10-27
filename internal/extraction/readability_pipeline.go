@@ -71,6 +71,7 @@ func ExtractWithReadability(raw, source string, legacy func(string,string)(artic
 				}
 				if !structuredRecovered {
 					blocks = RecoverEditorialContinuity(raw, blocks, u)
+					blocks = RecoverInstitutionalTail(raw, blocks, u)
 					count = CountWords(blocks)
 				}
 				if img == "" {
