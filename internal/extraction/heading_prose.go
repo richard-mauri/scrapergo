@@ -16,7 +16,7 @@ func RestoreHeadingAnchoredProse(raw string, selected []article.Block, base *url
  if base==nil || len(selected)==0 {return selected}
  root:=sourcehtml.Parse(raw)
  nodes:=sourcehtml.Find(root,func(n *sourcehtml.Node) bool {
-  return n.Tag=="h2" || n.Tag=="h3" || n.Tag=="h4" || n.Tag=="p"
+  return n.Tag=="h2" || n.Tag=="h3" || n.Tag=="h4" || editorialProseNode(n)
  })
  type anchor struct{index int; node int}
  var anchors []anchor
@@ -45,13 +45,13 @@ func RestoreHeadingAnchoredProse(raw string, selected []article.Block, base *url
  }
  if scope!=nil {
   var intro []article.Block
-  for _,n:=range sourcehtml.Find(scope,func(n *sourcehtml.Node) bool{return n.Tag=="p" || n==nodes[first.node]}) {
+  for _,n:=range sourcehtml.Find(scope,func(n *sourcehtml.Node) bool{return editorialProseNode(n) || n==nodes[first.node]}) {
    if n==nodes[first.node] {break}
-   if n.Tag!="p" || sourcehtml.InNoisy(n,scope) || PromotionalAncestor(n,scope) || NestedProse(n,scope) {continue}
+   if !editorialProseNode(n) || sourcehtml.InNoisy(n,scope) || PromotionalAncestor(n,scope) || NestedProse(n,scope) {continue}
    v:=sourcehtml.Normalize(sourcehtml.Text(n))
    if len(v)<70 || len(v)>5000 || IsAdvertisingText(v) || existing[v] {continue}
    b:=structured.TextBlock(n,base,sourcehtml.ResolveURL,links.IsDocumentURL)
-   if b.Kind=="p" {intro=append(intro,b)}
+   if b.Text!="" {b.Kind="p";intro=append(intro,b)}
   }
   if len(intro)>0 && len(intro)<=12 {
    inserts[-1]=intro
@@ -64,11 +64,12 @@ func RestoreHeadingAnchoredProse(raw string, selected []article.Block, base *url
   var recovered []article.Block
   for j:=from.node+1;j<to.node;j++ {
    n:=nodes[j]
-   if n.Tag!="p" || sourcehtml.InNoisy(n,nil) || IsAdvertisingText(sourcehtml.Normalize(sourcehtml.Text(n))) {continue}
+   if !editorialProseNode(n) || sourcehtml.InNoisy(n,nil) || IsAdvertisingText(sourcehtml.Normalize(sourcehtml.Text(n))) {continue}
    v:=sourcehtml.Normalize(sourcehtml.Text(n))
    if len(v)<70 || len(v)>5000 || existing[v] {continue}
    block:=structured.TextBlock(n,base,sourcehtml.ResolveURL,links.IsDocumentURL)
-   if block.Kind!="p" {continue}
+   if block.Text=="" {continue}
+   block.Kind="p"
    existing[v]=true
    recovered=append(recovered,block)
   }
@@ -84,4 +85,18 @@ func RestoreHeadingAnchoredProse(raw string, selected []article.Block, base *url
   result=append(result,inserts[i]...)
  }
  return result
+}
+
+// editorialProseNode recognizes both semantic paragraphs and standalone
+// editorial copy containers. A class-marked div must be a leaf at the prose
+// level to avoid absorbing headings, images, lists or nested copy widgets.
+func editorialProseNode(n *sourcehtml.Node) bool {
+ if n==nil {return false}
+ if n.Tag=="p" {return true}
+ if n.Tag!="div" {return false}
+ hasCopy:=false
+ for _,c:=range strings.Fields(n.Attr["class"]) {if c=="pagebody-copy" {hasCopy=true;break}}
+ if !hasCopy {return false}
+ for _,c:=range sourcehtml.Find(n,func(x *sourcehtml.Node) bool {return x!=n && (x.Tag=="p" || x.Tag=="h2" || x.Tag=="h3" || x.Tag=="li" || x.Tag=="div")}) { _=c; return false }
+ return true
 }
