@@ -1,3 +1,13 @@
+# Active Issue #85 — press-release institutional tail (2026-10-27)
+
+- Issue: https://github.com/richard-mauri/scrapergo/issues/85; draft PR #86: https://github.com/richard-mauri/scrapergo/pull/86; branch `fix/issue-85-press-release-tail` from `main` (commit `23e6987`).
+- Reproduction: US Mint press release source includes `About the United States Mint` after `Learn more`, before `Additional Resources`; ScraperGo omits this institutional section.
+- Analysis: the Readability text pipeline and conservative anchored-tail recovery can omit one-paragraph supplementary sections; precise source DOM placement on the live Mint page not yet independently validated.
+- Candidate: `internal/extraction/institutional_tail.go`, invoked after source editorial continuity; only appends one source-backed `About ...` heading and substantial paragraph sharing an editorial main/article ancestor with a retained substantial source anchor. Footer-exclusion and positive synthetic tests added.
+- Pending: CI at latest PR head, source HTML / real-page verification, owner Mac/Safari checks, print and exports. No merge, tag or release authorization. Table fix #83 is already closed and on main.
+
+---
+
 # Active draft — Issue #83 table preservation (2026-10-27)
 
 - Issue: https://github.com/richard-mauri/scrapergo/issues/83 ; draft PR: https://github.com/richard-mauri/scrapergo/pull/84 ; branch: `fix/issue-83-preserve-tables` → `main`.
