@@ -26,3 +26,14 @@ func TestRecoverInstitutionalTailExcludesGenericFooter(t *testing.T) {
  got:=RecoverInstitutionalTail(raw,[]article.Block{{Kind:"p",Text:anchor}},u)
  if len(got)!=1 {t.Fatalf("footer was incorrectly appended: %#v",got)}
 }
+
+func TestRecoverInstitutionalTailRetainsShortFinalParagraph(t *testing.T) {
+ anchor:="The new public program builds on a longstanding national tradition of encouraging participation while offering opportunities for families and community organizations."
+ first:="The national agency was established over a century ago and now produces a wide range of public services, including materials used across the country. Its public responsibilities include administering national projects, distributing specialized information, and providing support to communities through many carefully managed programs."
+ second:="Its programs are self-sustaining and operate without taxpayer support."
+ raw:="<main><article><p>"+anchor+"</p><p>Learn more about the program.</p></article><section><h2>About the National Agency</h2><p>"+first+"</p><p>"+second+"</p></section><section><h2>Additional Resources</h2><p>Sign up for product notifications.</p></section></main>"
+ u,_:=url.Parse("https://example.org/release")
+ got:=RecoverInstitutionalTail(raw,[]article.Block{{Kind:"p",Text:anchor},{Kind:"p",Text:"Learn more about the program."}},u)
+ if len(got)!=5 {t.Fatalf("expected heading and two paragraphs, got %#v",got)}
+ if got[4].Text!=second {t.Fatalf("short final paragraph not preserved: %#v",got)}
+}
