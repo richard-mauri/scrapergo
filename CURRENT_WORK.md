@@ -1,3 +1,12 @@
+# Active draft PR #90 — Issue #89 Apple article paragraphs (2026-10-27)
+
+- Issue: https://github.com/richard-mauri/scrapergo/issues/89; draft PR: https://github.com/richard-mauri/scrapergo/pull/90; branch: `fix/issue-89-apple-article-completeness`, base main `04d7132`.
+- Owner supplied live /api/read JSON: 48 blocks, only press contacts as ordinary `p` blocks, many retained headings/lists/images, plus enormous `li` containing `Text of this article` and a duplicate full text copy. The source text is fetched but document structure is wrong.
+- Candidate in `internal/extraction/heading_prose.go`: recover HTML `p` between at least three source-matched section headings, excluding noisy blocks, and omit giant copy-text list item; invoked after other extraction stages. Synthetic tests cover order/idempotence and absence of unwanted copy widget. Introductory paragraphs before first heading remain an acknowledged gap.
+- CI on PR code head `003860f47cc20ebb970b9b667c617270cfd3f7a4` was in progress at last check; live Apple source HTML exact DOM and Mac/Safari acceptance unverified. This is a candidate, NOT a validated complete fix. Preserve source/security policy, no unrelated scope, merge/version/release only with explicit owner authorization.
+
+---
+
 # Active investigation — Issue #89 Apple Newsroom completeness (2026-10-27)
 
 - Issue: https://github.com/richard-mauri/scrapergo/issues/89; branch `fix/issue-89-apple-article-completeness` from `main` at `04d7132`.
