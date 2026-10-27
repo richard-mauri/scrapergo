@@ -36,6 +36,28 @@ func RestoreHeadingAnchoredProse(raw string, selected []article.Block, base *url
  existing:=map[string]bool{}
  for _,b:=range selected {existing[sourcehtml.Normalize(b.Text)]=true}
  inserts:=map[int][]article.Block{}
+ // Recover paragraphs before the first retained heading, only within its
+ // enclosing article element. A main fallback can include site furniture.
+ first:=anchors[0]
+ var scope *sourcehtml.Node
+ for p:=nodes[first.node].Parent;p!=nil;p=p.Parent {
+  if p.Tag=="article" {scope=p;break}
+ }
+ if scope!=nil {
+  var intro []article.Block
+  for _,n:=range sourcehtml.Find(scope,func(n *sourcehtml.Node) bool{return n.Tag=="p" || n==nodes[first.node]}) {
+   if n==nodes[first.node] {break}
+   if n.Tag!="p" || sourcehtml.InNoisy(n,scope) || PromotionalAncestor(n,scope) || NestedProse(n,scope) {continue}
+   v:=sourcehtml.Normalize(sourcehtml.Text(n))
+   if len(v)<70 || len(v)>5000 || IsAdvertisingText(v) || existing[v] {continue}
+   b:=structured.TextBlock(n,base,sourcehtml.ResolveURL,links.IsDocumentURL)
+   if b.Kind=="p" {intro=append(intro,b)}
+  }
+  if len(intro)>0 && len(intro)<=12 {
+   inserts[-1]=intro
+   for _,b:=range intro {existing[sourcehtml.Normalize(b.Text)]=true}
+  }
+ }
  for k:=0;k+1<len(anchors);k++ {
   from,to:=anchors[k],anchors[k+1]
   if to.node-from.node>75 {continue}
@@ -53,6 +75,7 @@ func RestoreHeadingAnchoredProse(raw string, selected []article.Block, base *url
   if len(recovered)<=10 {inserts[from.index]=recovered}
  }
  var result []article.Block
+ result=append(result,inserts[-1]...)
  for i,b:=range selected {
   // Publisher copy-text widgets are not editorial list items. Never discard
   // ordinary lists, even long ones, based on length alone.
