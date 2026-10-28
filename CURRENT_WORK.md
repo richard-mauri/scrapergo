@@ -1,3 +1,11 @@
+# Issue #91 update — checksum and CI validation (2026-10-28)
+
+- Draft PR #92 at `fix/issue-91-pdf-article-support` remains unmerged. At prior head `d4440f4`, GitHub Actions Go CI run #425 completed successfully: `go test -count=1 ./...` and `go build ./...` passed on Linux using Go from `go.mod`.
+- Module hashes were verified in that CI run: `github.com/giraffesyo/pdf v0.8.0` is pinned in `go.sum`; temporary `go mod download -json` workflow step subsequently removed. New head `5cd8946` requires fresh exact-head CI verification.
+- End-to-end journal PDF and Safari acceptance remain **unverified**. Direct PDF URL input remains unsupported; viewer fallback uses secure same-origin URL detection after HTML extraction failure. No merge/release/version bump without owner authorization.
+
+---
+
 # Issue #91 PDF extractor work — 2026-10-28
 
 - Issue #91 / draft PR #92, branch `fix/issue-91-pdf-article-support`, independent of merged Apple PR #90; `main` remains untouched.
