@@ -3,9 +3,9 @@
 - Issue #91 / draft PR #92, branch `fix/issue-91-pdf-article-support`, independent of merged Apple PR #90; `main` remains untouched.
 - Implemented earlier: same-origin PDF download-link discovery and regression tests in `internal/extraction/pdf_links.go`.
 - Added: `go.mod` declares Go 1.27.2 and pins `github.com/giraffesyo/pdf v0.8.0`. New `internal/pdfarticle` package converts already-acquired PDF bytes into bounded canonical `article.Article` and includes negative tests.
-- **Not yet integrated**: secure PDF byte retrieval, wrapper dispatch, direct PDF handling, HTTP read/classification, live journal validation. No PDF text output can currently be obtained from the user-facing reader.
+- **Implemented but not validated**: secure bounded PDF byte retrieval in `internal/fetcher/pdf.go`; context-carrying HTML-viewer fallback in `internal/bootstrap/service.go` and `internal/httpapi/read.go` dispatches a discovered same-origin PDF when conventional HTML extraction fails. Result is normalized to `article.Article`. Direct `.pdf` input URL handling, rich PDF metadata and OCR remain out of scope/unimplemented. End-to-end behavior is untested.
 - **Toolchain blocker**: local build environment available to assistant has Go 1.23.2 and cannot reach Go module proxy; therefore no `go.sum` entries have been generated for the new module, and Go compile/tests have not been performed. Dependency and its API require owner-side/CI validation before treating code as buildable. Do not merge.
-- Next action: implement safe PDF retrieval using `internal/fetcher`'s network boundary, dispatch when HTML viewer advertises a PDF or direct response is a PDF, then add integration tests and generate `go.sum` via Go 1.27.2. Review page/text/byte limits and errors.
+- Next action: produce dependency `go.sum` with Go 1.27.2, compile and run all tests; fix any integration errors; add end-to-end fixture tests and verify live publisher. Evaluate direct PDF handling separately. Existing HTML behavior and the owner Mac/Safari checks need verification.
 - No merge, tag, release or appVersion change without explicit owner authorization.
 
 ---
