@@ -14,6 +14,7 @@ import (
 
 type Handlers struct {
  Read http.Handler
+ PDF http.Handler
  Classify http.HandlerFunc
  ImageMetadata http.Handler
  ArticleImage http.HandlerFunc
@@ -31,6 +32,7 @@ type Config struct {
 func Router(h Handlers, config Config) http.Handler {
  mux:=http.NewServeMux()
  mux.Handle("/api/read",h.Read)
+ if h.PDF != nil { mux.Handle("/api/pdf",h.PDF) }
  mux.HandleFunc("/api/classify",h.Classify)
  mux.Handle("/api/image-metadata",h.ImageMetadata)
  mux.HandleFunc("/api/article-image",h.ArticleImage)
@@ -50,7 +52,7 @@ func Router(h Handlers, config Config) http.Handler {
  mux.HandleFunc("/",func(w http.ResponseWriter,r *http.Request) {
   if r.URL.Path!="/" {http.NotFound(w,r);return}
   w.Header().Set("Content-Type","text/html; charset=utf-8")
-  w.Header().Set("Content-Security-Policy","default-src 'self'; img-src 'self' https: data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; base-uri 'none'; object-src 'none'")
+  w.Header().Set("Content-Security-Policy","default-src 'self'; img-src 'self' https: data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; base-uri 'none'; object-src 'none'; frame-src 'self'")
   fmt.Fprint(w,ui.Render(config.Version,config.Build))
  })
  return mux
