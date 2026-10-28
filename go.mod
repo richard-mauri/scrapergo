@@ -1,8 +1,11 @@
 module clean-article-reader
 
-go 1.23.2
+go 1.27.2
 
-require codeberg.org/readeck/go-readability/v2 v2.1.2
+require (
+	codeberg.org/readeck/go-readability/v2 v2.1.2
+	github.com/giraffesyo/pdf v0.8.0
+)
 
 require (
 	github.com/andybalholm/cascadia v1.3.3 // indirect
