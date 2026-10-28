@@ -1,3 +1,15 @@
+# Issue #91 PDF extractor work — 2026-10-28
+
+- Issue #91 / draft PR #92, branch `fix/issue-91-pdf-article-support`, independent of merged Apple PR #90; `main` remains untouched.
+- Implemented earlier: same-origin PDF download-link discovery and regression tests in `internal/extraction/pdf_links.go`.
+- Added: `go.mod` declares Go 1.27.2 and pins `github.com/giraffesyo/pdf v0.8.0`. New `internal/pdfarticle` package converts already-acquired PDF bytes into bounded canonical `article.Article` and includes negative tests.
+- **Not yet integrated**: secure PDF byte retrieval, wrapper dispatch, direct PDF handling, HTTP read/classification, live journal validation. No PDF text output can currently be obtained from the user-facing reader.
+- **Toolchain blocker**: local build environment available to assistant has Go 1.23.2 and cannot reach Go module proxy; therefore no `go.sum` entries have been generated for the new module, and Go compile/tests have not been performed. Dependency and its API require owner-side/CI validation before treating code as buildable. Do not merge.
+- Next action: implement safe PDF retrieval using `internal/fetcher`'s network boundary, dispatch when HTML viewer advertises a PDF or direct response is a PDF, then add integration tests and generate `go.sum` via Go 1.27.2. Review page/text/byte limits and errors.
+- No merge, tag, release or appVersion change without explicit owner authorization.
+
+---
+
 # Active work — Issue #91 public PDF article support (2026-10-28)
 
 - Issue: https://github.com/richard-mauri/scrapergo/issues/91; branch `fix/issue-91-pdf-article-support` from merged `main`. Distinct from completed Apple PR #90.
