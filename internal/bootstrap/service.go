@@ -11,9 +11,11 @@ import (
  "clean-article-reader/internal/httpapi"
  "clean-article-reader/internal/imagedelivery"
  "clean-article-reader/internal/pageclassify"
+ "clean-article-reader/internal/pdfarticle"
  "clean-article-reader/internal/reader"
  "clean-article-reader/internal/sourcehtml"
  "clean-article-reader/internal/structured"
+ "context"
  "encoding/json"
  "log"
  "net/http"
@@ -22,6 +24,16 @@ import (
 )
 // writeExtractedArticle is shared by normal retrieval and diagnostic HTML submission.
 func WriteExtractedArticle(w http.ResponseWriter, raw, finalURL string) {
+ writeExtractedArticle(context.Background(),w,raw,finalURL,false)
+}
+
+// WriteHTMLWithPDF is the network read path. Diagnostics deliberately retain
+// the pure offline HTML extractor without PDF subrequests.
+func WriteHTMLWithPDF(ctx context.Context, w http.ResponseWriter, raw, finalURL string) {
+ writeExtractedArticle(ctx,w,raw,finalURL,true)
+}
+
+func writeExtractedArticle(ctx context.Context, w http.ResponseWriter, raw, finalURL string, allowPDF bool) {
 	LogSlateRetrievalDiagnostic(raw, finalURL)
 	// A navigation index is not a single article. Classify conservatively before
 	// Readability can flatten its menu and story cards into a false article.
@@ -65,6 +77,26 @@ func WriteExtractedArticle(w http.ResponseWriter, raw, finalURL string) {
 		})
 		return
 	}
+	if extractionErr != nil && allowPDF {
+        if candidate := extraction.DiscoverPDFLink(raw, finalURL); candidate != "" {
+            bytes, pdfURL, err := fetcher.DownloadPDF(ctx, candidate)
+            if err != nil {
+                w.WriteHeader(http.StatusUnprocessableEntity)
+                _ = json.NewEncoder(w).Encode(map[string]string{"kind":"pdf_download_failed","error":err.Error(),"url":finalURL})
+                return
+            }
+            pdfArticle, err := pdfarticle.Extract(ctx,bytes,pdfURL)
+            if err != nil {
+                w.WriteHeader(http.StatusUnprocessableEntity)
+                _ = json.NewEncoder(w).Encode(map[string]string{"kind":"pdf_extraction_failed","error":err.Error(),"url":finalURL})
+                return
+            }
+            // Preserve the article address supplied by the user.
+            pdfArticle.URL = finalURL
+            _ = json.NewEncoder(w).Encode(pdfArticle)
+            return
+        }
+    }
 	if extractionErr != nil {
 		w.WriteHeader(422)
 		_ = json.NewEncoder(w).Encode(map[string]string{"error": "ScraperGo could not identify a readable article on this page. Open the original website to continue.", "kind": "extraction_error", "url": finalURL})
@@ -148,6 +180,7 @@ func NewArticleReadHandler() http.Handler {
   PublisherAccessMessage: fetcher.PublisherAccessMessage,
   Hostname: accesspolicy.Hostname,
   WriteExtracted: WriteExtractedArticle,
+  WriteExtractedWithContext: WriteHTMLWithPDF,
  })
 }
 
