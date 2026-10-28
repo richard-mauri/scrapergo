@@ -21,3 +21,9 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(-
 .content .table-scroll th,.content .table-scroll td{border:1px solid var(--border);padding:12px 14px;text-align:left;vertical-align:top;overflow-wrap:normal}
 .content .table-scroll th{font-weight:700;background:var(--soft)}
 @media print{.content .table-scroll{overflow:visible}.content .table-scroll table{min-width:0;font-size:11px;page-break-inside:auto}.content .table-scroll tr{break-inside:avoid}}
+
+/* Preserve journal pagination, figures, typography and two-column PDF layout. */
+.paper:has(.pdf-original-layout){padding:24px;max-width:none}
+.content:has(.pdf-original-layout){max-width:none}
+.pdf-original-layout{width:100%;height:min(82vh,1100px);min-height:560px;border:1px solid var(--border);border-radius:8px;background:#fff}
+@media print{.pdf-original-layout{height:95vh;min-height:0}}
