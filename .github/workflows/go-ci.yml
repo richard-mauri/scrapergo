@@ -22,6 +22,8 @@ jobs:
       - name: Report formatting debt (non-blocking)
         run: |
           git ls-files '*.go' | xargs gofmt -l
+      - name: Resolve PDF module checksums for draft validation
+        run: go mod download -json github.com/giraffesyo/pdf@v0.8.0
       - name: Run tests
         run: go test -count=1 ./...
       - name: Build
