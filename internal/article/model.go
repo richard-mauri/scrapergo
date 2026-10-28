@@ -51,6 +51,7 @@ type Article struct {
  WordCount int `json:"wordCount"`
  ImageURL string `json:"imageUrl,omitempty"`
  Method string `json:"method,omitempty"`
+ PDFURL string `json:"pdfUrl,omitempty"`
  AccessNote string `json:"accessNote,omitempty"`
  AccessType string `json:"accessType,omitempty"`
 }
