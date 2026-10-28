@@ -1,3 +1,14 @@
+# Active work — Issue #91 public PDF article support (2026-10-28)
+
+- Issue: https://github.com/richard-mauri/scrapergo/issues/91; branch `fix/issue-91-pdf-article-support` from merged `main`. Distinct from completed Apple PR #90.
+- Reproduction: ScraperGo v0.2.85 build 000043 shows `unreadable/no_readable_article` for https://journaloflostspecies.org/index.php/jls/article/view/37/33. Public HTML PDF viewer exposes article details and Download PDF link; its PDF content is not conventional HTML.
+- Verified code boundary: `internal/fetcher/fetcher.go` explicitly rejects non-HTML responses; `internal/httpapi/read.go` passes downloaded HTML to `internal/bootstrap/service.go`; the Readability pipeline only processes HTML.
+- First scoped code increment: `internal/extraction/pdf_links.go` and `pdf_links_test.go` introduce offline source-linked PDF candidate discovery for same-origin HTML download/viewer links, reject cross-origin and HTTPS downgrade, and strip fragments. This is **discovery only**, not yet connected to live read, PDF download or text extraction.
+- Next: choose and test a pure-Go PDF parser or bounded library; add a separate byte-safe validated fetch path and content-type handling in `internal/fetcher`, integrate normalized article output and error/classification diagnostics, and cover safe redirect, byte and page limits. Preserve the existing HTML extraction path and external consumers.
+- Validation: Source inspected and commits recorded; Go tests, GitHub Actions CI, actual PDF fetch/extraction, Mac/Safari and NewsGo acceptance **NOT performed**. Draft PR only; no merge, tag, release, semantic-version change or local tunnel modifications without owner authorization.
+
+---
+
 # Active draft PR #90 — Issue #89 Apple article paragraphs (2026-10-27)
 
 - Issue: https://github.com/richard-mauri/scrapergo/issues/89; draft PR: https://github.com/richard-mauri/scrapergo/pull/90; branch: `fix/issue-89-apple-article-completeness`, base main `04d7132`.
