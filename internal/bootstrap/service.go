@@ -93,6 +93,7 @@ func writeExtractedArticle(ctx context.Context, w http.ResponseWriter, raw, fina
             }
             // Preserve the article address supplied by the user.
             pdfArticle.URL = finalURL
+            pdfArticle.PDFURL = pdfURL
             _ = json.NewEncoder(w).Encode(pdfArticle)
             return
         }
@@ -198,6 +199,7 @@ func Start(port string, version, build string, tannerJPG []byte) error {
   Classify:(&httpapi.Classifier{Read:readHandler,ValidateURL:fetcher.ValidatedURL}).ServeHTTP,
   ImageMetadata:NewArticleMetadataHandler(readHandler),
   ArticleImage:(imagedelivery.Handler{Metadata:NewArticleMetadataHandler(readHandler)}).ServeHTTP,
+  PDF:httpapi.PDFHandler(fetcher.DownloadPDF),
   Thumbnail:httpapi.NewThumbnailHandler(fetcher.ValidatedURL,imagedelivery.Handler{Metadata:NewArticleMetadataHandler(readHandler)}).ServeHTTP,
   DiagnosticExtract:(diagnostics.HTMLHandler{WriteExtracted:WriteExtractedArticle}).ServeHTTP,
   DiagnosticImageTrace:(diagnostics.ImageTraceHandler{Extract:ExtractWithEvidence}).ServeHTTP,
