@@ -1,3 +1,44 @@
+# Issue #91 — original two-column PDF presentation (2026-10-28)
+
+- Owner verified that journal PDF extraction works, but requested **the original two-column formatting**, not normalized single-column text.
+- Draft PR #92 branch `fix/issue-91-pdf-article-support` now adds `pdfUrl` to PDF article JSON, a same-origin `/api/pdf` endpoint backed by the existing validated bounded `fetcher.DownloadPDF`, and an embedded PDF viewer in `internal/ui/static/reader.js`. Original PDF pages preserve column arrangement, typography, figures and captions. Existing HTML reader remains unchanged.
+- The PDF endpoint validates URL syntax, relies on fetcher's public-host/redirect checks and bounded PDF magic/size check, and responds with `Content-Type: application/pdf` / `inline` / `no-store`. CSP permits same-origin frames. New endpoint regression test committed.
+- **Caveats:** PDF endpoint performs a second publisher fetch on display; browser PDF print behavior differs from ScraperGo's article print control; Safari rendering, source download and dual columns require live acceptance. Scanned PDFs still cannot produce extracted text; direct PDF input is not supported.
+- Prior Go CI #425 passed at `d4440f4` before these changes. The current head requires new exact-head CI and Mac/Safari acceptance. No merge, tag or appVersion/release changes without owner approval.
+
+---
+
+# Issue #91 update — checksum and CI validation (2026-10-28)
+
+- Draft PR #92 at `fix/issue-91-pdf-article-support` remains unmerged. At prior head `d4440f4`, GitHub Actions Go CI run #425 completed successfully: `go test -count=1 ./...` and `go build ./...` passed on Linux using Go from `go.mod`.
+- Module hashes were verified in that CI run: `github.com/giraffesyo/pdf v0.8.0` is pinned in `go.sum`; temporary `go mod download -json` workflow step subsequently removed. New head `5cd8946` requires fresh exact-head CI verification.
+- End-to-end journal PDF and Safari acceptance remain **unverified**. Direct PDF URL input remains unsupported; viewer fallback uses secure same-origin URL detection after HTML extraction failure. No merge/release/version bump without owner authorization.
+
+---
+
+# Issue #91 PDF extractor work — 2026-10-28
+
+- Issue #91 / draft PR #92, branch `fix/issue-91-pdf-article-support`, independent of merged Apple PR #90; `main` remains untouched.
+- Implemented earlier: same-origin PDF download-link discovery and regression tests in `internal/extraction/pdf_links.go`.
+- Added: `go.mod` declares Go 1.27.2 and pins `github.com/giraffesyo/pdf v0.8.0`. New `internal/pdfarticle` package converts already-acquired PDF bytes into bounded canonical `article.Article` and includes negative tests.
+- **Implemented but not validated**: secure bounded PDF byte retrieval in `internal/fetcher/pdf.go`; context-carrying HTML-viewer fallback in `internal/bootstrap/service.go` and `internal/httpapi/read.go` dispatches a discovered same-origin PDF when conventional HTML extraction fails. Result is normalized to `article.Article`. Direct `.pdf` input URL handling, rich PDF metadata and OCR remain out of scope/unimplemented. End-to-end behavior is untested.
+- **Toolchain blocker**: local build environment available to assistant has Go 1.23.2 and cannot reach Go module proxy; therefore no `go.sum` entries have been generated for the new module, and Go compile/tests have not been performed. Dependency and its API require owner-side/CI validation before treating code as buildable. Do not merge.
+- Next action: produce dependency `go.sum` with Go 1.27.2, compile and run all tests; fix any integration errors; add end-to-end fixture tests and verify live publisher. Evaluate direct PDF handling separately. Existing HTML behavior and the owner Mac/Safari checks need verification.
+- No merge, tag, release or appVersion change without explicit owner authorization.
+
+---
+
+# Active work — Issue #91 public PDF article support (2026-10-28)
+
+- Issue: https://github.com/richard-mauri/scrapergo/issues/91; branch `fix/issue-91-pdf-article-support` from merged `main`. Distinct from completed Apple PR #90.
+- Reproduction: ScraperGo v0.2.85 build 000043 shows `unreadable/no_readable_article` for https://journaloflostspecies.org/index.php/jls/article/view/37/33. Public HTML PDF viewer exposes article details and Download PDF link; its PDF content is not conventional HTML.
+- Verified code boundary: `internal/fetcher/fetcher.go` explicitly rejects non-HTML responses; `internal/httpapi/read.go` passes downloaded HTML to `internal/bootstrap/service.go`; the Readability pipeline only processes HTML.
+- First scoped code increment: `internal/extraction/pdf_links.go` and `pdf_links_test.go` introduce offline source-linked PDF candidate discovery for same-origin HTML download/viewer links, reject cross-origin and HTTPS downgrade, and strip fragments. This is **discovery only**, not yet connected to live read, PDF download or text extraction.
+- Next: choose and test a pure-Go PDF parser or bounded library; add a separate byte-safe validated fetch path and content-type handling in `internal/fetcher`, integrate normalized article output and error/classification diagnostics, and cover safe redirect, byte and page limits. Preserve the existing HTML extraction path and external consumers.
+- Validation: Source inspected and commits recorded; Go tests, GitHub Actions CI, actual PDF fetch/extraction, Mac/Safari and NewsGo acceptance **NOT performed**. Draft PR only; no merge, tag, release, semantic-version change or local tunnel modifications without owner authorization.
+
+---
+
 # Active draft PR #90 — Issue #89 Apple article paragraphs (2026-10-27)
 
 - Issue: https://github.com/richard-mauri/scrapergo/issues/89; draft PR: https://github.com/richard-mauri/scrapergo/pull/90; branch: `fix/issue-89-apple-article-completeness`, base main `04d7132`.

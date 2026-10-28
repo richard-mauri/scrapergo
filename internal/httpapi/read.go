@@ -18,6 +18,7 @@ type ReadDependencies struct {
  PublisherAccessMessage func(error)(string,bool)
  Hostname func(string)string
  WriteExtracted func(http.ResponseWriter,string,string)
+ WriteExtractedWithContext func(context.Context,http.ResponseWriter,string,string)
 }
 
 // ReadHandler owns the request and response contract. Access policy, URL
@@ -66,6 +67,6 @@ func ReadHandler(d ReadDependencies) http.Handler {
    _=json.NewEncoder(w).Encode(response)
    return
   }
-  d.WriteExtracted(w,raw,finalURL)
+  if d.WriteExtractedWithContext != nil { d.WriteExtractedWithContext(r.Context(),w,raw,finalURL) } else { d.WriteExtracted(w,raw,finalURL) }
  })
 }
