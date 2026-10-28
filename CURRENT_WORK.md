@@ -1,3 +1,13 @@
+# Issue #91 — original two-column PDF presentation (2026-10-28)
+
+- Owner verified that journal PDF extraction works, but requested **the original two-column formatting**, not normalized single-column text.
+- Draft PR #92 branch `fix/issue-91-pdf-article-support` now adds `pdfUrl` to PDF article JSON, a same-origin `/api/pdf` endpoint backed by the existing validated bounded `fetcher.DownloadPDF`, and an embedded PDF viewer in `internal/ui/static/reader.js`. Original PDF pages preserve column arrangement, typography, figures and captions. Existing HTML reader remains unchanged.
+- The PDF endpoint validates URL syntax, relies on fetcher's public-host/redirect checks and bounded PDF magic/size check, and responds with `Content-Type: application/pdf` / `inline` / `no-store`. CSP permits same-origin frames. New endpoint regression test committed.
+- **Caveats:** PDF endpoint performs a second publisher fetch on display; browser PDF print behavior differs from ScraperGo's article print control; Safari rendering, source download and dual columns require live acceptance. Scanned PDFs still cannot produce extracted text; direct PDF input is not supported.
+- Prior Go CI #425 passed at `d4440f4` before these changes. The current head requires new exact-head CI and Mac/Safari acceptance. No merge, tag or appVersion/release changes without owner approval.
+
+---
+
 # Issue #91 update — checksum and CI validation (2026-10-28)
 
 - Draft PR #92 at `fix/issue-91-pdf-article-support` remains unmerged. At prior head `d4440f4`, GitHub Actions Go CI run #425 completed successfully: `go test -count=1 ./...` and `go build ./...` passed on Linux using Go from `go.mod`.
