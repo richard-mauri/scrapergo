@@ -34,7 +34,25 @@ func HasPrimaryArticleEvidence(raw string) bool {
 // Ambiguous documents are passed to the normal article extractor.
 func IsIndex(raw string) bool {
  if HasPrimaryArticleEvidence(raw) {return false}
-	root := sourcehtml.Parse(raw)
+ root := sourcehtml.Parse(raw)
+ // Publishers often render the lead as <main><h1>... followed by prose
+ // without a semantic <article> wrapper. Related-story cards can otherwise
+ // trip the link-count heuristic. Protect a coherent main editorial body.
+ for _, main := range sourcehtml.Find(root, func(n *sourcehtml.Node) bool {return n.Tag=="main"}) {
+  if sourcehtml.InNoisy(main,nil) {continue}
+  h1, paragraphs, bodyChars:=false,0,0
+  for _, n:=range sourcehtml.Find(main,func(n *sourcehtml.Node) bool {return n.Tag=="h1"||n.Tag=="p"}) {
+   if sourcehtml.InNoisy(n,main) {continue}
+   v:=sourcehtml.Normalize(sourcehtml.Text(n))
+   if n.Tag=="h1" && len(v)>=18 && len(v)<=220 {h1=true}
+   if n.Tag!="p"||len(v)<100 {continue}
+   linked:=false
+   for p:=n.Parent;p!=nil&&p!=main;p=p.Parent {if p.Tag=="a" {linked=true;break}}
+   if !linked {paragraphs++;bodyChars+=len(v)}
+  }
+  if h1 && paragraphs>=3 && bodyChars>=450 {return false}
+ }
+	root = sourcehtml.Parse(raw)
 	scope := root
 	for _, n := range sourcehtml.Find(root, func(n *sourcehtml.Node) bool { return n.Tag == "main" }) {
 		if !sourcehtml.InNoisy(n, nil) {
