@@ -1,3 +1,12 @@
+# Issue #95 — localhost classification trace (2026-10-29)
+
+- Issue https://github.com/richard-mauri/scrapergo/issues/95; branch `feat/issue-95-classification-trace` from `main`, independent of PR #94 (classification candidate) and PR #92 (PDF).
+- Added localhost-only `POST /api/diagnostic/classification-trace`, JSON `{ "url": "https://..." }`, using existing validated publisher downloader and extraction writer. Reports rule booleans, word count, early/late rejection stage, final HTTP status/kind. No production classification changes. Access-control regression tests included.
+- Trace instrumentation added in commit `6f489c1`: `timingsMs` and `calls` for explicit URL validation, download, individual heuristic checks, extraction and production writer, plus `totalMs`. Nested calls inside production writer are not counted separately; stages duplicate some work and times should not be added as unique production cost. Follow-up adds `indexEvidence` with links, distinct destinations, headline links, prose paragraph count, scope and threshold status; production IsIndex is not modified.
+- Caveats: trace fetches the publisher; no live publisher/Safari acceptance yet. Exact-head CI pending. No merge/version/release authorized.
+
+---
+
 # Issue #91 — original two-column PDF presentation (2026-10-28)
 
 - Owner verified that journal PDF extraction works, but requested **the original two-column formatting**, not normalized single-column text.
