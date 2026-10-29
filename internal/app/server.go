@@ -21,6 +21,7 @@ type Handlers struct {
  Thumbnail http.HandlerFunc
  DiagnosticExtract http.HandlerFunc
  DiagnosticImageTrace http.HandlerFunc
+ DiagnosticClassificationTrace http.HandlerFunc
  TannerPhoto []byte
 }
 type Config struct {
@@ -39,6 +40,7 @@ func Router(h Handlers, config Config) http.Handler {
  mux.HandleFunc("/api/thumbnail",h.Thumbnail)
  mux.HandleFunc("/api/diagnostic/extract",h.DiagnosticExtract)
  mux.HandleFunc("/api/diagnostic/image-trace",h.DiagnosticImageTrace)
+ if h.DiagnosticClassificationTrace != nil {mux.HandleFunc("/api/diagnostic/classification-trace",h.DiagnosticClassificationTrace)}
  mux.HandleFunc("/tanner.jpg",func(w http.ResponseWriter,r *http.Request) {
   if r.Method!=http.MethodGet && r.Method!=http.MethodHead {
    w.Header().Set("Allow","GET, HEAD")
