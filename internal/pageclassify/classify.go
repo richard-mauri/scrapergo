@@ -52,7 +52,6 @@ func IsIndex(raw string) bool {
   }
   if h1 && paragraphs>=3 && bodyChars>=450 {return false}
  }
-	root = sourcehtml.Parse(raw)
 	scope := root
 	for _, n := range sourcehtml.Find(root, func(n *sourcehtml.Node) bool { return n.Tag == "main" }) {
 		if !sourcehtml.InNoisy(n, nil) {
