@@ -27,3 +27,22 @@ func TestHeadlineTeasersAreNotPrimaryArticle(t *testing.T) {
  b.WriteString("</main></html>")
  if HasPrimaryArticleEvidence(b.String()) {t.Fatal("teaser cards should not qualify")}
 }
+
+func TestMainArticleWithoutSemanticArticleWrapper(t *testing.T) {
+ paragraph := strings.Repeat("Substantial editorial reporting about Truist Financial earnings, investor reaction and bank performance. ", 2)
+ var b strings.Builder
+ b.WriteString("<html><main><h1>Why is Truist Financial stock gaining today?</h1>")
+ for i:=0;i<4;i++ {b.WriteString("<p>"+paragraph+"</p>")}
+ b.WriteString("<section><h2>Most Popular Articles</h2>")
+ for i:=0;i<35;i++ {b.WriteString(fmt.Sprintf("<a href='/news/%d'><h3>Another distinct market article and financial story %d</h3></a>",i,i))}
+ b.WriteString("</section></main></html>")
+ if IsIndex(b.String()) {t.Fatal("main editorial article incorrectly rejected as index")}
+}
+
+func TestRelatedLinkOnlyMainStillRejected(t *testing.T) {
+ var b strings.Builder
+ b.WriteString("<html><main><h1>Market news today</h1>")
+ for i:=0;i<35;i++ {b.WriteString(fmt.Sprintf("<a href='/news/%d'><h3>Another distinct market article and financial story %d</h3></a>",i,i))}
+ b.WriteString("</main></html>")
+ if !IsIndex(b.String()) {t.Fatal("real link-only news index accepted as article")}
+}
