@@ -39,6 +39,8 @@ func classificationTraceHandler(read http.Handler) http.HandlerFunc {
   if err!=nil {_=json.NewEncoder(w).Encode(map[string]any{"url":input.URL,"stage":"download","error":err.Error()});return}
   var initialIndex,initialLanding,hasPartial,thin,sparse,search bool
   measure("isIndex",func(){initialIndex=pageclassify.IsIndex(raw)})
+  var indexEvidence map[string]any
+  measure("indexEvidence",func(){indexEvidence=pageclassify.IndexEvidence(raw)})
   measure("isLanding",func(){initialLanding=pageclassify.IsLanding(raw)})
   measure("hasPartialArticleEvidence",func(){hasPartial=extraction.HasPartialArticleEvidence(raw,finalURL)})
   var extractedErr error
@@ -66,7 +68,7 @@ func classificationTraceHandler(read http.Handler) http.HandlerFunc {
     "isThinPortal":thin,"isSparseRootLanding":sparse,"isSearchPortal":search,
    },
    "extraction":map[string]any{"succeeded":extractErr==nil,"wordCount":wordCount},
-   "outcome":outcome,
+   "outcome":outcome,"indexEvidence":indexEvidence,
    "timingsMs":timings,"calls":calls,
    "timingNotes":"Wall-clock timings for explicit diagnostic calls. productionWriter reruns internal classifiers/extraction as needed; those nested calls are not individually counted. The trace does not make a second publisher download.",
   }
