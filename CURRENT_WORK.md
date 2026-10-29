@@ -2,7 +2,8 @@
 
 - Issue https://github.com/richard-mauri/scrapergo/issues/95; branch `feat/issue-95-classification-trace` from `main`, independent of PR #94 (classification candidate) and PR #92 (PDF).
 - Added localhost-only `POST /api/diagnostic/classification-trace`, JSON `{ "url": "https://..." }`, using existing validated publisher downloader and extraction writer. Reports rule booleans, word count, early/late rejection stage, final HTTP status/kind. No production classification changes. Access-control regression tests included.
-- Caveats: trace fetches the publisher; no live publisher/Safari acceptance yet. CI at head pending. No merge/version/release authorized.
+- Trace instrumentation added in commit `6f489c1`: `timingsMs` and `calls` for explicit URL validation, download, individual heuristic checks, extraction and production writer, plus `totalMs`. Nested calls inside production writer are not counted separately; stages duplicate some work and times should not be added as unique production cost.
+- Caveats: trace fetches the publisher; no live publisher/Safari acceptance yet. Exact-head CI pending. No merge/version/release authorized.
 
 ---
 
