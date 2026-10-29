@@ -1,3 +1,13 @@
+# Issue #93 — link-heavy financial article classified as homepage (2026-10-29)
+
+- Issue: https://github.com/richard-mauri/scrapergo/issues/93. Candidate branch `fix/issue-93-article-index-evidence` starts at GitHub `main`; independent of ongoing PDF PR #92.
+- Reproduction reported: Investing.com Truist article URL rejected as homepage despite article body and large related-story list.
+- Narrow candidate: `pageclassify.HasPrimaryArticleEvidence` conservatively protects a semantic `<article>` containing its own h1 and at least three substantial nonlinked paragraphs (450 characters total) from the early index/landing classifiers. Existing restrictions, network access and other classification gates remain intact. Synthetic regression fixtures added.
+- Limitations: Publisher's exact downloaded HTML and which classifier triggered were not captured; the live page may not use this structure. CI and owner-side Mac/Safari acceptance are pending. Do not call this a verified fix for the reported URL.
+- No merge, tag, semantic version change or release authorized.
+
+---
+
 # Issue #91 — original two-column PDF presentation (2026-10-28)
 
 - Owner verified that journal PDF extraction works, but requested **the original two-column formatting**, not normalized single-column text.
