@@ -6,10 +6,34 @@ import (
 	"strings"
 )
 
+// HasPrimaryArticleEvidence protects a substantial editorial body from a large
+// related-story list. It is deliberately structural, not publisher-specific.
+// Require an actual article container, its own headline, and sustained paragraphs;
+// semantic <article> wrappers used solely for teaser cards do not qualify.
+func HasPrimaryArticleEvidence(raw string) bool {
+ root := sourcehtml.Parse(raw)
+ for _, candidate := range sourcehtml.Find(root, func(n *sourcehtml.Node) bool { return n.Tag == "article" }) {
+  headline := false
+  paragraphs, chars := 0, 0
+  for _, n := range sourcehtml.Find(candidate, func(n *sourcehtml.Node) bool {return n.Tag == "h1" || n.Tag == "p"}) {
+   if sourcehtml.InNoisy(n, candidate) {continue}
+   v := sourcehtml.Normalize(sourcehtml.Text(n))
+   if n.Tag == "h1" && len(v) >= 18 && len(v) <= 220 {headline = true}
+   if n.Tag != "p" || len(v) < 100 {continue}
+   linked := false
+   for p := n.Parent; p != nil && p != candidate; p = p.Parent {if p.Tag == "a" {linked = true;break}}
+   if !linked {paragraphs++;chars += len(v)}
+  }
+  if headline && paragraphs >= 3 && chars >= 450 {return true}
+ }
+ return false
+}
+
 // IsIndex recognizes link-driven collections instead of trusting Readability's
 // word count. This classifier is deliberately independent of hostnames and paths.
 // Ambiguous documents are passed to the normal article extractor.
 func IsIndex(raw string) bool {
+ if HasPrimaryArticleEvidence(raw) {return false}
 	root := sourcehtml.Parse(raw)
 	scope := root
 	for _, n := range sourcehtml.Find(root, func(n *sourcehtml.Node) bool { return n.Tag == "main" }) {
@@ -93,6 +117,7 @@ func IsIndex(raw string) bool {
 // is a collection of short feature pitches and calls to action, not an article.
 // It is intentionally independent of hostname, URL path, and publisher text.
 func IsLanding(raw string) bool {
+ if HasPrimaryArticleEvidence(raw) {return false}
 	root := sourcehtml.Parse(raw)
 	scope := root
 	for _, n := range sourcehtml.Find(root, func(n *sourcehtml.Node) bool { return n.Tag == "main" }) {
