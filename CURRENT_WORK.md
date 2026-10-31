@@ -1,3 +1,13 @@
+# Active handoff — Seeking Alpha raw HTML diagnostic (2026-10-31)
+
+- Scope: investigate Seeking Alpha article 4660894. Production /api/read returned a 45-word partial HTML excerpt; localhost classification trace downloaded 141,661 HTML bytes, extraction succeeded with 45 words, partial evidence true, search portal true, outcome article/200, triggeredStage none. Whether the missing paragraphs exist in raw HTML remains unknown.
+- Work branch: `feat/diagnostic-raw-html`, based on `main`. Added localhost-only `POST /api/diagnostic/raw-html` in `internal/httpapi/diagnostic_raw_html.go`, wired through `internal/app/server.go` and `internal/bootstrap/service.go`, with `internal/httpapi/diagnostic_raw_html_test.go`. Uses existing validated bounded fetcher; downloads HTML and returns response as attachment with no-store/nosniff/sandbox headers. No publisher restriction bypass intended.
+- Current last code commit: `37316e14e7aff8af96c902c3edc2075ef7918e67` prior to this documentation update. Tests, compile, exact-head GitHub CI and Mac/Safari/live publisher acceptance NOT performed. No merge, tag, release or semantic version authorization.
+- Immediate next steps: open/verify scoped draft PR and CI; owner runs `DEVELOPMENT.md` Mac sequence on this branch; POST localhost diagnostic with Seeking Alpha URL to save HTML in /tmp; inspect missing phrase presence; review diagnostic content handling and security before approval. No change to production extraction or local tunnels.
+- Note: current README and this snapshot historically omit newest diagnostic routes; refresh product API documentation before a final merge candidate. Existing independent PRs/issues must remain separate.
+
+---
+
 # Issue #95 — localhost classification trace (2026-10-29)
 
 - Issue https://github.com/richard-mauri/scrapergo/issues/95; branch `feat/issue-95-classification-trace` from `main`, independent of PR #94 (classification candidate) and PR #92 (PDF).
