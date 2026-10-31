@@ -202,6 +202,7 @@ func Start(port string, version, build string, tannerJPG []byte) error {
   PDF:httpapi.PDFHandler(fetcher.DownloadPDF),
   Thumbnail:httpapi.NewThumbnailHandler(fetcher.ValidatedURL,imagedelivery.Handler{Metadata:NewArticleMetadataHandler(readHandler)}).ServeHTTP,
   DiagnosticExtract:(diagnostics.HTMLHandler{WriteExtracted:WriteExtractedArticle}).ServeHTTP,
+  DiagnosticRawHTML:httpapi.RawHTMLDiagnosticHandler(fetcher.Download),
   DiagnosticImageTrace:(diagnostics.ImageTraceHandler{Extract:ExtractWithEvidence}).ServeHTTP,
   DiagnosticClassificationTrace:classificationTraceHandler(readHandler),
   TannerPhoto:tannerJPG,
