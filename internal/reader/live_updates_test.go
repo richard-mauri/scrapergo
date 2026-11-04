@@ -20,6 +20,9 @@ func exampleLiveBlocks() ([]article.Block, string) {
 		{Kind: "h2", Text: "Latest election developments"},
 		{Kind: "img", URL: "https://images.example.org/lead.jpg", Text: "Lead photograph"},
 	}
+	// Marker from the owner's exported text: the critical opening paragraph
+	// must survive before Key events, not merely appear somewhere downstream.
+	paragraphs[0].Text = "In case you fell asleep early, " + paragraphs[0].Text
 	blocks = append(blocks, paragraphs...)
 	blocks = append(blocks,
 		article.Block{Kind: "h2", Text: "Key events"},
@@ -39,8 +42,11 @@ func TestLiveBlogRepeatedFeaturedUpdate(t *testing.T) {
 	if len(a.Blocks) != len(blocks)-8 {
 		t.Fatalf("expected duplicated heading and seven paragraphs removed, got %d of %d", len(a.Blocks), len(blocks))
 	}
-	if a.Blocks[1].Kind != "img" || a.Blocks[1].URL != "https://images.example.org/lead.jpg" {
+	if a.Blocks[2].Kind != "img" || a.Blocks[2].URL != "https://images.example.org/lead.jpg" {
 		t.Fatal("lead editorial image lost")
+	}
+	if a.Blocks[1].Text != "Latest election developments" || !strings.HasPrefix(a.Blocks[3].Text, "In case you fell asleep") {
+		t.Fatal("opening editorial heading or paragraph was deleted")
 	}
 	texts := make([]string, 0, len(a.Blocks))
 	for _, b := range a.Blocks {
@@ -49,6 +55,12 @@ func TestLiveBlogRepeatedFeaturedUpdate(t *testing.T) {
 	all := strings.Join(texts, "\n")
 	if strings.Count(all, repeated) != 1 {
 		t.Fatal("repeated paragraphs were not reduced to one occurrence")
+	}
+	if indexLead, indexKey := strings.Index(all, "In case you fell asleep"), strings.Index(all, "Key events"); indexLead < 0 || indexKey < 0 || indexLead >= indexKey {
+		t.Fatal("opening update must precede Key events")
+	}
+	if indexEnd, indexTimestamp := strings.Index(all, "Update paragraph 6"), strings.Index(all, "07:42 EST"); indexEnd < 0 || indexTimestamp <= indexEnd {
+		t.Fatal("chronological timestamp must follow retained opening update")
 	}
 	for _, required := range []string{"08:05", "07:52", "07:42 EST", "Key events", "Latest election developments"} {
 		if !strings.Contains(all, required) {
