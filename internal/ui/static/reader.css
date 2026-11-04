@@ -27,3 +27,8 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(-
 .content:has(.pdf-original-layout){max-width:none}
 .pdf-original-layout{width:100%;height:min(82vh,1100px);min-height:560px;border:1px solid var(--border);border-radius:8px;background:#fff}
 @media print{.pdf-original-layout{height:95vh;min-height:0}}
+
+/* Return to suite launcher in the same browser tab. */
+.suite-home-link{display:inline-flex;align-items:center;margin:0 0 14px;padding:7px 11px;border:1px solid var(--line);border-radius:9px;color:var(--accent);text-decoration:none;font-weight:700;font-size:.87rem;background:rgba(125,145,155,.09)}
+.suite-home-link:hover{background:rgba(125,145,155,.19);border-color:currentColor}
+.suite-home-link:focus-visible{outline:2px solid currentColor;outline-offset:3px}
