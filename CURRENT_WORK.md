@@ -5,3 +5,5 @@ Authoritative baseline: GitHub `main`. Active issue [#103](https://github.com/ri
 Owner Mac/Safari acceptance of return link, mobile visibility, light/dark contrast and same-tab navigation is pending. Go regression test checks presence of native link. GitHub CI must be checked at the exact final PR head. No merge, release or service restart authorized. Existing local work and Cloudflare configuration are unverified and must not be overwritten.
 
 Other work: prior Guardian live-blog dedup PR #100 and CBS HTML CPU PR #102 were merged by the owner. Historical outstanding PDF/diagnostic work remains independent.
+
+Owner Safari feedback on navigation PRs: app links worked but the return controls differed in position/hover style, and MauriStocks displayed a second 'Open Homepage' button while signed out. Latest candidate uses identical `.suite-home-link` CSS in all apps and positions the link at top-left above primary heading. MauriStocks retains only the universal return link while signed out; its account Renew button is visible only while signed in. Mac/Safari visual acceptance of this revision is outstanding.
