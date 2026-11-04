@@ -63,6 +63,7 @@ func (p Processor) Stages() []assembly.Stage {
    d.Normalize(a,e.MetadataImageURL)
   }},
   source("restore-gallery-groups", d.RestoreGalleryGroups),
+  plain("deduplicate-featured-live-update", removeRepeatedLiveUpdate),
  }
 }
 
