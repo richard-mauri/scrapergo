@@ -1,3 +1,24 @@
+# Current work — CBS live page CPU hot path (2026-11-04)
+
+Authoritative baseline: GitHub `main`. Active [Issue #101](https://github.com/richard-mauri/scrapergo/issues/101), scoped branch `fix/101-html-text-linearization`, [draft PR #102](https://github.com/richard-mauri/scrapergo/pull/102). Separate [Guardian duplicate fix PR #100](https://github.com/richard-mauri/scrapergo/pull/100) remains independent and unmerged.
+
+Owner provided terminal transcript after high CPU and CBS live-page failures. Log shows CBS HTTP 200 after 90.608271 ms at 05:48:26; subsequent Go SIGQUIT stack at roughly 06:00 shows goroutine 20 running `regexp.ReplaceAllString` in `sourcehtml.Normalize` from recursive `sourcehtml.Text`. The large HTML subtree was repeatedly normalized at each ancestor. This directly identifies expensive application-side HTML processing; precise total CPU cause and eventual CBS success remain unverified.
+
+Scoped candidate: `internal/sourcehtml.Text` now concatenates raw descendant text and performs one normalization at root, preserving blocked tags and raw text leaf behavior. Regression test covers 100 levels of nested large live-style text and formatting, with benchmark. No network security, publisher headers, app routes, server retry/cancellation or Guardian PR changes. This is not a guaranteed cancellation/timeout solution. GitHub CI passed at code head `ba05ba5` (run 41845017159); CI at final documentation head must be rechecked. Mac/Safari/live CBS CPU acceptance unverified. Do not merge, release, restart or bump version without owner.
+
+Owner test steps:
+```bash
+cd ~/projects/scrapergo
+git fetch origin
+git checkout fix/101-html-text-linearization
+git pull --ff-only origin fix/101-html-text-linearization
+go test -count=1 ./...
+./devbuild.sh
+./scrapergo.sh
+```
+Test CBS in Safari and inspect `top -o cpu` during and afterward; confirm CPU returns to idle. If CBS still fails or CPU remains high, collect another SIGQUIT stack and time-series log. Avoid leaving the server at high CPU on Intel Mac.
+
+## Prior issues and unresolved work
 # Current ScraperGo work — 2026-11-04
 
 Merged baseline: GitHub `main`. Active issue [#99](https://github.com/richard-mauri/scrapergo/issues/99), scoped branch `fix/99-live-update-duplicates`, draft [PR #100](https://github.com/richard-mauri/scrapergo/pull/100) targeting `main`. No merge, release or local restart authorized.
