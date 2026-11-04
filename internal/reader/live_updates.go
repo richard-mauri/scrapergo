@@ -6,9 +6,9 @@ import (
 	"strings"
 )
 
-// removeRepeatedLiveUpdate removes an earlier featured copy of a live-blog
-// update only when a long, ordered run of textual blocks appears again later.
-// The later copy normally retains its chronological timestamp. We deliberately
+// removeRepeatedLiveUpdate retains the complete opening featured update and
+// removes its later textual repeat only when a long ordered run matches.
+// We deliberately
 // do not deduplicate individual paragraphs, quotations, or ordinary articles.
 func removeRepeatedLiveUpdate(a *article.Article) {
 	u, err := url.Parse(a.URL)
@@ -32,12 +32,13 @@ func removeRepeatedLiveUpdate(a *article.Article) {
 		positions = append(positions, i)
 		keys = append(keys, text)
 	}
-	// Only an early featured update is eligible for removal.
+	// Only early featured updates can anchor a duplicate; never prune that
+	// opening copy, since it may be the only visible version above Key events.
 	const maxLeadBlocks = 25
 	const minMatchingBlocks = 6
 	const minMatchingWords = 140
 	const minLongParagraphs = 4
-	bestStart, bestLength := -1, 0
+	bestStart, bestLater, bestLength := -1, -1, 0
 	for start := 0; start < len(keys) && start < maxLeadBlocks; start++ {
 		for later := start + minMatchingBlocks + 2; later < len(keys); later++ {
 			length, words, longParagraphs := 0, 0, 0
@@ -50,16 +51,16 @@ func removeRepeatedLiveUpdate(a *article.Article) {
 				length++
 			}
 			if length >= minMatchingBlocks && words >= minMatchingWords && longParagraphs >= minLongParagraphs && length > bestLength {
-				bestStart, bestLength = start, length
+				bestStart, bestLater, bestLength = start, later, length
 			}
 		}
 	}
-	if bestStart < 0 {
+	if bestStart < 0 || bestLater < 0 {
 		return
 	}
 	removed := make(map[int]bool, bestLength)
 	for i := bestStart; i < bestStart+bestLength; i++ {
-		removed[positions[i]] = true
+		removed[positions[bestLater+i-bestStart]] = true
 	}
 	kept := make([]article.Block, 0, len(a.Blocks)-len(removed))
 	for i, b := range a.Blocks {
