@@ -6,7 +6,7 @@ Observed: user-supplied text downloaded from the Guardian live blog https://www.
 
 Candidate: add a final reader pipeline pass for live-URL paths containing `/live/` only; remove earlier text copy only after an exact ordered run of >=6 textual blocks, >=4 long blocks, >=140 words repeated later, starting near the document top. Preserve media, latest chronological copy, timestamps, and unique intervening updates. Recompute word count. Includes synthetic unit tests; no publisher text or raw HTML added to the repo. No unrelated extraction, security, app, or UI changes.
 
-Validation: exact-head GitHub CI pending at creation; Mac Safari live Guardian result unverified. Owner acceptance path:
+Validation: GitHub Go CI passed after the pipeline stage-order contract test was updated (run 41838469262 at code commit b6091c3). Mac Safari live Guardian result remains unverified. Subsequent documentation commits require their own exact-head CI confirmation. Owner acceptance path:
 ```bash
 cd ~/projects/scrapergo
 git fetch origin
