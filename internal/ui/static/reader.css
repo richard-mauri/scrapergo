@@ -29,6 +29,6 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(-
 @media print{.pdf-original-layout{height:95vh;min-height:0}}
 
 /* Return to suite launcher in the same browser tab. */
-.suite-home-link{display:inline-flex;align-items:center;margin:0 0 14px;padding:7px 11px;border:1px solid var(--line);border-radius:9px;color:var(--accent);text-decoration:none;font-weight:700;font-size:.87rem;background:rgba(125,145,155,.09)}
+.suite-home-link{display:inline-flex;align-items:center;margin:0 0 14px;padding:7px 11px;border:1px solid var(--line,#607781);border-radius:9px;color:var(--accent);text-decoration:none;font-weight:700;font-size:.87rem;background:rgba(125,145,155,.09)}
 .suite-home-link:hover{background:rgba(125,145,155,.19);border-color:currentColor}
 .suite-home-link:focus-visible{outline:2px solid currentColor;outline-offset:3px}
