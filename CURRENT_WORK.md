@@ -1,4 +1,25 @@
-# Active handoff — Seeking Alpha raw HTML diagnostic (2026-10-31)
+# Current ScraperGo work — 2026-11-04
+
+Merged baseline: GitHub `main`. Active issue [#99](https://github.com/richard-mauri/scrapergo/issues/99), scoped branch `fix/99-live-update-duplicates`, draft [PR #100](https://github.com/richard-mauri/scrapergo/pull/100) targeting `main`. No merge, release or local restart authorized.
+
+Observed: user-supplied text downloaded from the Guardian live blog https://www.theguardian.com/us-news/live/2026/nov/04/midterm-elections-results-senate-house-michigan-maine-mississippi-latest-updates shows the same lead update in a top featured area and again after a timestamped sequence, with unique updates in between. 11 consecutive text blocks / 348 words are repeated. Raw publisher HTML was not supplied or fetched, so the exact origin in markup versus Readability is unproven.
+
+Candidate: add a final reader pipeline pass for live-URL paths containing `/live/` only; retain the original opening featured heading and paragraphs, and remove later repeated text only after an exact ordered run of >=6 textual blocks, >=4 long blocks, >=140 words repeated later, starting near the document top. Preserve media, latest chronological copy, timestamps, and unique intervening updates. Recompute word count. Includes synthetic unit tests; no publisher text or raw HTML added to the repo. No unrelated extraction, security, app, or UI changes.
+
+Validation: GitHub Go CI passed after the pipeline stage-order contract test was updated (run 41838469262 at code commit b6091c3). Owner Safari screenshot showed the previous rule removed the original opening text before Key events, including the paragraph beginning 'In case you fell asleep'; revised rule retains the first copy in place and removes only the later repeated text. Regression test specifically asserts the opening marker appears before Key events. GitHub CI passed on corrected code commit aa9fca7, run 41840403271. Mac Safari live Guardian result of correction remains unverified. Subsequent documentation commits require their own exact-head CI confirmation. Owner acceptance path:
+```bash
+cd ~/projects/scrapergo
+git fetch origin
+git checkout fix/99-live-update-duplicates
+git pull --ff-only origin fix/99-live-update-duplicates
+go test -count=1 ./...
+./devbuild.sh
+./scrapergo.sh
+```
+Then open http://localhost:8083 in Safari, read the supplied Guardian URL, export the text, confirm one copy of the lead update and retention of the separate later posts. An ordinary article and a different live blog should still retain legitimate repeated short quotations.
+
+## Older work snapshots (historical/unverified)
+# Former active handoff — Seeking Alpha raw HTML diagnostic (2026-10-31)
 
 - Scope: investigate Seeking Alpha article 4660894. Production /api/read returned a 45-word partial HTML excerpt; localhost classification trace downloaded 141,661 HTML bytes, extraction succeeded with 45 words, partial evidence true, search portal true, outcome article/200, triggeredStage none. Whether the missing paragraphs exist in raw HTML remains unknown.
 - Work branch: `feat/diagnostic-raw-html`, based on `main`. Added localhost-only `POST /api/diagnostic/raw-html` in `internal/httpapi/diagnostic_raw_html.go`, wired through `internal/app/server.go` and `internal/bootstrap/service.go`, with `internal/httpapi/diagnostic_raw_html_test.go`. Uses existing validated bounded fetcher; downloads HTML and returns response as attachment with no-store/nosniff/sandbox headers. No publisher restriction bypass intended.

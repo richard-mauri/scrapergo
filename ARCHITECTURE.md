@@ -23,3 +23,7 @@ Unit and regression tests live beside their owning implementations. Integration 
 No compatibility forwarding wrappers, test-only aliases, migration facades or deliberately misplaced tests. Refactoring is not complete if old adapters or tests are stranded; passing Go tests is necessary but not sufficient if ownership constraints are broken.
 
 See [DEVELOPMENT.md](DEVELOPMENT.md) for validation and acceptance; [docs/extraction-fixtures.md](docs/extraction-fixtures.md) for synthetic fixture scope. Additional publisher HTML captures and Mac/Safari behavior still require explicit verification.
+
+## Live-blog repeated featured updates
+
+`internal/reader/live_updates.go` contains the conservative, post-normalization editorial text cleanup for live pages (`/live/` URL paths). It compares exact ordered textual block sequences and retains the earlier featured copy and removes only a later repeated text run, and only if a long exact match recurs. Other updates, images and timestamped later text remain. This stage performs no network access, does not rewrite ordinary article prose or remove isolated repeated quotations, and is covered by synthetic regression tests in the owning `internal/reader` package. Word count is recalculated after filtering. Publisher behavior still requires Mac Safari/live-source acceptance.
