@@ -34,7 +34,7 @@ func TestProcessorStageOrderAndEvidence(t *testing.T) {
   "recover-photographs","deduplicate-images","recover-links","recover-author-portrait",
   "remove-player-blocks","remove-access-chrome","classify-contributors","classify-source-images",
   "exclude-poststory-author-portraits","reconcile-byline","separate-contributor-header",
-  "recover-opening-figure","normalize","restore-gallery-groups",
+  "recover-opening-figure","normalize","restore-gallery-groups","deduplicate-featured-live-update",
  }
  stages:=p.Stages()
  got:=make([]string,len(stages))
