@@ -102,6 +102,9 @@ func Find(root *Node, test func(*Node) bool) []*Node {
 	walk(root)
 	return out
 }
+// Text assembles descendant text before whitespace normalization. Normalizing
+// every intermediate subtree repeatedly caused excessive CPU on deeply nested
+// live-blog HTML, even after the browser abandoned its request.
 func Text(n *Node) string {
 	if n == nil {
 		return ""
@@ -113,10 +116,21 @@ func Text(n *Node) string {
 		return ""
 	}
 	var b strings.Builder
-	for _, c := range n.Kids {
-		b.WriteString(Text(c))
-		b.WriteByte(' ')
+	var appendText func(*Node)
+	appendText = func(node *Node) {
+		if node == nil || BlockedTags[node.Tag] {
+			return
+		}
+		if node.Tag == "#text" {
+			b.WriteString(node.Text)
+			return
+		}
+		for _, child := range node.Kids {
+			appendText(child)
+			b.WriteByte(' ')
+		}
 	}
+	appendText(n)
 	return Normalize(b.String())
 }
 func Meta(root *Node, keys ...string) string {
