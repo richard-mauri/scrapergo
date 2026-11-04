@@ -13,6 +13,6 @@ func TestReaderHasSameTabHomepageReturn(t *testing.T) {
  if strings.Contains(page,`class="suite-home-link" target="_blank"`){
   t.Fatal("Homepage return must not open a new tab")
  }
- if !strings.Contains(page,".suite-home-link:hover{background:rgba(96,151,172,.22);border-color:var(--accent,#69c6d3);text-decoration:none}") {t.Fatal("standardized hover border style missing")}
+ if !strings.Contains(page,".suite-home-link:hover{background:rgba(96,151,172,.16);color:var(--accent,#69c6d3);text-decoration:underline;opacity:1}") {t.Fatal("standardized hover border style missing")}
 
 }
