@@ -10,19 +10,19 @@ The preexisting `BenchmarkPreserveReadabilityStructure` in `internal/extraction/
 
 ## Repeatable measurement commands
 
-From the repository root on the same machine, Go version and environment for both baseline and candidate:
+From the repository root on the same machine, Go version and environment for both baseline and candidate. The normal `./devbuild.sh` executes `go test ./...` and then `bash ./benchmark.sh --smoke` before building either architecture; the smoke checks fail the build only if the benchmark cannot execute correctly, **not** when execution times vary. Run `./benchmark.sh` independently for five measured runs:
 
 ```sh
 go test -count=1 ./...
-go test ./internal/extraction -run '^$' -bench 'Benchmark(PreserveReadabilityStructure|ReadabilityExtraction)' -benchmem -benchtime=500ms -count=5
+./benchmark.sh
 ```
 
 For comparative work, save output from baseline and candidate under `/tmp` (not the repository):
 
 ```sh
-go test ./internal/extraction -run '^$' -bench 'Benchmark(PreserveReadabilityStructure|ReadabilityExtraction)' -benchmem -benchtime=500ms -count=5 > /tmp/scrapergo-baseline-bench.txt
+./benchmark.sh > /tmp/scrapergo-baseline-bench.txt
 # After checking out a separately approved candidate, run exactly the same command:
-go test ./internal/extraction -run '^$' -bench 'Benchmark(PreserveReadabilityStructure|ReadabilityExtraction)' -benchmem -benchtime=500ms -count=5 > /tmp/scrapergo-candidate-bench.txt
+./benchmark.sh > /tmp/scrapergo-candidate-bench.txt
 ```
 
 For reliable comparison, use identical machine conditions and the same Go toolchain and CPU architecture. A prebuilt `benchstat` binary can summarize the two files **if already available**; do not require Homebrew source compilation just for this. Inspect `ns/op`, `B/op`, `allocs/op`, variance and sample counts. `B/op` reports allocations, **not** peak memory. Longer/shorter timings on one synthetic fixture do not prove real-world performance. On an older Intel Mac with limited RAM, avoid concurrent heavy builds or benchmarks; benchmark output is intentionally opt-in and not part of routine CI.
@@ -50,4 +50,4 @@ The earlier [Issue #110 audit](extraction-cleanup-110.md) identifies live respon
 
 ## Verification / handoff
 
-CI on the latest PR head must pass `go test -count=1 ./...` and `go build ./...`. The benchmarks are opt-in; synthetic CI fixture passes do not imply a real publisher or Safari was tested. This PR is intentionally test/documentation-only and requires no local app restart for review. Do not merge, tag or release without the owner's explicit approval.
+CI on the latest PR head must pass `go test -count=1 ./...` and `go build ./...`. The full five-repeat benchmark is opt-in; the short smoke benchmark is now part of `./devbuild.sh` and is not part of plain `go test ./...` or the GitHub Actions workflow. Synthetic CI fixture passes do not imply a real publisher or Safari was tested. This PR is intentionally test/documentation-only and requires no local app restart for review. Do not merge, tag or release without the owner's explicit approval.
