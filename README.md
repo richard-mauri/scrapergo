@@ -52,6 +52,14 @@ For extraction debugging without running the UI, use `go run ./cmd/htmlcapture` 
 
 Development fixes must generalize across publishers and article shapes; preserve HTML-backed heading/time structure rather than relying on one site's URL or text patterns. See the [architecture contract](ARCHITECTURE.md) and [general-purpose acceptance gate](DEVELOPMENT.md#general-purpose-fix-acceptance-gate).
 
+## Persistent recovery diagnostics (opt-in)
+
+The normal Mac `./scrapergo.sh` launcher enables lightweight extraction-recovery tracing via `SCRAPERGO_RECOVERY_TRACE=1`. The process starts in the project root, so observations append to **`/Users/richardmauri/projects/scrapergo/diagnostics/recovery.jsonl`**. This entire `diagnostics/` directory is Git-ignored; it survives a build, process restart, and movement between Homepage, NewsGo and ScraperGo. The collector remains off when launching the executable directly without that environment variable. It records one observation per extraction attempt, not per browser navigation without an extraction request.
+
+Each record contains UTC time, publisher hostname, a stable keyed article identifier, build label, extraction method, final counts, and per-stage `not_reached`, `executed_unchanged`, `modified` or `fallback_selected` status. It **does not** contain article text, full URLs, query strings, or tokens. The private `diagnostics/.recovery-key` file is used to maintain stable article IDs. Do not remove it unless intentionally starting a new distinct-article count. No trace data are uploaded by ScraperGo.
+
+To summarize the accumulated records across sessions, from the repository root run `go run ./cmd/recoveryreport`. This prints total requests, distinct articles and publishers, and stage counts. To stop collection, start the server without `SCRAPERGO_RECOVERY_TRACE=1` (or remove the setting in `scrapergo.sh`). Existing observations are never reset automatically. Tracing is observational: a stage change does not prove its contribution survives final normalization or that removal would be safe. Use targeted regression tests before deleting recovery code.
+
 ## Restrictions and limitations
 
 Network article retrieval enforces public HTTP(S) URL and redirect restrictions to mitigate SSRF; some Google News and publisher URLs cannot be resolved. Subscriber-only, blocked, script-heavy, dynamically loaded or non-article pages may yield an error, public preview or incomplete text. Image availability, portrait versus editorial-role classification, and live-page compatibility vary by source. Retrieval and rendering are not a substitute for permission to view the original content. The synthetic regression fixtures do not establish coverage of all live publisher pages.
