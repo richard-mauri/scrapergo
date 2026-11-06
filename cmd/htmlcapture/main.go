@@ -42,7 +42,7 @@ func main() {
  defer cancel()
  result,err := capture(ctx,*address,*output,fetcher.Download,time.Now)
  if err!=nil {fmt.Fprintln(os.Stderr,"htmlcapture:",err);os.Exit(1)}
- fmt.Printf("Saved %d bytes to %s; metadata: %s.json; SHA-256: %s\n",result.Bytes,*output,result.SHA256)
+ fmt.Printf("Saved %d bytes to %s; metadata: %s.json; SHA-256: %s\n",result.Bytes,*output,*output,result.SHA256)
 }
 
 // capture always delegates network access to internal/fetcher.Download. No
