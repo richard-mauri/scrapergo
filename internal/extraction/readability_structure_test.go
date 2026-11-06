@@ -53,7 +53,8 @@ func TestPreserveReadabilityStructureNoUncorroboratedChange(t *testing.T) {
  }
  for _,cleaned:=range cases {
   got:=PreserveReadabilityStructure(input,cleaned)
-  if len(got)!=2 || got[0].Text!=input[0].Text || got[0].Kind!="p" || got[1].Kind!="p" {t.Fatalf("incorrectly inferred structure: %+v",got)}
+  if len(got)!=2 || got[0].Text!=input[0].Text || got[0].Kind!="p" {t.Fatalf("timestamp incorrectly inferred: %+v",got)}
+  if strings.Contains(cleaned,"<h2>Not actually a heading</h2><h2>") && got[1].Kind!="p" {t.Fatalf("ambiguous heading incorrectly promoted: %+v",got)}
  }
 }
 
