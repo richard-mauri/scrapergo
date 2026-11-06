@@ -64,7 +64,22 @@ jobs:
               print("preserved heading tag:", x['tag'])
           with open(sys.argv[2], encoding='utf8') as f: txt=f.read()
           print("Readability text bytes:", len(txt.encode('utf8')))
-          print("Relative-time tokens (diagnostic only):", len(re.findall(r'\\b\\d{1,3}[mhdw] ago\\b', txt)))
+          print("Relative-time tokens:", len(re.findall(r'\b\d{1,3}[mhdw] ago\b', txt)))
+          headings = ("Adviser to Iran's supreme leader says Tehran now", "Tanker hit by explosion in Strait of Hormuz")
+          for label in headings:
+              print("Relevant heading:", "adviser" if label.startswith("Adviser") else "tanker")
+              for key in ('source','readabilityHTML'):
+                  print(" ", key, "heading present:", any(label in x['text'] for x in r[key]['headings']))
+              print("  RenderText includes heading text:", label in txt)
+          original = {(x['tag'],x['text']) for x in r['source']['headings']}
+          kept = {(x['tag'],x['text']) for x in r['readabilityHTML']['headings']}
+          print("Exact heading/tag pairs preserved:", len(original & kept), "of", len(original))
+          print("Time text preserved:", len({x['text'] for x in r['source']['times']} & {x['text'] for x in r['readabilityHTML']['times']}))
+          idx = txt.find("Tanker hit by explosion in Strait of Hormuz")
+          if idx >= 0:
+              context = txt[max(0,idx-140):idx]
+              print("Tanker heading preceded by time-like text:", bool(re.search(r'(?:\d{1,2}:\d{2}\s*[AP]M|\d+[mhdw] ago)\s*$',context)))
+              print("Tanker boundary paragraph attached to time:", bool(re.search(r'\w[.!?]\s+\d+[mhdw] ago',context)))
           PY
           echo "Publisher raw capture and transformed output remain temporary and are removed after this step."
       - name: Upload Readability experiment outputs
