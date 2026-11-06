@@ -26,3 +26,26 @@ jobs:
         run: go test -count=1 ./...
       - name: Build
         run: go build ./...
+
+      - name: Run Readability structure experiments
+        run: |
+          set -eu
+          for fixture in semantic-live flattened-live ordinary-article; do
+            mkdir -p "readability-probe-results/$fixture"
+            go run ./cmd/readabilityprobe \
+              -input "testdata/readability/$fixture.html" \
+              -url "https://example.org/$fixture" \
+              -out "readability-probe-results/$fixture" > "readability-probe-results/$fixture/console.json"
+            echo "=== $fixture: source vs Readability HTML ==="
+            cat "readability-probe-results/$fixture/report.json"
+            echo "=== $fixture: RenderText sample ==="
+            head -c 1400 "readability-probe-results/$fixture/readability.txt"
+            echo
+          done
+      - name: Upload Readability experiment outputs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: readability-structure-results
+          path: readability-probe-results/
+          if-no-files-found: warn
