@@ -11,7 +11,7 @@ import (
 
 func TestProbeSyntheticFixtures(t *testing.T) {
  cases:=[]struct{name string; headings, times int}{
-  {"semantic-live.html", 4, 3},
+  {"semantic-live.html", 5, 3},
   {"flattened-live.html", 1, 0},
   {"ordinary-article.html", 3, 1},
  }
