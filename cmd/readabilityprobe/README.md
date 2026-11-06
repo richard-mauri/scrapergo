@@ -20,15 +20,28 @@ The probe prints a JSON report and writes four files in each output directory:
 
 Open `source.html` and `readability.html` locally in a text editor, compare element inventories in `report.json`, then inspect `readability.txt` for flattened update boundaries. **The output is diagnostic, not a pass/fail verdict on Readability's correctness.** Source HTML may lack semantic tags; preserving a semantic header is not guaranteed. The probe deliberately makes no inferred claims about how a news publisher organizes its DOM.
 
-## Try a publisher snapshot
+## Capture and analyze a publisher page
 
-To compare a real page, first save a **permitted, already-accessible** HTML page as a local file, then run:
+Use the new **reusable** `cmd/htmlcapture` diagnostic command. It delegates network access to ScraperGo's own `internal/fetcher.Download` (validated public HTTP(S) URLs, safe redirects, timeouts and 5 MiB limit) rather than calling a standalone unrestricted HTTP client.
 
 ```sh
-go run ./cmd/readabilityprobe -input /path/to/saved-page.html -url https://example.org/story -out /tmp/readability-publisher
+go run ./cmd/htmlcapture \
+  -url 'https://www.cbsnews.com/live-updates/iran-war-trump-us-strait-hormuz-persian-gulf/' \
+  -out /tmp/cbs-live.html
+
+go run ./cmd/readabilityprobe \
+  -input /tmp/cbs-live.html \
+  -url 'https://www.cbsnews.com/live-updates/iran-war-trump-us-strait-hormuz-persian-gulf/' \
+  -out /tmp/cbs-analysis
 ```
 
-Use the actual page URL for `-url` so relative links are resolved correctly. The tool does not download that URL or bypass publisher access controls. Do not commit publisher HTML, account information, cookies, tokens, or credentials. Browser-saved HTML can differ from the HTML ScraperGo received from its server-side fetch; that difference must be considered when interpreting results.
+`htmlcapture` writes a new local `/tmp/cbs-live.html` and `/tmp/cbs-live.html.json` metadata file (both created with private `0600` permissions). The metadata contains the requested URL, final resolved URL, UTC capture time, byte count, SHA-256 digest and retrieval path. Existing files are never overwritten. To repeat the experiment, choose a different output filename. The fetcher does not expose the final HTTP response status in its API, so the tool deliberately does not invent one.
+
+The capture is **server-fetched HTML**, not the browser's live DOM; JavaScript-rendered content or time-sensitive updates may differ. The existing fetcher may return its generated public WordPress representation for some challenged WordPress pages; see `internal/fetcher` behavior when interpreting a snapshot. The command does not bypass access restrictions or reuse browser cookies. Publisher refusals remain errors.
+
+Do not commit or upload a complete publisher HTML capture, credentials, personal information or authenticated content. Source captures remain on the local machine; inspect whether permission is appropriate before sharing them. Routine PR CI only runs synthetic fixtures and unit tests and does not fetch live publishers.
+
+You may also analyze any already-saved, permitted HTML snapshot using just `readabilityprobe` and its `-input` flag, without fetching the page again.
 
 ## Questions this isolates
 
