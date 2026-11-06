@@ -32,6 +32,14 @@ Before development actions, explicitly summarize the workflow required by [AGENT
 
 A cross-repository example is [NewsGo Issue #8](https://github.com/richard-mauri/newsgo/issues/8): track the bug where it belongs, rather than slipping unrelated NewsGo work into ScraperGo.
 
+## General-purpose fix acceptance gate
+
+A successful screenshot from the triggering publisher is **not** evidence of a general fix. Before editing production behavior, capture or inspect the source/Readability representations using [the offline probe and optional secure capture](cmd/readabilityprobe/README.md), document where information disappears, and state a publisher-independent invariant. Prefer semantic DOM evidence over URL substrings, publisher branding, relative-time regexes and text adjacency. If a site-specific exception is genuinely needed, obtain explicit owner approval and document why the general solution is insufficient.
+
+Before handing off, require regression cases for the original failure; an unrelated ordinary article; a second distinct article/update structure; and a negative or ambiguous case where the extractor must **not** fabricate headings, timestamps or boundaries. Verify canonical article blocks and rendered/exported output when applicable, including links, paragraphs, images and source order. Distinguish synthetic-fixture evidence, actual HTML capture, server extraction, and Safari acceptance; none substitutes for the others. If real-site capture is unavailable, state the remaining uncertainty rather than claiming success.
+
+Stay on the existing Issue branch and draft PR for revisions; do not spin up additional branches or PRs to try another heuristic. Prefer completing one general-purpose solution end to end, avoiding parallel branch proliferation. Changes to the architecture or scope require owner approval when they affect unrelated behavior.
+
 ## Automated and local checks
 
 GitHub Actions workflow [Go CI](.github/workflows/go-ci.yml) runs on PRs targeting `main`: a non-blocking gofmt debt report, `go test -count=1 ./...` and `go build ./...` (Go version from `go.mod`). Inspect the run and outcome on **this PR's latest commit**. Confirm the intended diff is documentation-only when applicable.
