@@ -78,3 +78,26 @@ func TestReadabilityPipelineRestoresSemanticHeadings(t *testing.T) {
  }
  if !heading {t.Fatalf("extraction flattened source-backed heading: %+v",a.Blocks)}
 }
+
+ 
+// Stage 2 guard: structural restoration must not mutate the caller's blocks,
+// especially linked inline parts that share the original source document.
+func TestPreserveReadabilityStructureDoesNotMutateInput(t *testing.T) {
+ html := `<section><p>Port officials issued a notice.</p><time>8:45 AM</time><h2>Shipping lane update</h2></section>`
+ input := []article.Block{
+  {Kind:"p",Text:"Port officials issued a notice. 8:45 AM",Parts:[]article.TextPart{
+   {Text:"Port "},{Text:"officials",URL:"https://example.org/notice"},{Text:" issued a notice. 8:45 AM"},
+  }},
+  {Kind:"p",Text:"Shipping lane update"},
+ }
+ got := PreserveReadabilityStructure(input,html)
+ if len(got)!=3 || got[0].Text!="Port officials issued a notice." || got[1].Kind!="time" || got[2].Kind!="h2" {
+  t.Fatalf("source-backed separation changed: %+v",got)
+ }
+ if input[0].Text!="Port officials issued a notice. 8:45 AM" || input[0].Parts[2].Text!=" issued a notice. 8:45 AM" || input[1].Kind!="p" {
+  t.Fatalf("input was mutated: %+v",input)
+ }
+ if got[0].Parts[1].URL!="https://example.org/notice" {
+  t.Fatalf("existing link missing: %+v",got[0].Parts)
+ }
+}

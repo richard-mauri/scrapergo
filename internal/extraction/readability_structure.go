@@ -31,13 +31,13 @@ func PreserveReadabilityStructure(blocks []article.Block, cleanedHTML string) []
  for _,b:=range blocks {if b.Kind=="p" || b.Kind=="h2" || b.Kind=="h3" || b.Kind=="h4" {
   blockCounts[sourcehtml.Normalize(b.Text)]++
  }}
- type evidence struct {kind, text, timestamp string}
+ type evidence struct {kind, timestamp string}
  recoverable:=map[string]evidence{}
  for i,n:=range nodes {
   if n.Tag=="time" {continue}
   text:=sourcehtml.Normalize(sourcehtml.Text(n))
   if text=="" || headingCounts[text]!=1 || blockCounts[text]!=1 {continue}
-  ev:=evidence{kind:n.Tag,text:text}
+  ev:=evidence{kind:n.Tag}
   if i>0 && nodes[i-1].Tag=="time" {
    ev.timestamp=sourcehtml.Normalize(sourcehtml.Text(nodes[i-1]))
   }
