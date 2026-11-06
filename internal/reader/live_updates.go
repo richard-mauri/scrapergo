@@ -12,7 +12,7 @@ import (
 // do not deduplicate individual paragraphs, quotations, or ordinary articles.
 func removeRepeatedLiveUpdate(a *article.Article) {
 	u, err := url.Parse(a.URL)
-	if err != nil || !strings.Contains(u.Path, "/live/") {
+	if err != nil || !(strings.Contains(u.Path, "/live/") || strings.Contains(u.Path, "/live-updates/")) {
 		return
 	}
 
