@@ -74,6 +74,11 @@ func ExtractWithReadability(raw, source string, legacy func(string,string)(artic
 				}
 				blocks = RecoverInstitutionalTail(raw, blocks, u)
 				blocks = RestoreHeadingAnchoredProse(raw, blocks, u)
+				// Readability's selected HTML retains heading/time structure that
+				// RenderText flattens into undifferentiated paragraphs.
+				if cleanHTML.Len() > 0 {
+					blocks = PreserveReadabilityStructure(blocks, cleanHTML.String())
+				}
 				count = CountWords(blocks)
 				if img == "" {
 					for _, photo := range blocks {
