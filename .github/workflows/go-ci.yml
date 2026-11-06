@@ -42,6 +42,31 @@ jobs:
             head -c 1400 "readability-probe-results/$fixture/readability.txt"
             echo
           done
+      - name: Probe live CBS HTML (diagnostic only, non-blocking)
+        continue-on-error: true
+        run: |
+          set -eu
+          capture="$(mktemp -d)"
+          trap 'rm -rf "$capture"' EXIT
+          url='https://www.cbsnews.com/live-updates/iran-war-trump-us-strait-hormuz-persian-gulf/'
+          echo "Requesting live publisher HTML over HTTPS (not committed or uploaded)"
+          status="$(curl -sSL --proto '=https' --proto-redir '=https' --connect-timeout 10 --max-time 30 --max-filesize 5000000 -A 'Mozilla/5.0' -w '%{http_code}' -o "$capture/publisher.html" "$url")"
+          echo "HTTP status: $status; received bytes: $(wc -c < "$capture/publisher.html")"
+          test "$status" = 200
+          go run ./cmd/readabilityprobe -input "$capture/publisher.html" -url "$url" -out "$capture/output" > "$capture/report.json"
+          python3 - "$capture/report.json" "$capture/output/readability.txt" <<'PY'
+          import json, sys, re
+          with open(sys.argv[1], encoding='utf8') as f: r = json.load(f)
+          for name in ('source', 'readabilityHTML'):
+              x = r[name]
+              print(f"{name}: headings={len(x['headings'])}, time_elements={len(x['times'])}, article_containers={x['articles']}, section_containers={x['sections']}")
+          for x in r['readabilityHTML']['headings'][:3]:
+              print("preserved heading tag:", x['tag'])
+          with open(sys.argv[2], encoding='utf8') as f: txt=f.read()
+          print("Readability text bytes:", len(txt.encode('utf8')))
+          print("Relative-time tokens (diagnostic only):", len(re.findall(r'\\b\\d{1,3}[mhdw] ago\\b', txt)))
+          PY
+          echo "Publisher raw capture and transformed output remain temporary and are removed after this step."
       - name: Upload Readability experiment outputs
         if: always()
         uses: actions/upload-artifact@v4
