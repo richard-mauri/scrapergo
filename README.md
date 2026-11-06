@@ -56,6 +56,10 @@ Development fixes must generalize across publishers and article shapes; preserve
 
 Network article retrieval enforces public HTTP(S) URL and redirect restrictions to mitigate SSRF; some Google News and publisher URLs cannot be resolved. Subscriber-only, blocked, script-heavy, dynamically loaded or non-article pages may yield an error, public preview or incomplete text. Image availability, portrait versus editorial-role classification, and live-page compatibility vary by source. Retrieval and rendering are not a substitute for permission to view the original content. The synthetic regression fixtures do not establish coverage of all live publisher pages.
 
+## Extraction performance checks
+
+`./devbuild.sh` already runs the Go tests and now also runs a short, threshold-free extraction benchmark smoke check before producing the macOS binaries. To collect repeatable timing and allocation measurements separately, use `./benchmark.sh` (five runs). Ordinary `go test ./...` does not run benchmarks; benchmark timings are informational, while execution errors fail the smoke check. See [extraction benchmark guidance](docs/extraction-benchmark-114.md).
+
 ## Project references
 
 [Architecture contract](ARCHITECTURE.md) · [Development and PR workflow](DEVELOPMENT.md) · [Agent instructions](AGENTS.md) · [Repository layout](docs/repository-layout.md) · [Extraction fixtures](docs/extraction-fixtures.md).

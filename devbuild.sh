@@ -66,6 +66,8 @@ mkdir -p "$OUT_DIR"
 printf 'ScraperGo build: %s\n' "$(go version)"
 printf 'Running tests...\n'
 go test ./...
+printf 'Running extraction benchmark smoke checks...\n'
+bash ./benchmark.sh --smoke
 
 # Git's private directory is shared by all branches in this working copy.
 # Reserve the next number before compilation so failed builds never reuse it.
