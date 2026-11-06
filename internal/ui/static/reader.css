@@ -30,3 +30,8 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(-
 
 /* Return to suite launcher in the same browser tab. */
 .suite-home-link{display:inline-block;margin:4px 0 10px;padding:3px 5px;border-radius:5px;color:var(--accent,#69c6d3);font:500 12px/1.4 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;text-decoration:none;opacity:.78;transition:background-color .15s,color .15s,opacity .15s}.suite-home-link:hover{background:rgba(96,151,172,.16);color:var(--accent,#69c6d3);text-decoration:underline;opacity:1}.suite-home-link:focus-visible{outline:2px solid var(--accent,#69c6d3);outline-offset:2px;opacity:1}
+
+/* Live feeds have editorially distinct updates, unlike ordinary article subsections. */
+.paper.live-feed .content h3{font-size:clamp(24px,2.7vw,32px);line-height:1.22;letter-spacing:-.015em;margin:1.9em 0 .65em;padding-top:1.1em;border-top:1px solid var(--border)}
+.paper.live-feed .content h3:first-child{border-top:0;padding-top:0;margin-top:1.1em}
+@media print{.paper.live-feed .content h3{break-after:avoid}}
