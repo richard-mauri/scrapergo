@@ -14,7 +14,7 @@ var liveTimeSuffix = regexp.MustCompile(`(?i)(?:^|\s)(\d{1,3}\s*(?:m|h|d|w)\s+ag
 
 func restoreFlattenedLiveUpdates(a *article.Article) {
 	u, err := url.Parse(a.URL)
-	if err != nil || !strings.Contains(u.Path, "/live/") {
+	if err != nil || !(strings.Contains(u.Path, "/live/") || strings.Contains(u.Path, "/live-updates/")) {
 		return
 	}
 	var result []article.Block
