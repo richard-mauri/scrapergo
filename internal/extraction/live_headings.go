@@ -12,7 +12,7 @@ import (
 // text nor ordering, and only recognizes exact, unique source-backed headings
 // inside an editorial article/main container on /live/ pages.
 func RestoreLiveHeadings(raw string, blocks []article.Block, base *url.URL) []article.Block {
-	if base == nil || !strings.Contains(base.Path, "/live/") || len(blocks) == 0 {
+	if base == nil || !(strings.Contains(base.Path, "/live/") || strings.Contains(base.Path, "/live-updates/")) || len(blocks) == 0 {
 		return blocks
 	}
 	root := sourcehtml.Parse(raw)
