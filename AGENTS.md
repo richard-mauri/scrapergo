@@ -13,13 +13,19 @@ Before creating a branch, modifying source or documentation, opening an Issue or
 
 Do not substitute a generic promise to follow instructions for this concrete summary. **At code/runtime handoff, repeat the entire copy-and-pasteable Mac command block from DEVELOPMENT.md with the actual branch name**, even if it was shown earlier. For documentation-only work, state the applicable documentation/CI checks instead. Clearly identify checks not performed and blockers; never imply CI validates Safari or a live publisher.
 
+## General-purpose engineering requirement
+
+**Default to general-purpose, source-backed behavior.** Before implementing an article-extraction or rendering fix, identify the stage where source semantics are lost; validate the hypothesis with the reusable capture and Readability probes, and prefer recovering existing DOM/Readability structure over guessing from flattened text. A publisher name, URL substring (such as `/live-updates/`), exact headline, language-specific timestamp string, CSS class from one site, or a screenshot-specific paragraph arrangement is **not** sufficient evidence for a general fix. Do not add source-specific detection or URL-pattern gates unless the owner explicitly approves a documented exception supported by tests and a clear fallback.
+
+For every proposed fix, explain the general invariant being protected, alternative hypotheses and evidence, and test it with positive and negative fixtures for ordinary articles, repeated live updates, ambiguous markup, heading hierarchy, timestamp separation, links and media as applicable. Test the production output path, not merely whether a diagnostic command executes. If the proposed rule cannot be justified outside one site, stop and report that limitation before changing production code. See [ARCHITECTURE.md](ARCHITECTURE.md) for structural preservation and [DEVELOPMENT.md](DEVELOPMENT.md) for acceptance criteria.
+
 ## Mandatory conduct
 
 - Inspect the actual current code and relevant tests before proposing changes; do not follow obsolete migration notes as current instructions.
 - Respect every architectural constraint in **ARCHITECTURE.md**. In particular, do not add migration-only compatibility wrappers or APIs merely to keep old callers or tests compiling.
 - Preserve existing runtime behavior, regression coverage, fixtures and security protections unless a change is explicitly scoped and justified.
 - Apply the bug, branch, PR and validation procedures in **DEVELOPMENT.md**; track unrelated discoveries as separate Issues.
-- Do not silently widen a focused PR into unrelated refactoring or behavior changes.
+- Do not silently widen a focused PR into unrelated refactoring or behavior changes. **One issue → one active implementation branch → one draft PR** by default; amend that PR for iterations, rather than accumulating overlapping experiments and fixes. Independent tools may be separate only with an owner-approved reason and documented relationship.
 - Report precisely which checks passed, failed or were not performed. Do not describe CI as Mac or Safari acceptance.
 - **Do not merge, tag, release or change semantic version without the owner's explicit authorization.**
 - Never expose or change private credentials, tunnel configuration or local build counters.
