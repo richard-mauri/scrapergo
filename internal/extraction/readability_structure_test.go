@@ -59,7 +59,7 @@ func TestPreserveReadabilityStructureNoUncorroboratedChange(t *testing.T) {
 }
 
 func TestPreserveReadabilityStructurePlainArticleHeading(t *testing.T) {
- got:=PreserveReadabilityStructure([]article.Block{{Kind:"p",Text:"Regular introduction"},{"Kind":"p",Text:"Section discussion"},{"Kind":"p",Text:"More discussion."}},`<article><p>Regular introduction</p><h2>Section discussion</h2><p>More discussion.</p></article>`)
+ got:=PreserveReadabilityStructure([]article.Block{{Kind:"p",Text:"Regular introduction"},{Kind:"p",Text:"Section discussion"},{Kind:"p",Text:"More discussion."}},`<article><p>Regular introduction</p><h2>Section discussion</h2><p>More discussion.</p></article>`)
  if len(got)!=3 || got[0].Kind!="p" || got[1].Kind!="h2" || got[2].Kind!="p" {t.Fatalf("ordinary heading: %+v",got)}
 }
 
