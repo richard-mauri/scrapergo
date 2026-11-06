@@ -29,5 +29,4 @@ func TestRecoveryRecorderPersistsAcrossSessionsWithoutArticleContent(t *testing.
  for _,forbidden:=range []string{"private-token","story?","Secret article title","Private article text"} {
   if strings.Contains(string(raw),forbidden){t.Fatalf("diagnostic leaked %q",forbidden)}
  }
- }
-}
+ 
