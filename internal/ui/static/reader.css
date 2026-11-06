@@ -35,3 +35,9 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(-
 .paper.live-feed .content h3{font-size:clamp(24px,2.7vw,32px);line-height:1.22;letter-spacing:-.015em;margin:1.9em 0 .65em;padding-top:1.1em;border-top:1px solid var(--border)}
 .paper.live-feed .content h3:first-child{border-top:0;padding-top:0;margin-top:1.1em}
 @media print{.paper.live-feed .content h3{break-after:avoid}}
+
+/* Reconstructed live feed update boundaries: time precedes its own heading. */
+.paper.live-feed .content .live-update-time{color:var(--accent);font-size:14px;font-weight:500;line-height:1.4;margin:2.8em 0 .5em;padding-top:1.5em;border-top:1px solid var(--border)}
+.paper.live-feed .content .live-update-title{font-size:clamp(24px,2.7vw,32px);line-height:1.22;font-weight:750;letter-spacing:-.015em;margin:.25em 0 .85em;padding-top:0;border-top:0}
+.paper.live-feed .content .live-update-time+.live-update-title{border-top:0;padding-top:0;margin-top:.25em}
+@media print{.paper.live-feed .content .live-update-time{break-after:avoid}.paper.live-feed .content .live-update-title{break-after:avoid}}
