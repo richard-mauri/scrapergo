@@ -8,7 +8,7 @@ ScraperGo is a Go web-based clean article reader. Give it an article URL to extr
 
 ## Requirements and running
 
-Build from source with Go compatible with [go.mod](go.mod) (currently Go 1.23.2) and Git:
+Build from source with Go compatible with [go.mod](go.mod) (use the version specified in the file) and Git:
 
 ```bash
 git clone https://github.com/richard-mauri/scrapergo.git
@@ -45,6 +45,12 @@ curl -sS 'http://localhost:8083/api/thumbnail?url=https%3A%2F%2Fexample.com%2Far
 `POST /api/read` returns a normalized article JSON document or structured error; request body is limited to 4096 bytes. `POST /api/image-metadata` uses that same read path and returns `url`, `imageUrl`, `imagePresent` and ordered `imageCandidates`. `POST /api/classify` returns `classification`, `readableArticle`, `reason` and `imageAvailable` as appropriate; unknown/unavailable does not mean verified unreadable. `GET /api/article-image` serves a selected image; `GET /api/thumbnail` creates a cached, cropped JPEG (width subject to server validation).
 
 Two developer diagnostics, `POST /api/diagnostic/extract` (requires `{"url":"...","html":"..."}`) and `POST /api/diagnostic/image-trace` (accepts `{"url":"..."}` and optional `html`), are **direct-loopback-only**, not public APIs. Keep them inaccessible to remote clients, including via any proxy that rewrites the apparent peer to loopback.
+
+## Standalone extraction diagnostics
+
+For extraction debugging without running the UI, use `go run ./cmd/htmlcapture` to save permitted publisher HTML through ScraperGo's validated fetcher, then `go run ./cmd/readabilityprobe` to compare source tags with Readability's HTML and text representations. These opt-in commands are separate from the production reader, and routine CI exercises reproducible synthetic fixtures rather than fetching live publishers. See [diagnostic commands and examples](cmd/readabilityprobe/README.md).
+
+Development fixes must generalize across publishers and article shapes; preserve HTML-backed heading/time structure rather than relying on one site's URL or text patterns. See the [architecture contract](ARCHITECTURE.md) and [general-purpose acceptance gate](DEVELOPMENT.md#general-purpose-fix-acceptance-gate).
 
 ## Restrictions and limitations
 

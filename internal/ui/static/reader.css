@@ -30,3 +30,8 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(-
 
 /* Return to suite launcher in the same browser tab. */
 .suite-home-link{display:inline-block;margin:4px 0 10px;padding:3px 5px;border-radius:5px;color:var(--accent,#69c6d3);font:500 12px/1.4 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;text-decoration:none;opacity:.78;transition:background-color .15s,color .15s,opacity .15s}.suite-home-link:hover{background:rgba(96,151,172,.16);color:var(--accent,#69c6d3);text-decoration:underline;opacity:1}.suite-home-link:focus-visible{outline:2px solid var(--accent,#69c6d3);outline-offset:2px;opacity:1}
+
+/* Distinguish a source-backed update timestamp from the preceding article. */
+.content p.source-update-time{display:block;margin:1.65em 0 .25em;font:600 14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--muted);break-after:avoid}
+.content p.source-update-time + h3{margin-top:.25em}
+@media print{.content p.source-update-time{color:#53606a;break-after:avoid}}
