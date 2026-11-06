@@ -10,7 +10,7 @@ import (
 // CBS-style Readability output can append a live update's relative time to
 // the previous update's last paragraph and flatten the following headline.
 // Recover the boundary from the sequence, without removing editorial text.
-var liveTimeSuffix = regexp.MustCompile(`(?i)(?:^|\\s)(\\d{1,3}\\s*(?:m|h|d|w)\\s+ago|just now)$`)
+var liveTimeSuffix = regexp.MustCompile(`(?i)(?:^|\s)(\d{1,3}\s*(?:m|h|d|w)\s+ago|just now)$`)
 
 func restoreFlattenedLiveUpdates(a *article.Article) {
 	u, err := url.Parse(a.URL)
@@ -64,7 +64,7 @@ func restoreFlattenedLiveUpdates(a *article.Article) {
 	}
 	// Apply heading identity to the paragraph immediately following each time.
 	for i := 0; i+1 < len(result); i++ {
-		if result[i].Kind == "live-time" && result[i+1].Kind == "p" {
+		if result[i].Kind == "live-time" && (result[i+1].Kind == "p" || result[i+1].Kind == "h3") {
 			result[i+1].Kind = "live-heading"
 		}
 	}
@@ -72,11 +72,11 @@ func restoreFlattenedLiveUpdates(a *article.Article) {
 }
 
 func liveHeadlineCandidate(head, body article.Block) bool {
-	if head.Kind != "p" || body.Kind != "p" {
+	if (head.Kind != "p" && head.Kind != "h3") || body.Kind != "p" {
 		return false
 	}
 	label := strings.TrimSpace(head.Text)
-	if len(label) < 20 || len(label) > 220 || strings.Contains(label, "\\n") || strings.HasSuffix(label, ".") {
+	if len(label) < 20 || len(label) > 220 || strings.Contains(label, "\n") || strings.HasSuffix(label, ".") {
 		return false
 	}
 	return len(strings.TrimSpace(body.Text)) >= 45
