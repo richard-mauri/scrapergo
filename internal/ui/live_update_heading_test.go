@@ -14,7 +14,7 @@ func TestLiveUpdateHeadingPresentation(t *testing.T) {
 	if !strings.Contains(readerJS, "classList.toggle('live-feed'") {
 		t.Fatal("reader does not identify live-feed paths")
 	}
-	if !strings.Contains(readerCSS, "border-top:1px solid var(--border)") {
-		t.Fatal("live update separator missing")
+	if !strings.Contains(readerCSS, ".live-update-time{") || !strings.Contains(readerCSS, ".live-update-title{") {
+		t.Fatal("missing standalone live update timestamp or title styling")
 	}
 }
