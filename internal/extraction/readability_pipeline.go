@@ -74,6 +74,7 @@ func ExtractWithReadability(raw, source string, legacy func(string,string)(artic
 				}
 				blocks = RecoverInstitutionalTail(raw, blocks, u)
 				blocks = RestoreHeadingAnchoredProse(raw, blocks, u)
+				blocks = RestoreLiveHeadings(raw, blocks, u)
 				count = CountWords(blocks)
 				if img == "" {
 					for _, photo := range blocks {
@@ -95,10 +96,12 @@ func ExtractWithReadability(raw, source string, legacy func(string,string)(artic
 	}
 	fallback, fallbackErr := legacy(raw, source)
 	if fallbackErr == nil {
+		fallback.Blocks = RestoreLiveHeadings(raw, fallback.Blocks, u)
 		fallback.Method = "Legacy extractor fallback"
 		return fallback, nil
 	}
 	if partial, ok := PartialHTMLArticle(raw, source); ok {
+		partial.Blocks = RestoreLiveHeadings(raw, partial.Blocks, u)
 		return partial, nil
 	}
 	if parseErr != nil {
