@@ -60,6 +60,9 @@ func ExtractWithReadability(raw, source string, legacy func(string,string)(artic
 				var cleanHTML bytes.Buffer
 				if parsed.RenderHTML(&cleanHTML) == nil {
 					cleaned := cleanHTML.String()
+					if !structuredRecovered {
+						blocks = removeFlattenedFigureCaptions(blocks, cleaned)
+					}
 					PreserveSelectedHTMLLinks(blocks, cleaned, u, inlineParts)
 					if !structuredRecovered {
 						ordered := PositionArticleFigures(blocks, cleaned, u)
