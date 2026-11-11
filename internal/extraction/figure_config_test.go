@@ -3,6 +3,7 @@ package extraction
 import (
  "fmt"
  "net/url"
+ "os"
  "strings"
  "testing"
 
@@ -31,6 +32,7 @@ func TestFigureSelectionConfigValidation(t *testing.T) {
 func TestFigureSelectionConfigEnvironment(t *testing.T) {
  t.Run("unset default",func(t *testing.T){
   t.Setenv(ArticleImageCandidateLimitEnv,"12")
+  if err:=os.Unsetenv(ArticleImageCandidateLimitEnv);err!=nil{t.Fatal(err)}
   got,err:=FigureSelectionConfigFromEnvironment()
   if err!=nil||got.ArticleImageCandidateLimit()!=DefaultArticleImageCandidateLimit {t.Fatalf("unexpected default value: %v %v",got,err)}
  })
