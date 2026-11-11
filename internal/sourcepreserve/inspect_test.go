@@ -111,12 +111,15 @@ func TestInspectOtherUnwrappedImagesPartitionIntoBoundedGroups(t *testing.T) {
  if len(got.Items)!=1 || got.Items[0].Text!="Independent article prose." {t.Fatalf("diagnostic changed prose: %+v",got.Items)}
 }
 
+// An unrelated section paragraph may satisfy the *weak* compact-wrapper test;
+// do not treat compact evidence as caption ownership. This test checks only
+// that unrelated images are not grouped at the entire-article scope.
 func TestInspectMultiImageGroupingDoesNotUseArticleScope(t *testing.T) {
  raw:=`<article><p>A standalone lead.</p><div><img src="/one.jpg"></div><section><p>A separate section.</p><div><img src="/two.jpg"></div></section></article>`
  got,err:=Inspect(raw,baseURL)
  if err!=nil {t.Fatal(err)}
- if got.OtherUnwrappedImages!=2 || got.OtherInMultiImageGroups!=0 || got.OtherWithoutBoundedGroup!=2 {
-  t.Fatalf("article-wide grouping should not be inferred: %+v",got)
+ if got.CompactImageTextWrappers!=1 || got.OtherUnwrappedImages!=1 || got.OtherInMultiImageGroups!=0 || got.OtherWithoutBoundedGroup!=1 {
+  t.Fatalf("article-wide multi-image group was incorrectly inferred: %+v",got)
  }
  if len(got.Items)!=2 {t.Fatalf("ordinary prose lost: %+v",got.Items)}
 }
