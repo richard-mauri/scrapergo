@@ -40,6 +40,9 @@ func ExtractWithReadabilityTraced(raw, source string, legacy func(string,string)
 				blocks = append(blocks, article.Block{Kind: "p", Text: line})
 				count += len(strings.Fields(line))
 			}
+			// Record the initial RenderText representation before any recovery
+			// stage can insert, replace or restructure article blocks.
+			trace.Observe("readability-render-text", blocks)
 			structuredRecovered := false
 			if trace == nil {
                 if complete, ok := RecoverStructuredDocument(raw, blocks, u); ok {
@@ -81,6 +84,13 @@ func ExtractWithReadabilityTraced(raw, source string, legacy func(string,string)
 				var cleanHTML bytes.Buffer
 				if parsed.RenderHTML(&cleanHTML) == nil {
 					cleaned := cleanHTML.String()
+					// Reconcile flattened figure captions only when the selected HTML
+					// identifies the original image and caption semantics.
+					if !structuredRecovered {
+						blocks = trace.Run("caption-reconciliation", blocks, func() []article.Block {
+							return reconcileImageCaptionCreditTriples(removeFlattenedFigureCaptions(blocks, cleaned), raw, cleaned)
+						})
+					}
 					blocks = trace.Run("selected-html-links", blocks, func() []article.Block {
                         PreserveSelectedHTMLLinks(blocks, cleaned, u, inlineParts)
                         return blocks

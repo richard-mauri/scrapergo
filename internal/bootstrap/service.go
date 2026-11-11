@@ -62,6 +62,9 @@ func writeExtractedArticle(ctx context.Context, w http.ResponseWriter, raw, fina
 	article := extracted.Article
 	if extractionErr == nil {
 		article = reader.DefaultProcessor().Process(extracted, cleanedArticleHTML)
+		// The reader assembly runs after extraction recovery. Attribute any
+		// additional duplicate candidates to that separate processing boundary.
+		trace.ObserveTransition("reader-postprocessing", extracted.Article.Blocks, article.Blocks)
 		LogSlateExtractionDiagnostic(article.Blocks, finalURL)
 	}
     if recoveryTraceRecorder != nil {
