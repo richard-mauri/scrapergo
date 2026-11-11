@@ -27,7 +27,7 @@ type provenanceNode struct {
  Mode string
  Media string
  Visibility string
-
+}
 
 // comparableHTMLText compares publisher text across inline markup boundaries.
 // "compact" matches are weaker evidence: whitespace/entity serialization can
