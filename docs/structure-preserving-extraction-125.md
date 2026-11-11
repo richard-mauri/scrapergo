@@ -1,6 +1,6 @@
 # Issue #125 — Structure-preserving article extraction evaluation
 
-**Status:** Phase 1 design and baseline inventory only. No production behavior change and no switch away from Readability.
+**Status:** Phase 2 initial offline-only proof of concept. No production behavior change and no switch away from Readability.
 
 ## Question
 
@@ -60,3 +60,25 @@ The owner can later run **offline** Ars M6 and New Scientist captures on the Mac
 [#124](https://github.com/richard-mauri/scrapergo/issues/124) remains the focused current UI/media defect; [#116](https://github.com/richard-mauri/scrapergo/issues/116) remains a separate measured shared-DOM performance investigation; [#123](https://github.com/richard-mauri/scrapergo/issues/123) remains staging/agent automation. Do not widen this PR into those issues.
 
 **Safety and release boundary:** No bypass of publisher access restrictions; no changes to private tokens, the Cloudflare tunnel, service deployment, semantic version, production default extractor or release. Do not merge without explicit owner authorization.
+
+## Implemented first offline prototype (not production)
+
+`internal/sourcepreserve.Inspect` uses Go's existing `golang.org/x/net/html` parser on an already-saved input string. It **requires exactly one nonexcluded `<article>` element**; ambiguous or absent scopes return `status: inconclusive` rather than claiming a correct result. It observes source-ordered heading and paragraph text, validated HTTP(S) links, and simple explicit `<figure>` wrappers with exactly one `<img>` and at most one `<figcaption>`. For captions, optional explicit `<small>` or `<cite>` credit text is separately reported; no credit is inferred from substring patterns or nearby text. When a figure has multiple images, an unsafe URL, or ambiguous caption structure, it increments `ambiguousFigures` and **does not invent photo-to-caption ownership**. It doesn't render HTML, sanitize HTML for browser insertion, or claim that absence of an HTML hidden attribute proves the source branch is browser-visible.
+
+Conservative exclusion removes executable/interactive elements (scripts, styles, iframes, forms, etc.), noneditorial landmark regions (nav, aside, footer), explicit hidden/aria-hidden subtrees, role=dialog/alertdialog and a small set of exact noise class/id tokens. It **does not** implement arbitrary CSS, dynamic publisher layout visibility, an ad blocker, responsive gallery deduplication, all URL policy checks, tables/lists preservation, or source/Readability article-scope matching. Its output is an experimental semantic report, **not** a safe rendered HTML document or canonical `article.Article`. The existing production `internal/extraction` and `internal/reader` packages do not import or call this prototype. The implementation is intentionally conservative and incomplete; the report's skipped/ambiguous counters must be reviewed.
+
+Use it locally without network access:
+
+```bash
+cd ~/projects/scrapergo
+go test -count=1 ./internal/sourcepreserve ./cmd/structureprobe
+go run ./cmd/structureprobe \
+  -input /tmp/pr120-ars-m6.html \
+  -url 'https://arstechnica.com/gadgets/2026/11/review-apples-1999-m6-macbook-pro-feels-stuck-in-the-middle/'
+```
+
+The JSON report is printed to standard output; **it contains observed article text and image/link URLs**, so do not publish the entire report or private source HTML. There is no network fetch and no file write by this command. We can compare it with the existing offline `cmd/duplicateprobe -source-provenance` for the **same snapshot**, but those instruments have different representations; a claim of superior extraction requires a matched per-image/prose/links audit and later Safari acceptance.
+
+Focused synthetic tests cover ordered paired figures with distinct credits, exact same caption on two distinct images, intentional repeated editorial prose, explicit ad/dialog/hidden removal, unsafe link and image schemes, ambiguous two-image figure, multiple article scopes, and unsafe base URLs. They do not establish real publisher fidelity.
+
+**Next experiment:** Decide how to match a source article container selected by Readability; represent grouped gallery/responsive variants and per-image captions; preserve inline formatting/tables/lists; evaluate secure filtering with truly ambiguous markup; and construct a repeatable baseline comparator before proposing runtime integration. Do not merge or release this proof of concept as a production replacement.
