@@ -33,6 +33,18 @@ This is a pivot in the existing [Issue #125](https://github.com/richard-mauri/sc
 
 ---
 
+## Root cause of the initial 12-image selection plateau — confirmed in code
+
+The owner re-ran the same private Ars M6 snapshot with existing recovery tracing. The baseline image-block progression was **0** in initial `readability-render-text`, `structured-document`, `leading-paragraphs`, `source-tables`, `caption-reconciliation` and `selected-html-links`; **0 → 12** at `position-figures`; **12** through `editorial-continuity`, `institutional-tail`, `heading-anchored-prose` and `readability-structure`; and **12 → 13** across the combined `reader-postprocessing` transition. The trace shows no net image removals in these stages, although a before/after count alone cannot exclude substitution of individual identities.
+
+Code inspection directly confirms why `position-figures` stops at 12: `internal/extraction/figures.go`'s `ArticleImages` contains `if len(images) >= 12 { break }`, and `PositionArticleFigures` consumes `ArticleImages(cleaned, base)`. This is a **hard candidate cap**, not image/caption association evidence and not an Ars-specific browser behavior. It explains the initial 12-block plateau in the observed test. The existing reader's ordered `RecoverPhotographs` / `RecoverOpeningFigure` / other image transformations can add or reconcile image blocks independently; the observed combined reader delta was +1, but the stage trace does not establish *which substage* caused that change.
+
+**Do not simply raise or remove 12.** Current `ArticleImages` selects unique valid image URLs in traversal order and falls back to `alt` text when no `figcaption` is present, which does not establish editorial role. Removing a bound without a source-backed inclusion policy could admit nav/media chrome, responsive alternatives, unrelated figures and false captions. Separately `internal/recovery/source_gallery.go` has a compact-gallery candidate bound of 12, which is a different rule and did not cause the `ArticleImages` plateau. Do not conflate them.
+
+The next architecture design question is which *semantic source evidence* lets the Readability-selected structural tree retain editorial media **without** first-N selection and without treating nearby prose as a caption. Compare a **second unrelated publisher** and synthetic cases with more than 12 real editorial images alongside ad icons and responsive duplicates. Preserve the production extractor as control; no cap change, hidden image resurrection, model migration, branch split or production deployment has been approved. Current data still do not prove that selected positions 13–18 and 20 are editorial photographs that should appear.
+
+---
+
 ## Real-article A/B/C result and existing recovery-stage trace (November 11, 2026)
 
 The owner ran the matched offline A/B/C command on the unchanged private Ars M6 snapshot. Readability-selected HTML and explicit source `article` both contained **20 image nodes**; **19 exact resolved image URLs matched one-to-one**, and all matched positions **1 through 19** retained order. Source position 20 and selected position 20 were **unmatched by exact URL**, which does **not** establish a lost or extra photograph; query variants or different URL representations remain possible. Exactly one image in each source/selected tree was inside an explicit figure-caption relationship. The selected tree also retained 66 paragraph nodes, 5 headings, 28 links and 2 tables.
