@@ -35,8 +35,8 @@ func reconcileImageCaptionCreditTriples(blocks []article.Block, sourceHTML, sele
  if source==nil || selected==nil {return blocks}
  skip:=map[int]bool{}
  for _,i:=range candidates {
-  if hasImageCaptionCreditScope(source,blocks[i-2].Text,blocks[i-1].Text) &&
-   hasImageCaptionCreditScope(selected,blocks[i-2].Text,blocks[i-1].Text) {
+  if hasImageCaptionCreditScope(source,blocks[i-2].Text,blocks[i-1].Text,false) &&
+   hasImageCaptionCreditScope(selected,blocks[i-2].Text,blocks[i-1].Text,true) {
    // Preserve the independent caption and credit. Images remain in the
    // existing figure positioning and postprocessing pipeline.
    skip[i]=true
@@ -67,7 +67,7 @@ func isImageCaptionCreditTriple(caption,credit,combined article.Block) bool {
 // The image must be a direct child or grandchild of the selected container,
 // and a single non-image sibling must hold the caption and credit. This is
 // structural evidence from an editorial image group, not URL/site heuristics.
-func hasImageCaptionCreditScope(root *sourcehtml.Node,caption,credit string) bool {
+func hasImageCaptionCreditScope(root *sourcehtml.Node,caption,credit string,allowParagraphAlternative bool) bool {
  target:=sourcehtml.Normalize(caption+" "+credit)
  if target=="" {return false}
  owners:=map[*sourcehtml.Node]bool{}
@@ -87,6 +87,7 @@ func hasImageCaptionCreditScope(root *sourcehtml.Node,caption,credit string) boo
     imageBranch=true
     continue
    }
+   if !allowParagraphAlternative && len(sourcehtml.Find(child,func(x *sourcehtml.Node)bool{return x.Tag=="p"}))>0 {continue}
    if containsCompleteCaptionCredit(child,target) {textBranch=true}
   }
   // The image branch must contain the same caption+credit, not merely
