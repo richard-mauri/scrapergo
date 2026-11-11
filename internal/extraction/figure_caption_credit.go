@@ -20,34 +20,53 @@ import (
 // article, a two-photo gallery, or unrelated text somewhere on the page.
 // Ambiguous source markup is deliberately left unchanged.
 func reconcileImageCaptionCreditTriples(blocks []article.Block, sourceHTML, selectedHTML string) []article.Block {
- if len(blocks)<3 || sourceHTML=="" || selectedHTML=="" {return blocks}
- // Most articles do not have the exact caption / credit / combined pattern.
- // Avoid parsing source HTML twice for such articles, including long feeds.
- candidates:=[]int{}
- for i:=2;i<len(blocks);i++ {
-  if isImageCaptionCreditTriple(blocks[i-2],blocks[i-1],blocks[i]) {
-   candidates=append(candidates,i)
+ if len(blocks)<2 || sourceHTML=="" || selectedHTML=="" {return blocks}
+ triples:=[]int{}
+ pairs:=[]int{}
+ for i:=1;i<len(blocks);i++ {
+  if isImageCaptionDuplicatePair(blocks[i-1],blocks[i]) {pairs=append(pairs,i)}
+  if i>=2 && isImageCaptionCreditTriple(blocks[i-2],blocks[i-1],blocks[i]) {
+   triples=append(triples,i)
   }
  }
- if len(candidates)==0 {return blocks}
+ if len(triples)==0 && len(pairs)==0 {return blocks}
  source:=sourcehtml.Parse(sourceHTML)
  selected:=sourcehtml.Parse(selectedHTML)
  if source==nil || selected==nil {return blocks}
  skip:=map[int]bool{}
- for _,i:=range candidates {
+ for _,i:=range triples {
   if hasImageCaptionCreditScope(source,blocks[i-2].Text,blocks[i-1].Text,false) &&
    hasImageCaptionCreditScope(selected,blocks[i-2].Text,blocks[i-1].Text,true) {
-   // Preserve the independent caption and credit. Images remain in the
-   // existing figure positioning and postprocessing pipeline.
    skip[i]=true
   }
  }
+ for _,i:=range pairs {
+  // Both a source image branch and a separate representation must have
+  // the same words, independently corroborated in selected Readability HTML.
+  // Editorially intentional repeats outside the photo container survive.
+  a,b:=blocks[i-1],blocks[i]
+  if !hasImageCaptionCreditScope(source,a.Text,"",false) ||
+   !hasImageCaptionCreditScope(selected,a.Text,"",true) {continue}
+  remove:=i
+  // Prefer the version with intact whitespace (notably ". Photographer"
+  // rather than ".Photographer"). Equal-quality copies keep first-in-order.
+  if len(strings.Fields(b.Text))>len(strings.Fields(a.Text)) {remove=i-1}
+  if len(blocks[remove].Parts)>0 || len(blocks[remove].Links)>0 {continue}
+  skip[remove]=true
+ }
  if len(skip)==0 {return blocks}
  result:=make([]article.Block,0,len(blocks)-len(skip))
- for i,b:=range blocks {
-  if !skip[i] {result=append(result,b)}
- }
+ for i,b:=range blocks {if !skip[i] {result=append(result,b)}}
  return result
+}
+
+func isImageCaptionDuplicatePair(a,b article.Block) bool {
+ if a.Kind!="p" || b.Kind!="p" {return false}
+ if len([]rune(a.Text))<30 || len([]rune(b.Text))<30 {return false}
+ // A paragraph may differ only because text wrapping dropped whitespace
+ // between caption and photographer credit. Exact repetition also qualifies.
+ compact:=func(s string)string {return strings.ToLower(strings.Join(strings.Fields(sourcehtml.Normalize(s)),""))}
+ return compact(a.Text)==compact(b.Text)
 }
 
 func isImageCaptionCreditTriple(caption,credit,combined article.Block) bool {
