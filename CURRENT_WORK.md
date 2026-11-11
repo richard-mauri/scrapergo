@@ -8,6 +8,28 @@ GitHub `main` is the authoritative **merged** baseline at `41061a1feb9047419b6a0
 
 Start a fresh session by reading `AGENTS.md`, this file, `ARCHITECTURE.md`, and `DEVELOPMENT.md` on the **current PR branch**; check actual GitHub PR/head/CI. For source changes, acknowledge the repository's workflow and safeguard existing tests, secure fetcher/access restrictions, document semantics, Mac/Safari validation, and owner merge gate.
 
+## Current next step — Stage 2 guarded extraction candidate (November 11, 2026)
+
+**Latest code iteration on existing Issue #119 / open draft PR #120, branch `fix/119-caption-duplication`:** The owner provided original Ars Safari screenshots, one visible match per keyboard/port caption, and private same-snapshot provenance showing matching source branches for individual images #3, #4 and #5, plus a four-image group whose ownership is ambiguous. Existing source evidence suggests repeated media caption/credit representations, but no owner visual acceptance of a new fix has occurred.
+
+**Provisional source-backed fix now committed** (not released): `internal/extraction/figure_caption_credit.go` and tests, called within the established `caption-reconciliation` stage of `internal/extraction/readability_pipeline.go`. It detects (1) three *consecutive* canonical paragraphs `caption, photographer credit, combined caption+credit`; (2) two adjacent combined caption-credit paragraphs that are identical after whitespace normalization, including a lost separator between a caption and its credit. For case (1), only the redundant combined paragraph is suppressed; in case (2), one copy is kept, preferring the one with intact word separation. All other article blocks remain as-is. **Before deleting**, both original source HTML and Go Readability's selected HTML must independently show *one unique image* within a compact HTML subtree, an image-associated combined caption/credit, and a separate alternative representation. In the original source, a separately retained editorial `p` cannot qualify as an alternative. Multiple matching image identities or missing structural evidence cause **no change**. No URL/publisher/class-specific gates or global duplicate-string filters. The correction runs only if candidate adjacent-block patterns exist, avoiding unnecessary source parsing in ordinary article reads.
+
+**Tests and evidence:** `internal/extraction/figure_caption_credit_test.go` covers source/selected positive triple, two combined variants, correct whitespace retention, intentional repeated prose, source editorial paragraph with identical caption, distinct photos sharing captions, ambiguous two-photo galleries, selected-source disagreement, linked content retention, and a fast no-candidate path. `internal/extraction/figure_caption_pipeline_test.go` exercises the full Go Readability extraction path with media and alternative caption text. This integration test **initially failed** on a previously unhandled two-combined-paragraph whitespace variant; after extending the algorithm, Go CI passed on implementation/test head `ddfbdcc31ae0a1c4a2b2e2b8374c6fe9ea9ee5c8` in [run 43088620052](https://github.com/richard-mauri/scrapergo/actions/runs/43088620052), including `go test -count=1 ./...` and `go build ./...`. Exact CI at subsequent documentation handoff head must be rechecked.
+
+**Crucial limits:** The owner's untouched private Ars capture (`/tmp/pr120-ars-m6.html`, hash `8bc65dad6714447409e5a6a3b6367339b0363f86f0703d4e6e500eb0a8055b9a`) **has not yet been run through the candidate fix**; the baseline is 68 blocks / 4 candidate pairs (4/5 exact and 17/19,22/24,25/27 overlaps). Do not claim those are resolved. Exact 4/5 remains independently unresolved, and no guarantee of left/right photo-caption mapping improvement has been demonstrated. Preserve caption/credit semantics, rich text, images and intentional article repetition. Do not broaden the rule without source proof.
+
+**Immediate owner acceptance command** after pulling the draft branch and `go test`:
+
+```sh
+cd ~/projects/scrapergo
+go run ./cmd/duplicateprobe \
+  -input /tmp/pr120-ars-m6.html \
+  -url 'https://arstechnica.com/gadgets/2026/11/review-apples-1999-m6-macbook-pro-feels-stuck-in-the-middle/' \
+  -source-provenance
+```
+
+Compare final block count/candidates and the `caption-reconciliation` before/after line with the unchanged prior snapshot. Verify actual retained captions/credits and normal story text, not merely a decrease in counts. Only if the real Ars same-snapshot correction works without loss, proceed to check New Scientist unchanged capture, rerun the same 100 URL cohort and owner Safari/Print/PDF (Stage 3). Keep draft PR #120 open until owner explicit approval to merge/release; do not modify local tunnel, tokens, NewsGo, semantic version or production services. General CI is not Safari acceptance.
+
 ## Completed Stage 1: source-element provenance (owner run, Nov 11)
 
 **Owner completed the new offline source ancestry probe** on the unchanged private Ars M6 capture `/tmp/pr120-ars-m6.html` (SHA256 `8bc65dad6714447409e5a6a3b6367339b0363f86f0703d4e6e500eb0a8055b9a`): `go run ./cmd/duplicateprobe -input /tmp/pr120-ars-m6.html -url 'https://arstechnica.com/gadgets/2026/11/review-apples-1999-m6-macbook-pro-feels-stuck-in-the-middle/' -source-provenance`. **68 canonical blocks, four candidate pairs** (p4/p5 exact, p17/p19, p22/p24, p25/p27 overlaps); first detected at Readability RenderText (one exact, three overlap), with **zero adds/removals in every subsequent stage**.
