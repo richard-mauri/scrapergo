@@ -9,7 +9,17 @@ import (
  "strings"
 )
 
+// ArticleImages retains the historical default for existing callers.
 func ArticleImages(cleaned string, base *url.URL) []article.Block {
+ return ArticleImagesWithConfig(cleaned,base,DefaultFigureSelectionConfig())
+}
+
+// ArticleImagesWithConfig applies a validated candidate-count policy; it
+// does not change URL safety, source order, uniqueness or caption behavior.
+func ArticleImagesWithConfig(cleaned string, base *url.URL, cfg FigureSelectionConfig) []article.Block {
+ if cfg.maxCandidates<MinArticleImageCandidateLimit || cfg.maxCandidates>MaxArticleImageCandidateLimit {
+  cfg=DefaultFigureSelectionConfig() // zero-value defense, not an environment fallback
+ }
 	root := sourcehtml.Parse(cleaned)
 	images := []article.Block{}
 	seen := map[string]bool{}
@@ -43,7 +53,7 @@ func ArticleImages(cleaned string, base *url.URL) []article.Block {
 			caption = sourcehtml.Normalize(n.Attr["alt"])
 		}
 		images = append(images, article.Block{Kind: "img", Text: caption, URL: link})
-		if len(images) >= 12 {
+		if len(images) >= cfg.ArticleImageCandidateLimit() {
 			break
 		}
 	}
@@ -71,9 +81,16 @@ func AttachInlineLinks(blocks []article.Block, cleaned string, base *url.URL) {
 	}
 }
 
+// PositionArticleFigures retains the default limit for existing direct callers.
 func PositionArticleFigures(blocks []article.Block, cleaned string, base *url.URL) []article.Block {
+ return PositionArticleFiguresWithConfig(blocks,cleaned,base,DefaultFigureSelectionConfig())
+}
+
+// PositionArticleFiguresWithConfig keeps the exact positioning policy while
+// allowing the caller to inject a validated selection limit.
+func PositionArticleFiguresWithConfig(blocks []article.Block, cleaned string, base *url.URL, cfg FigureSelectionConfig) []article.Block {
 	root := sourcehtml.Parse(cleaned)
-	figures := ArticleImages(cleaned, base)
+	figures := ArticleImagesWithConfig(cleaned, base,cfg)
 	if len(figures) == 0 {
 		return blocks
 	}
