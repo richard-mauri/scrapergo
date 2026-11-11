@@ -29,6 +29,8 @@ type Report struct {
  UnwrappedImages int `json:"unwrappedImages,omitempty"`
  CompactImageTextWrappers int `json:"compactImageTextWrappers,omitempty"`
  OtherUnwrappedImages int `json:"otherUnwrappedImages,omitempty"`
+ OtherInMultiImageGroups int `json:"otherInMultiImageGroups,omitempty"`
+ OtherWithoutBoundedGroup int `json:"otherWithoutBoundedGroup,omitempty"`
  MultiImageFigures int `json:"multiImageFigures,omitempty"`
  InvalidFigureImages int `json:"invalidFigureImages,omitempty"`
  MultipleCaptions int `json:"multipleCaptions,omitempty"`
@@ -124,6 +126,27 @@ func compactImageTextWrapper(img *html.Node) bool {
  return false
 }
 
+
+// boundedMultiImageGroup is diagnostic-only: within four ancestor edges,
+// find a nonarticle container with 2–8 images in at least two distinct
+// child branches. It is evidence of a common image group, *not* evidence
+// of caption ownership, visibility, or duplicate image identity.
+func boundedMultiImageGroup(img *html.Node) bool {
+ for scope,depth:=img.Parent,0;scope!=nil && depth<4;scope,depth=scope.Parent,depth+1 {
+  if element(scope,"article") || element(scope,"main") || element(scope,"body") {break}
+  if excluded(scope) {break}
+  images:=find(scope,func(x *html.Node)bool{return element(x,"img")})
+  if len(images)<2 || len(images)>8 {continue}
+  branches:=0
+  for child:=scope.FirstChild;child!=nil;child=child.NextSibling {
+   if child.Type!=html.ElementNode || excluded(child) {continue}
+   if len(find(child,func(x *html.Node)bool{return element(x,"img")}))>0 {branches++}
+  }
+  if branches>=2 {return true}
+ }
+ return false
+}
+
 func Inspect(raw,baseURL string)(Report,error){
  report:=Report{Status:"inconclusive"}
  base,err:=url.Parse(baseURL)
@@ -170,7 +193,7 @@ func Inspect(raw,baseURL string)(Report,error){
    // Detached images are marked ambiguous rather than guessed into prose.
    report.AmbiguousFigures++
    report.UnwrappedImages++
-   if compactImageTextWrapper(n) {report.CompactImageTextWrappers++} else {report.OtherUnwrappedImages++}
+   if compactImageTextWrapper(n) {report.CompactImageTextWrappers++} else {report.OtherUnwrappedImages++; if boundedMultiImageGroup(n) {report.OtherInMultiImageGroups++} else {report.OtherWithoutBoundedGroup++}}
    return
   }
   for c:=n.FirstChild;c!=nil;c=c.NextSibling{walk(c)}
