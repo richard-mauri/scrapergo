@@ -111,3 +111,11 @@ go run ./cmd/duplicateprobe \
 
 The previous same-snapshot baseline was **68 canonical blocks, 1 exact and 3 overlapping candidate pairs** (4/5, 17/19, 22/24, 25/27). Compare the new `caption-reconciliation` transition, final pair indices and content presence. A count decrease alone is not sufficient: inspect **both** distinct photo captions/credits, left/right association, images, and real story paragraphs in Safari and Print/PDF. Do not merge or deploy until the owner verifies the output and reviews the separate exact 4/5 pair. New Scientist same-snapshot regression and the 100-URL batch are part of Stage 3, not replaced by synthetic tests.
 
+
+## Stage 2 failed Ars candidate — inspect exact block eligibility
+
+The owner re-ran the same saved Ars HTML **after the provisional Stage 2 extraction correction**. The result remained **68 blocks, 1 exact pair (4/5), 3 overlapping pairs (17/19, 22/24, 25/27)**, with `caption-reconciliation` reporting **no changes**. The candidate has **not demonstrated improvement on the triggering publisher**, despite synthetic Go CI passing. Do not begin Stage 3 or merge based on the synthetic result.
+
+The `-source-provenance` mode now prints a separate **Candidate shape evidence** section **before** DOM ancestry. For each flagged pair it reports the number of intervening blocks, the middle kind when exactly one block intervenes, whether `caption + middle` reproduces the later text exactly or after whitespace compaction, and whether adjacent/other pair texts are equal exactly or only with whitespace removed. It does **not** print publisher text, evaluate source/selected image ownership, authorize deletion, or alter extraction.
+
+A triple mismatch, nonconsecutive pair, or compact-only match narrows why the provisional correction did not engage. If all shape tests match, the remaining suspect is the source/selected HTML guard; retain its safety requirement and inspect the corresponding image-caption subtree before editing production behavior. The exact 4/5 pair is still unsupported by minimal source matches. Re-run the same private capture offline, then compare the shapes and source photo scopes and record exact evidence. For any actual fix, require complete source-backed article-output regression tests and owner Safari Print/PDF acceptance.
