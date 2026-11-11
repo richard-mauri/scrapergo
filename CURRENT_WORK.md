@@ -95,6 +95,22 @@ Owner's offline `go run ./cmd/duplicateprobe -input /tmp/pr120-ars-m6.html -url 
 
 **Latest broad benchmark:** 100/100 successful URL reads, 21 flagged, **54 candidates**, after scoped heading correction. Ars remains **4**. New Scientist paleo same source capture **15→0** candidates with 92→77 blocks, and 100-URL batch reduced **100→54** candidates. Content-preservation/Safari and Print/PDF checks not completed. Issue #119 and PR #120 remain open/draft; no merge/release/deploy approval.
 
+## Ars Readability structure report + optional source-element evidence (Nov 11)
+
+Owner ran `cmd/readabilityprobe` on the **unchanged** `/tmp/pr120-ars-m6.html` source capture. Report: title "Review: Apple's M6 MacBook Pro is good, but it's missing all the exciting stuff", byline Andrew Cunningham. Source HTML contains one article and one section; h2 "Look and feel", "Performance and power: M6 redux", "Pro-ish", h3 "The good", "The bad". Readability-selected HTML preserves those five headings and order and includes one article, zero sections; source `time` "Nov 10, 2026 7:00 am" / `2026-11-10T07:00:21-05:00` did not survive into selected HTML. **This report enumerates headings/timestamps, not paragraph and caption duplication.** Prior offline `duplicateprobe` still establishes 1 exact + 3 overlaps already at initial Readability RenderText; it does not distinguish duplication in original source from Readability flattening.
+
+**Added diagnostic-only follow-up** on existing PR #120: `cmd/duplicateprobe -source-evidence` uses the saved capture to count how many original-source vs Readability-selected HTML `p` and `figcaption` elements contain each candidate's shorter matched text, keyed by 1-based canonical block pair. It **does not print article text or write source files**. New `cmd/duplicateprobe/source_evidence.go` and tests, and README instructions. This is a conservative text-presence heuristic, not exact identity of DOM occurrences; inline whitespace can cause misses and intentional repetition remains possible. No production extraction code change. To run after pulling current branch, use:
+
+```sh
+cd ~/projects/scrapergo
+go run ./cmd/duplicateprobe \\
+  -input /tmp/pr120-ars-m6.html \\
+  -url 'https://arstechnica.com/gadgets/2026/11/review-apples-1999-m6-macbook-pro-feels-stuck-in-the-middle/' \\
+  -source-evidence
+```
+
+Inspect these per-pair source/selected element counts first. Determine whether repeated text represents independent source paragraphs, figure captions/credits or duplicated Readability rendering; only then design a source-backed fix and preserve negative tests. **No global removal**, new Issue, PR, merge or release.
+
 ## Source code inspection and next engineering work
 
 Inspected `internal/extraction/heading_prose.go` (`RestoreHeadingAnchoredProse`) and `internal/extraction/figures.go` (`PositionArticleFigures`), plus their tests. `RestoreHeadingAnchoredProse` builds an `existing` normalized-text set of retained blocks, finds ≥3 ordered headings in original HTML, and may recover source paragraphs between them or before the first heading; already protects exact present strings, but may admit normalized/partial/structural variants or source repetitions. `PositionArticleFigures` adds `img` blocks using selected-HTML figure caption text and original placement; may produce candidate image/prose overlap even when both blocks are semantically valid. Existing caption reconciliation only targets figure captions found in selected Readability HTML and has not fixed the original Ars/paleo cases.
