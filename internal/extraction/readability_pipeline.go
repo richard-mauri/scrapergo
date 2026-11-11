@@ -88,7 +88,7 @@ func ExtractWithReadabilityTraced(raw, source string, legacy func(string,string)
 					// identifies the original image and caption semantics.
 					if !structuredRecovered {
 						blocks = trace.Run("caption-reconciliation", blocks, func() []article.Block {
-							return removeFlattenedFigureCaptions(blocks, cleaned)
+							return reconcileImageCaptionCreditTriples(removeFlattenedFigureCaptions(blocks, cleaned), raw, cleaned)
 						})
 					}
 					blocks = trace.Run("selected-html-links", blocks, func() []article.Block {
