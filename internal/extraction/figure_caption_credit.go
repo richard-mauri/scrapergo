@@ -58,17 +58,14 @@ func isImageCaptionCreditTriple(caption,credit,combined article.Block) bool {
 func hasImageCaptionCreditScope(root *sourcehtml.Node,caption,credit string) bool {
  target:=sourcehtml.Normalize(caption+" "+credit)
  if target=="" {return false}
+ owners:=map[*sourcehtml.Node]bool{}
  for _,n:=range sourcehtml.Find(root,func(n *sourcehtml.Node)bool {
   return n.Tag=="div" || n.Tag=="figure" || n.Tag=="section"
  }) {
   if sourcehtml.BlockedTags[n.Tag] {continue}
   // Never absorb a broad article paragraph or multi-image gallery.
-  imageCount:=0
-  for _,image:=range sourcehtml.Find(n,func(x *sourcehtml.Node)bool{return x.Tag=="img"}) {
-   if image!=nil {imageCount++}
-   if imageCount>1 {break}
-  }
-  if imageCount!=1 {continue}
+  imageNodes:=sourcehtml.Find(n,func(x *sourcehtml.Node)bool{return x.Tag=="img"})
+  if len(imageNodes)!=1 {continue}
   // Require image/caption siblings rather than content anywhere in a page.
   imageBranch:=false
   textBranch:=false
@@ -80,9 +77,9 @@ func hasImageCaptionCreditScope(root *sourcehtml.Node,caption,credit string) boo
    }
    if containsCompleteCaptionCredit(child,target) {textBranch=true}
   }
-  if imageBranch && textBranch {return true}
+  if imageBranch && textBranch {owners[imageNodes[0]]=true}
  }
- return false
+ return len(owners)==1
 }
 
 func containsCompleteCaptionCredit(n *sourcehtml.Node,target string) bool {
@@ -93,7 +90,7 @@ func containsCompleteCaptionCredit(n *sourcehtml.Node,target string) bool {
  for _,x:=range sourcehtml.Find(n,func(x *sourcehtml.Node)bool {
   return x.Tag=="p" || x.Tag=="blockquote" || x.Tag=="h1" || x.Tag=="h2" || x.Tag=="h3" || x.Tag=="h4"
  }) {
-  if x!=nil {return false}
+  if x!=nil && x!=n {return false}
  }
  text:=sourcehtml.Normalize(sourcehtml.Text(n))
  return text==target || strings.EqualFold(strings.Join(strings.Fields(text),""),strings.Join(strings.Fields(target),""))
