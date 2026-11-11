@@ -21,6 +21,7 @@ type summary struct {
  UnsafeSelectedURLs int `json:"unsafeSelectedURLs,omitempty"`
  FlatTextCharacters int `json:"flatTextCharacters"`
  ReadabilityTitlePresent bool `json:"readabilityTitlePresent"`
+ SourceSelectedImageAlignment sourcepreserve.ImageAlignment `json:"sourceSelectedImageAlignment"`
 }
 func countKinds(nodes []sourcepreserve.SemanticNode,m map[string]int) {
  for _,n:=range nodes {m[n.Kind]++;countKinds(n.Children,m)}
@@ -44,6 +45,8 @@ func main(){
  if err!=nil {fmt.Fprintln(os.Stderr,"selected DOM:",err);os.Exit(1)}
  report:=summary{Status:"offline-comparison",SelectedHTMLKinds:map[string]int{},SelectedHTMLImages:tree.ObservedImages,UnsafeSelectedURLs:tree.UnsafeURLs,FlatTextCharacters:len([]rune(flatText.String())),ReadabilityTitlePresent:parsed.Title()!=""}
  countKinds(tree.Nodes,report.SelectedHTMLKinds)
+ report.SourceSelectedImageAlignment,err=sourcepreserve.CompareImageAlignment(string(raw),*base,tree)
+ if err!=nil {fmt.Fprintln(os.Stderr,"source/selected image match:",err);os.Exit(1)}
  enc:=json.NewEncoder(os.Stdout);enc.SetIndent("","  ")
  if err:=enc.Encode(report);err!=nil{fmt.Fprintln(os.Stderr,err);os.Exit(1)}
 }
