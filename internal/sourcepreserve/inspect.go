@@ -26,6 +26,10 @@ type Report struct {
  Status string `json:"status"`
  Items []Item `json:"items,omitempty"`
  AmbiguousFigures int `json:"ambiguousFigures,omitempty"`
+ UnwrappedImages int `json:"unwrappedImages,omitempty"`
+ MultiImageFigures int `json:"multiImageFigures,omitempty"`
+ InvalidFigureImages int `json:"invalidFigureImages,omitempty"`
+ MultipleCaptions int `json:"multipleCaptions,omitempty"`
  SkippedNoneditorial int `json:"skippedNoneditorial,omitempty"`
 }
 
@@ -123,10 +127,12 @@ func Inspect(raw,baseURL string)(Report,error){
    caps:=find(n,func(x *html.Node)bool{return element(x,"figcaption")})
    if len(images)!=1 || len(caps)>1 {
     report.AmbiguousFigures++
+    if len(images)>1 {report.MultiImageFigures++} else if len(images)==0 {report.InvalidFigureImages++}
+    if len(caps)>1 {report.MultipleCaptions++}
     return
    }
    imageURL:=sourcehtml.ResolveURL(attr(images[0],"src"),base)
-   if imageURL=="" {report.AmbiguousFigures++;return}
+   if imageURL=="" {report.AmbiguousFigures++;report.InvalidFigureImages++;return}
    item:=Item{Kind:"figure",ImageURL:imageURL}
    if len(caps)==1 {item.Caption,item.Credit=creditedCaption(caps[0])}
    report.Items=append(report.Items,item)
@@ -142,6 +148,7 @@ func Inspect(raw,baseURL string)(Report,error){
    // Only images with explicit figure association are currently credited.
    // Detached images are marked ambiguous rather than guessed into prose.
    report.AmbiguousFigures++
+   report.UnwrappedImages++
    return
   }
   for c:=n.FirstChild;c!=nil;c=c.NextSibling{walk(c)}
