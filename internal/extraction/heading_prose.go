@@ -51,7 +51,12 @@ func RestoreHeadingAnchoredProse(raw string, selected []article.Block, base *url
    v:=sourcehtml.Normalize(sourcehtml.Text(n))
    if len(v)<70 || len(v)>5000 || IsAdvertisingText(v) || existing[v] {continue}
    b:=structured.TextBlock(n,base,sourcehtml.ResolveURL,links.IsDocumentURL)
-   if b.Text!="" {b.Kind="p";intro=append(intro,b)}
+   // Source HTML text adds separators between inline nodes, while the
+   // canonical TextBlock joins the actual text runs. Compare the canonical
+   // representation too, or styled/link paragraphs can be reinserted.
+   if b.Text=="" || existing[sourcehtml.Normalize(b.Text)] {continue}
+   b.Kind="p"
+   intro=append(intro,b)
   }
   if len(intro)>0 && len(intro)<=12 {
    inserts[-1]=intro
@@ -69,8 +74,11 @@ func RestoreHeadingAnchoredProse(raw string, selected []article.Block, base *url
    if len(v)<70 || len(v)>5000 || existing[v] {continue}
    block:=structured.TextBlock(n,base,sourcehtml.ResolveURL,links.IsDocumentURL)
    if block.Text=="" {continue}
+   canonical:=sourcehtml.Normalize(block.Text)
+   if existing[canonical] {continue}
    block.Kind="p"
    existing[v]=true
+   existing[canonical]=true
    recovered=append(recovered,block)
   }
   if len(recovered)<=10 {inserts[from.index]=recovered}
