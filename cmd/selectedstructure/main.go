@@ -43,7 +43,10 @@ func main(){
  if err!=nil || (parsedURL.Scheme!="http"&&parsedURL.Scheme!="https") || parsedURL.Hostname()=="" || parsedURL.User!=nil {
   fmt.Fprintln(os.Stderr,"invalid HTTP(S) base URL");os.Exit(2)
  }
- // Mirror the production handler\u0027s preprocessing so all three paths see\n // the same offline, already-retrieved source representation.\n cleaned:=structured.StripEmbeddedMedia(string(raw))\n parsed,err:=readability.FromReader(strings.NewReader(cleaned),parsedURL)
+ // Use the same preprocessing that production uses for this snapshot.
+ // All three comparison paths operate on the same local input.
+ cleaned:=structured.StripEmbeddedMedia(string(raw))
+ parsed,err:=readability.FromReader(strings.NewReader(cleaned),parsedURL)
  if err!=nil {fmt.Fprintln(os.Stderr,"Readability parse:",err);os.Exit(1)}
  var chosenHTML,flatText bytes.Buffer
  if err:=parsed.RenderHTML(&chosenHTML);err!=nil {fmt.Fprintln(os.Stderr,"RenderHTML:",err);os.Exit(1)}
