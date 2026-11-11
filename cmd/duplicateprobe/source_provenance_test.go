@@ -62,3 +62,33 @@ func TestSourceProvenanceIgnoresBlockedTagsAndLimitsIncidentalMetadata(t *testin
  raw:="<main><script>"+sentence+"</script><nav><p>"+sentence+"</p></nav><article><p>Ordinary valid reporting.</p></article></main>"
  if got:=scanProvenance(raw,sentence);len(got)!=0 {t.Fatalf("noise was incorrectly counted: %+v",got)}
 }
+
+
+func TestSourceProvenanceReportsSiblingMediaAndExplicitHiddenOnly(t *testing.T) {
+ const passage="A carefully described image caption that should remain attached to its corresponding photograph."
+ raw:="<article><div><img src='/pic.jpg'><span>"+passage+"</span><span aria-hidden='true'>"+passage+"</span></div></article>"
+ got:=scanProvenance(raw,passage)
+ if len(got)!=2 {t.Fatalf("expected two independent caption representations: %+v",got)}
+ for i,n:=range got {
+  if n.Media!="parent-img:1,figure:0,figcaption:0,siblings:3" {
+   t.Fatalf("wrong media context for %d: %+v",i,n)
+  }
+ }
+ if got[0].Visibility!="no-explicit-hint" || got[1].Visibility!="aria-hidden" {
+  t.Fatalf("incorrect visibility provenance: %+v",got)
+ }
+}
+
+func TestSourceProvenanceInlineHiddenAncestor(t *testing.T) {
+ const passage="A detailed description of an image that appears in a hidden alternative block."
+ raw:="<article><div hidden><span>"+passage+"</span></div></article>"
+ got:=scanProvenance(raw,passage)
+ if len(got)!=1 || got[0].Visibility!="hidden-attr" {t.Fatalf("hidden ancestor lost: %+v",got)}
+}
+
+func TestSourceProvenanceWithoutExplicitHintDoesNotClaimVisible(t *testing.T) {
+ const passage="A second caption is hidden through a responsive stylesheet not present inline."
+ raw:="<article><div class='hidden-by-external-css'><span>"+passage+"</span></div></article>"
+ got:=scanProvenance(raw,passage)
+ if len(got)!=1 || got[0].Visibility!="no-explicit-hint" {t.Fatalf("unknown CSS incorrectly inferred: %+v",got)}
+}
