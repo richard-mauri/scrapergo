@@ -158,7 +158,7 @@ func TestImageCaptionCreditFlattenedReadabilityPairedPhotoGroup(t *testing.T) {
  // a neighboring branch of a wider two-photo group, not a one-image wrapper.
  selected:=`<article><div><div><img src="/other.jpg"><span>Different caption</span></div><div><div><img src="/keyboard.jpg"><p>`+caption+` `+credit+`</p></div></div><div><p><span>`+caption+` `+credit+`</span></p></div></div></article>`
  blocks:=[]article.Block{{Kind:"p",Text:caption},{Kind:"p",Text:credit},{Kind:"p",Text:caption+" "+credit}}
- if hasImageCaptionCreditScope(source,caption,credit,false)!=true {t.Fatal("source fixture missing unique image scope")}
+ if hasImageCaptionCreditScope(sourcehtml.Parse(source),caption,credit,false)!=true {t.Fatal("source fixture missing unique image scope")}
  if hasImageCaptionCreditScope(sourcehtml.Parse(selected),caption,credit,true) {t.Fatal("selected fixture unexpectedly satisfies strict guard")}
  got:=reconcileImageCaptionCreditTriples(blocks,source,selected)
  if len(got)!=2 || got[0].Text!=caption || got[1].Text!=credit {t.Fatalf("failed to remove only redundant combined text: %+v",got)}
