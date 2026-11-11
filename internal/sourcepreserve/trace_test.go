@@ -35,3 +35,30 @@ func TestTraceStructureRespectsExcludedAndFigureBranches(t *testing.T){
   t.Fatalf("excluded/figure images leaked into trace: %+v",got)
  }
 }
+
+func TestTraceAncestorsShowsImageAndTextBranchOrderWithoutCaptionInference(t *testing.T){
+ raw:=`<article><div><section><span>Before image</span><a href="/photo"><img src="/img.jpg"></a><div><small>After image credit</small></div></section></div></article>`
+ got,err:=TraceStructure(raw,baseURL)
+ if err!=nil{t.Fatal(err)}
+ if len(got.Images)!=1||len(got.Images[0].Ancestors)<2{t.Fatalf("missing hierarchy: %+v",got)}
+ // Depth 1 is the image's anchor; depth 2 is a section with a separate
+ // text-bearing branch before and after the image-bearing anchor.
+ a:=got.Images[0].Ancestors
+ if a[0].Tag!="a"||a[1].Tag!="section"||a[1].Images!=1||a[1].ImageBranches!=1||a[1].TextBranchesBefore!=1||a[1].TextBranchesAfter!=1{
+  t.Fatalf("incorrect direct child relationship: %+v",a)
+ }
+ encoded,err:=json.Marshal(got);if err!=nil{t.Fatal(err)}
+ for _,secret:=range []string{"Before image","After image credit","img.jpg","/photo"}{
+  if strings.Contains(string(encoded),secret){t.Fatalf("source leaked: %s",encoded)}
+ }
+}
+
+func TestTraceAncestorsDoesNotExportCustomTagNames(t *testing.T){
+ raw:=`<article><private-secret-user-identifier><a><img src="/photo.png"></a></private-secret-user-identifier></article>`
+ got,err:=TraceStructure(raw,baseURL)
+ if err!=nil||len(got.Images)!=1 {t.Fatalf("bad trace: %+v, %v",got,err)}
+ data,err:=json.Marshal(got);if err!=nil{t.Fatal(err)}
+ if strings.Contains(string(data),"private-secret")||!strings.Contains(string(data),`"tag":"other"`){
+  t.Fatalf("custom publisher tag name leaked: %s",data)
+ }
+}
