@@ -36,7 +36,8 @@ func reconcileImageCaptionCreditTriples(blocks []article.Block, sourceHTML, sele
  skip:=map[int]bool{}
  for _,i:=range triples {
   if hasImageCaptionCreditScope(source,blocks[i-2].Text,blocks[i-1].Text,false) &&
-   hasImageCaptionCreditScope(selected,blocks[i-2].Text,blocks[i-1].Text,true) {
+   (hasImageCaptionCreditScope(selected,blocks[i-2].Text,blocks[i-1].Text,true) ||
+    hasFlattenedSelectedCaptionScope(selected,blocks[i-2].Text,blocks[i-1].Text)) {
    skip[i]=true
   }
  }
@@ -163,7 +164,49 @@ func InspectCaptionCreditTriple(blocks []article.Block, tripleIndex int, sourceH
  result.TripleShape=isImageCaptionCreditTriple(a,b,c)
  if !result.TripleShape || sourceHTML=="" || selectedHTML=="" {return result}
  result.SourceImageScope=hasImageCaptionCreditScope(sourcehtml.Parse(sourceHTML),a.Text,b.Text,false)
- result.SelectedImageScope=hasImageCaptionCreditScope(sourcehtml.Parse(selectedHTML),a.Text,b.Text,true)
+ result.SelectedImageScope=hasImageCaptionCreditScope(sourcehtml.Parse(selectedHTML),a.Text,b.Text,true) ||
+  hasFlattenedSelectedCaptionScope(sourcehtml.Parse(selectedHTML),a.Text,b.Text)
  result.Eligible=result.SourceImageScope && result.SelectedImageScope
  return result
+}
+
+// hasFlattenedSelectedCaptionScope handles Readability's retained paired-photo
+// layout when the original caption/credit text appears once inside an image
+// branch and once inside a neighboring text branch of the same compact group.
+// The publisher source must independently pass hasImageCaptionCreditScope;
+// this predicate alone must never authorize removing editorial prose.
+func hasFlattenedSelectedCaptionScope(root *sourcehtml.Node,caption,credit string) bool {
+ if root==nil {return false}
+ target:=sourcehtml.Normalize(caption+" "+credit)
+ compact:=func(s string)string{return strings.ToLower(strings.Join(strings.Fields(sourcehtml.Normalize(s)),""))}
+ match:=func(s string)bool{return compact(s)==compact(target)}
+ allImages:=sourcehtml.Find(root,func(n *sourcehtml.Node)bool{return n.Tag=="img"})
+ allParagraphs:=sourcehtml.Find(root,func(n *sourcehtml.Node)bool{return n.Tag=="p"})
+ matchedImageOwners:=map[*sourcehtml.Node]bool{}
+ for _,img:=range allImages {
+  for owner:=img.Parent;owner!=nil && owner.Tag!="article" && owner.Tag!="main" && owner.Tag!="body";owner=owner.Parent {
+   // The image must have a unique local caption-bearing wrapper, not
+   // a broad gallery's concatenated text.
+   if len(sourcehtml.Find(owner,func(n *sourcehtml.Node)bool{return n.Tag=="img"}))!=1 {break}
+   if !match(sourcehtml.Text(owner)) {continue}
+   // A separate paragraph bearing the complete caption must live outside
+   // the image's own wrapper, but inside a shared bounded media group.
+   for _,p:=range allParagraphs {
+    if !match(sourcehtml.Text(p)) || isNodeWithin(p,owner) {continue}
+    for group:=owner.Parent;group!=nil && group.Tag!="article" && group.Tag!="main" && group.Tag!="body";group=group.Parent {
+     if !isNodeWithin(p,group) {continue}
+     n:=len(sourcehtml.Find(group,func(x *sourcehtml.Node)bool{return x.Tag=="img"}))
+     if n>=1 && n<=12 {matchedImageOwners[img]=true}
+     break
+    }
+   }
+   break
+  }
+ }
+ return len(matchedImageOwners)==1
+}
+
+func isNodeWithin(n,ancestor *sourcehtml.Node) bool {
+ for x:=n;x!=nil;x=x.Parent {if x==ancestor{return true}}
+ return false
 }
