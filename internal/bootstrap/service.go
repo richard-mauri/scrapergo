@@ -20,8 +20,14 @@ import (
  "log"
  "net/http"
  "net/url"
+ "os"
+ "path/filepath"
  "strings"
 )
+// Recovery instrumentation is configured once before the server accepts traffic.
+// No global recorder is constructed when tracing is disabled.
+var recoveryTraceRecorder *diagnostics.RecoveryRecorder
+
 // writeExtractedArticle is shared by normal retrieval and diagnostic HTML submission.
 func WriteExtractedArticle(w http.ResponseWriter, raw, finalURL string) {
  writeExtractedArticle(context.Background(),w,raw,finalURL,false)
@@ -50,12 +56,19 @@ func writeExtractedArticle(ctx context.Context, w http.ResponseWriter, raw, fina
 	// Restriction metadata alone does not establish that no usable preview exists.
 	kind := accesspolicy.Restriction(raw)
 	cleanedArticleHTML := structured.StripEmbeddedMedia(raw)
-	extracted, extractionErr := ExtractWithEvidence(cleanedArticleHTML, finalURL)
+	var trace *extraction.RecoveryTrace
+    if recoveryTraceRecorder != nil { trace = extraction.NewRecoveryTrace() }
+    extracted, extractionErr := ExtractWithEvidenceTraced(cleanedArticleHTML, finalURL, trace)
 	article := extracted.Article
 	if extractionErr == nil {
 		article = reader.DefaultProcessor().Process(extracted, cleanedArticleHTML)
 		LogSlateExtractionDiagnostic(article.Blocks, finalURL)
 	}
+    if recoveryTraceRecorder != nil {
+        if err := recoveryTraceRecorder.Record(finalURL, article, extractionErr, trace); err != nil {
+            log.Printf("recovery trace write failed: %v",err)
+        }
+    }
 	if kind != "" {
 		log.Printf("restriction publisher=%s kind=%s evidence=%s html_bytes=%d public_words=%d", accesspolicy.Hostname(finalURL), kind, accesspolicy.Evidence(raw), len(raw), article.WordCount)
 		if extractionErr == nil && article.WordCount >= 80 {
@@ -110,7 +123,13 @@ func writeExtractedArticle(ctx context.Context, w http.ResponseWriter, raw, fina
 // records the publisher's source metadata. No later normalization decision is
 // made while gathering this evidence.
 func ExtractWithEvidence(raw, source string) (extraction.Result, error) {
- article, err := extraction.ExtractWithReadability(raw, source, extraction.LegacyExtract, extraction.InlineTextParts)
+ return ExtractWithEvidenceTraced(raw,source,nil)
+}
+
+// ExtractWithEvidenceTraced observes the same extraction code without altering
+// caller-visible article results or the production security boundary.
+func ExtractWithEvidenceTraced(raw, source string, trace *extraction.RecoveryTrace) (extraction.Result, error) {
+ article, err := extraction.ExtractWithReadabilityTraced(raw, source, extraction.LegacyExtract, extraction.InlineTextParts, trace)
  if err != nil { return extraction.Result{}, err }
  result := extraction.Result{Article: article, Evidence: extraction.SourceEvidence{SourceURL: source}}
  if base, err := url.Parse(source); err == nil {
@@ -193,6 +212,13 @@ func NewArticleMetadataHandler(read http.Handler) http.Handler {
 
 // Start composes the production HTTP graph once.
 func Start(port string, version, build string, tannerJPG []byte) error {
+ if os.Getenv("SCRAPERGO_RECOVERY_TRACE")=="1" {
+  recorder,err:=diagnostics.NewRecoveryRecorder(filepath.Join("diagnostics"),build)
+  if err!=nil { log.Printf("recovery tracing disabled: %v",err) } else {
+   recoveryTraceRecorder=recorder
+   log.Print("recovery tracing enabled: diagnostics/recovery.jsonl")
+  }
+ }
  readHandler := NewArticleReadHandler()
  return app.Run(app.Config{Port:port,Version:version,Build:build}, app.Handlers{
   Read:readHandler,
