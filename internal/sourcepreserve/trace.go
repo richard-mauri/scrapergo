@@ -18,10 +18,62 @@ type ImageTrace struct {
  GroupImages int `json:"groupImages,omitempty"`
  GroupImageBranches int `json:"groupImageBranches,omitempty"`
  GroupTextBranches int `json:"groupTextBranches,omitempty"`
+ Ancestors []AncestorTrace `json:"ancestors,omitempty"`
+}
+// AncestorTrace records a bounded ancestor's *direct child* branches. A
+// text-bearing branch is not proof of caption ownership.
+type AncestorTrace struct {
+ Depth int `json:"depth"`
+ Tag string `json:"tag"`
+ Images int `json:"images"`
+ ImageBranches int `json:"imageBranches"`
+ TextBranchesBefore int `json:"textBranchesBefore,omitempty"`
+ TextBranchesAfter int `json:"textBranchesAfter,omitempty"`
+ ExplicitCaptionElements int `json:"explicitCaptionElements,omitempty"`
 }
 type StructureTrace struct {
  Status string `json:"status"`
  Images []ImageTrace `json:"images,omitempty"`
+}
+
+// safeTraceTag prevents arbitrary custom-element names from becoming a
+// content channel. Only a fixed vocabulary is shown.
+func safeTraceTag(s string)string{
+ switch s {
+ case "a","div","span","section","picture","figure","figcaption","p","small","cite","article","main","body","header","footer","ul","li","ol","table","td","th","tr","aside":
+  return s
+ }
+ return "other"
+}
+
+// traceAncestors records up to six enclosing elements, stopping before the
+// article root. Counts reflect direct child branches, not rendered layout.
+func traceAncestors(img *html.Node) []AncestorTrace {
+ var result []AncestorTrace
+ for scope,depth:=img.Parent,1;scope!=nil && depth<=6;scope,depth=scope.Parent,depth+1 {
+  if element(scope,"article")||element(scope,"main")||element(scope,"body"){break}
+  if excluded(scope){break}
+  item:=AncestorTrace{Depth:depth,Tag:safeTraceTag(scope.Data)}
+  item.Images=len(find(scope,func(x *html.Node)bool{return element(x,"img")}))
+  item.ExplicitCaptionElements=len(find(scope,func(x *html.Node)bool{return element(x,"figcaption")}))
+  // Determine which immediate child branch contains this image.
+  var imageBranch *html.Node
+  for branch:=img;branch!=nil&&branch!=scope;branch=branch.Parent{
+   if branch.Parent==scope {imageBranch=branch;break}
+  }
+  after:=false
+  for child:=scope.FirstChild;child!=nil;child=child.NextSibling {
+   if child==imageBranch {after=true}
+   if child.Type!=html.ElementNode||excluded(child){continue}
+   if len(find(child,func(x *html.Node)bool{return element(x,"img")}))>0 {
+    item.ImageBranches++
+   } else if plain(child)!="" {
+    if after {item.TextBranchesAfter++} else {item.TextBranchesBefore++}
+   }
+  }
+  result=append(result,item)
+ }
+ return result
 }
 
 // TraceStructure observes exactly the unwrapped images visited by Inspect.
@@ -47,7 +99,8 @@ func TraceStructure(raw,baseURL string)(StructureTrace,error){
   case "p","h1","h2","h3","h4","h5","h6":return
   case "img":
    item:=ImageTrace{ImageIndex:len(result.Images)+1,Pattern:"unwrapped",ParentTag:"unknown"}
-   if n.Parent!=nil {item.ParentTag=n.Parent.Data}
+   if n.Parent!=nil {item.ParentTag=safeTraceTag(n.Parent.Data)}
+   item.Ancestors=traceAncestors(n)
    if compactImageTextWrapper(n) {item.Pattern="compact-text-sibling"} else if group:=boundedMultiImageGroup(n);group!=nil {
     item.Pattern="bounded-multi-image-group"
     if groups[group]==0 {groups[group]=len(groups)+1}
