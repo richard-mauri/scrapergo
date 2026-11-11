@@ -1,17 +1,26 @@
-# Current work
+# Current work — ScraperGo (2026-11-11)
 
-**Merged source baseline:** GitHub `main` at `94365386e010e1a37fdaf9ded7b8951941a8fcf2` (base of draft PR #120, verified November 11, 2026). Keep the merged branch authoritative. PR #115 benchmark work is merged. Verify actual GitHub PR and CI state on each resumption.
+**Authoritative merged baseline:** GitHub `main` at `41061a1feb9047419b6a0610eaa6c310113f6b30`, after owner-approved ARM64 launcher PR #122 and persistent recovery diagnostics PR #118 were merged. The Mac's local `diagnostics/` is private, ignored and accumulates records across restarts. Issue #117 and Issue #121 are closed.
 
-**General duplicate article text — active tracking:** [ScraperGo Issue #119](https://github.com/richard-mauri/scrapergo/issues/119) and **sole related draft [PR #120](https://github.com/richard-mauri/scrapergo/pull/120)** on `fix/119-caption-duplication`. The branch name is historical; the issue/PR scope is now *all unintended duplicate article text*, not merely captions. The original owner report said "newsgo has redundant article text," with screenshot and `article.txt` of an Ars Technica M6 MacBook Pro review. NewsGo delegates article extraction to ScraperGo, which already emits redundant content. Reproduction URL: https://arstechnica.com/gadgets/2026/11/review-apples-1999-m6-macbook-pro-feels-stuck-in-the-middle/ .
+**Single active duplicate-text correction:** [Issue #119](https://github.com/richard-mauri/scrapergo/issues/119), [draft PR #120](https://github.com/richard-mauri/scrapergo/pull/120), branch `fix/119-caption-duplication` (**historical name only; scope is generalized unintended duplicate article text**). Do not create another duplicate-text issue or PR; do not rename this branch while it heads the open PR.
 
-**Broader evidence:** The owner downloaded NewsGo's article URLs and ran the standalone duplicate-audit utility. Its CSV reportedly flagged 4 of 10 articles and 29 duplicate candidates, including ~15 repeated ordinary-prose pairs in a New Scientist paleo-diet article and several in a Maya-site article. Recheck figures against the actual CSV before incorporating numerical claims into tests. Duplicates include ordinary editorial paragraphs, so the existing caption-specific implementation is insufficient by itself.
+**Original evidence:** Ars Technica Nov 2026 M6 MacBook Pro review contained four overlapping/repeated figure captions and prose candidates. On the same NewsGo-exported batch of 100 URLs, prior baseline flagged 106 candidates/30 articles; PR #120's preliminary caption implementation flagged 97/27, no read failures. The original Ars article remained 4/4; New Scientist paleo-diet remained 15/15. NewsGo's `cmd/duplicateaudit` was preserved and merged in its standalone Issue #87/PR #88; use that tool to replay the same URL export against localhost or approved public endpoint.
 
-**Code status:** Existing draft PR #120 includes `internal/extraction/figure_caption_text.go` and its insertion into `internal/extraction/readability_pipeline.go`, plus synthetic tests. This is **only a provisional caption-level attempt**. It has not been proven to fix the triggering article, nor to solve duplicate prose. Test the initial hypothesis with source HTML/Readability evidence and revise or remove it if unsound. The goal is prevention of repeated text arising from multiple extraction and recovery representations, with preservation of legitimate repeated prose, quotations, live updates, links, headings, tables, captions, image order, and bylines. No blanket text deduplication or publisher heuristics.
+**Candidate code:** `internal/extraction/figure_caption_text.go` and tests reconcile caption text from selected Readability HTML; it is a **limited unverified candidate**, not a general solution. Merged diagnostics trace records stage modifications but not which stage introduces duplicate text. A production dedup change must be source-backed, distinguish article editorial repetition from extraction duplication, and have positive/negative synthetic tests and real-source evidence. Never blanket-remove all repeated paragraphs.
 
-**Single-tracker consolidation:** Redundant [NewsGo Issue #87](https://github.com/richard-mauri/newsgo/issues/87) was closed as superseded on November 11, 2026. The existing standalone audit tool is an independent local diagnostic, not a NewsGo runtime feature and needs no separate PR. No new duplicate-text issues or PRs should be opened; continue on ScraperGo #119/#120.
+**Current integration:** This branch has been reconciled with `main`'s tracing and ARM64 launcher; preserve `SCRAPERGO_RECOVERY_TRACE=1`, local private `diagnostics/`, secure fetcher, source ordering, links, bylines, media, tables, headings and recovery fallbacks. Do not modify NewsGo for extraction behavior. Proposed next step: add a privacy-minimized per-stage duplicate-candidate count to diagnostic trace to determine whether repeats originate in Readability text or recovery transformations, then use targeted source HTML capture/readabilityprobe for Ars and New Scientist before changing runtime removal rules.
 
-**Other independent work:** [Issue #117](https://github.com/richard-mauri/scrapergo/issues/117) and draft [PR #118](https://github.com/richard-mauri/scrapergo/pull/118) concern persistent opt-in recovery diagnostics, not the duplicate-text fix. [Issue #116](https://github.com/richard-mauri/scrapergo/issues/116) concerns deferred parsing optimization. Preserve these unrelated efforts and avoid cross-branch changes unless separately approved.
+**Deferred:** Issue #116 — performance/shared-DOM work. No PR #120 merge, release, semantic-version bump, deploy, branch deletion or app restart without owner acceptance.
 
-**Next engineering actions:** Use NewsGo-exported URL batch and standalone audit to establish a baseline; compare secured publisher capture, Readability `RenderText` and `RenderHTML`, extraction stages, and final canonical article blocks to isolate duplicate provenance. Add positive/negative synthetic fixtures for non-caption prose duplicates, partial overlaps, caption and credit variants, intentional repeated editorial prose/quotations, live updates and media semantics. Run exact-head Go CI and owner-side Mac/Safari acceptance. Prior PR #120 Go CI, live capture, Safari, and Mac testing remain unverified; do not claim resolution.
-
-**Approval boundary:** Keep draft PR unmerged; do not modify `main`, bump semantic version, merge, tag, release, deploy, delete branch, or change security and tunnel configuration without the owner's explicit authorization. The owner will review and test on returning to their Mac.
+**Mac commands for PR #120 test:**
+```sh
+cd ~/projects/scrapergo
+git status --short --branch
+git fetch origin
+git checkout fix/119-caption-duplication
+git pull --ff-only origin fix/119-caption-duplication
+go test -count=1 ./...
+./devbuild.sh
+./scrapergo.sh
+```
+Then visit original Ars Technica and New Scientist paleo articles in Safari, verify paragraphs, image captions, headings, links and Print/PDF; replay 100 URLs with NewsGo's `cmd/duplicateaudit`, comparing by URL and separating failed reads. No local build, Safari acceptance or publisher-source probe is proven merely by CI.

@@ -34,7 +34,7 @@ ps -axo pid=,command= | while read -r pid command; do
 done
 
 # Start ScraperGo on localhost port 8083.
-nohup "$APP" -port 8083 \
+nohup env SCRAPERGO_RECOVERY_TRACE=1 "$APP" -port 8083 \
     > "$APP_DIR/scrapergo.log" 2>&1 < /dev/null &
 
 # Start only ScraperGo's Cloudflare Tunnel.

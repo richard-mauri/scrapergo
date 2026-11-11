@@ -14,6 +14,12 @@ import (
 // extractWithReadability parses already-retrieved HTML; it makes no additional
 // network requests. This preserves the existing SSRF protections and paywall gate.
 func ExtractWithReadability(raw, source string, legacy func(string,string)(article.Article,error), inlineParts func(*sourcehtml.Node,string) []article.TextPart) (article.Article, error) {
+ return ExtractWithReadabilityTraced(raw, source, legacy, inlineParts, nil)
+}
+
+// ExtractWithReadabilityTraced uses the exact same extraction path as the
+// standard entry point; tracing only observes stage outcomes.
+func ExtractWithReadabilityTraced(raw, source string, legacy func(string,string)(article.Article,error), inlineParts func(*sourcehtml.Node,string) []article.TextPart, trace *RecoveryTrace) (article.Article, error) {
 	u, err := url.Parse(source)
 	if err != nil {
 		return article.Article{}, err
@@ -35,19 +41,34 @@ func ExtractWithReadability(raw, source string, legacy func(string,string)(artic
 				count += len(strings.Fields(line))
 			}
 			structuredRecovered := false
-			if complete, ok := RecoverStructuredDocument(raw, blocks, u); ok {
-				blocks = complete
-				count = CountWords(blocks)
-				structuredRecovered = true
-			}
+			if trace == nil {
+                if complete, ok := RecoverStructuredDocument(raw, blocks, u); ok {
+                    blocks = complete
+                    count = CountWords(blocks)
+                    structuredRecovered = true
+                }
+            } else {
+                blocks = trace.Run("structured-document", blocks, func() []article.Block {
+                    if complete, ok := RecoverStructuredDocument(raw, blocks, u); ok {
+                        structuredRecovered = true
+                        return complete
+                    }
+                    return blocks
+                })
+                if structuredRecovered { count = CountWords(blocks) }
+            }
 			// Restore missing opening paragraphs before accepting an otherwise plausible
 			// Readability selection. Do not shift the remainder of the article.
 			if !structuredRecovered {
-				blocks = RecoverLeadingParagraphs(raw, blocks, u, inlineParts)
+				blocks = trace.Run("leading-paragraphs", blocks, func() []article.Block {
+                    return RecoverLeadingParagraphs(raw, blocks, u, inlineParts)
+                })
 				count = CountWords(blocks)
 			}
 			if count >= 60 {
-				blocks = RestoreSourceTables(blocks, raw, source)
+				blocks = trace.Run("source-tables", blocks, func() []article.Block {
+                    return RestoreSourceTables(blocks, raw, source)
+                })
 				count = CountWords(blocks)
 				title := parsed.Title()
 				if title == "" {
@@ -60,12 +81,19 @@ func ExtractWithReadability(raw, source string, legacy func(string,string)(artic
 				var cleanHTML bytes.Buffer
 				if parsed.RenderHTML(&cleanHTML) == nil {
 					cleaned := cleanHTML.String()
+					// Reconcile flattened figure captions only when the selected HTML
+					// identifies the original image and caption semantics.
 					if !structuredRecovered {
 						blocks = removeFlattenedFigureCaptions(blocks, cleaned)
 					}
-					PreserveSelectedHTMLLinks(blocks, cleaned, u, inlineParts)
+					blocks = trace.Run("selected-html-links", blocks, func() []article.Block {
+                        PreserveSelectedHTMLLinks(blocks, cleaned, u, inlineParts)
+                        return blocks
+                    })
 					if !structuredRecovered {
-						ordered := PositionArticleFigures(blocks, cleaned, u)
+						ordered := trace.Run("position-figures", blocks, func() []article.Block {
+                            return PositionArticleFigures(blocks, cleaned, u)
+                        })
 						if strings.Contains(u.Path, "/gallery/") {
 							ordered = SupplementGalleryFigures(ordered, raw, u)
 						}
@@ -73,14 +101,22 @@ func ExtractWithReadability(raw, source string, legacy func(string,string)(artic
 					}
 				}
 				if !structuredRecovered {
-					blocks = RecoverEditorialContinuity(raw, blocks, u)
+					blocks = trace.Run("editorial-continuity", blocks, func() []article.Block {
+                    return RecoverEditorialContinuity(raw, blocks, u)
+                })
 				}
-				blocks = RecoverInstitutionalTail(raw, blocks, u)
-				blocks = RestoreHeadingAnchoredProse(raw, blocks, u)
+				blocks = trace.Run("institutional-tail", blocks, func() []article.Block {
+                    return RecoverInstitutionalTail(raw, blocks, u)
+                })
+				blocks = trace.Run("heading-anchored-prose", blocks, func() []article.Block {
+                    return RestoreHeadingAnchoredProse(raw, blocks, u)
+                })
 				// Readability's selected HTML retains heading/time structure that
 				// RenderText flattens into undifferentiated paragraphs.
 				if cleanHTML.Len() > 0 {
-					blocks = PreserveReadabilityStructure(blocks, cleanHTML.String())
+					blocks = trace.Run("readability-structure", blocks, func() []article.Block {
+                        return PreserveReadabilityStructure(blocks, cleanHTML.String())
+                    })
 				}
 				count = CountWords(blocks)
 				if img == "" {
@@ -101,14 +137,18 @@ func ExtractWithReadability(raw, source string, legacy func(string,string)(artic
 			}
 		}
 	}
-	fallback, fallbackErr := legacy(raw, source)
+	if trace != nil { trace.SetOutcome("legacy-fallback", "executed_unchanged") }
+    fallback, fallbackErr := legacy(raw, source)
 	if fallbackErr == nil {
-		fallback.Method = "Legacy extractor fallback"
+		if trace != nil { trace.SetOutcome("legacy-fallback", "fallback_selected") }
+        fallback.Method = "Legacy extractor fallback"
 		return fallback, nil
 	}
-	if partial, ok := PartialHTMLArticle(raw, source); ok {
-		return partial, nil
-	}
+	if trace != nil { trace.SetOutcome("partial-html-fallback", "executed_unchanged") }
+    if partial, ok := PartialHTMLArticle(raw, source); ok {
+        if trace != nil { trace.SetOutcome("partial-html-fallback", "fallback_selected") }
+        return partial, nil
+    }
 	if parseErr != nil {
 		return fallback, fmt.Errorf("Readability: %v; legacy extractor: %w", parseErr, fallbackErr)
 	}
