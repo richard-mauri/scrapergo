@@ -123,3 +123,32 @@ func TestInspectMultiImageGroupingDoesNotUseArticleScope(t *testing.T) {
  }
  if len(got.Items)!=2 {t.Fatalf("ordinary prose lost: %+v",got.Items)}
 }
+
+func TestInspectCountsExactResolvedURLRepetitionWithoutRemovingMedia(t *testing.T) {
+ raw:=`<article><div><div><img src="/same.jpg"></div><div><img src="https://example.org/same.jpg"></div></div><div><img src="/other.jpg"></div><div><img src="javascript:bad"></div><p>Real editorial text.</p></article>`
+ got,err:=Inspect(raw,baseURL)
+ if err!=nil {t.Fatal(err)}
+ if got.UnwrappedImages!=4 || got.ResolvableUnwrappedImages!=3 || got.UniqueUnwrappedImageURLs!=2 || got.RepeatedUnwrappedImageOccurrences!=1 || got.UnresolvableUnwrappedImages!=1 {
+  t.Fatalf("wrong exact URL identity summary: %+v",got)
+ }
+ if got.OtherInMultiImageGroups!=2 || got.BoundedMultiImageGroups!=1 {t.Fatalf("gallery grouping lost: %+v",got)}
+ if len(got.Items)!=1 || got.Items[0].Text!="Real editorial text." {t.Fatalf("diagnostic changed editorial content: %+v",got.Items)}
+}
+
+func TestInspectDistinctImageURLsAreNotDedupedByCaption(t *testing.T) {
+ raw:=`<article><div><div><img src="/one.jpg"></div><div><span>Identical caption.</span></div></div><div><div><img src="/two.jpg"></div><div><span>Identical caption.</span></div></div></article>`
+ got,err:=Inspect(raw,baseURL)
+ if err!=nil {t.Fatal(err)}
+ if got.UnwrappedImages!=2 || got.ResolvableUnwrappedImages!=2 || got.UniqueUnwrappedImageURLs!=2 || got.RepeatedUnwrappedImageOccurrences!=0 || got.CompactImageTextWrappers!=2 {
+  t.Fatalf("different photographs treated as repeated: %+v",got)
+ }
+}
+
+func TestInspectQueryStringDifferencesRemainSeparateIdentities(t *testing.T) {
+ raw:=`<article><div><img src="/photo.jpg?size=small"></div><div><img src="/photo.jpg?size=large"></div></article>`
+ got,err:=Inspect(raw,baseURL)
+ if err!=nil {t.Fatal(err)}
+ if got.UnwrappedImages!=2 || got.UniqueUnwrappedImageURLs!=2 || got.RepeatedUnwrappedImageOccurrences!=0 {
+  t.Fatalf("different query-string image variants were improperly collapsed: %+v",got)
+ }
+}
