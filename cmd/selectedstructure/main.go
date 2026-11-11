@@ -9,6 +9,11 @@ import (
  "fmt"
  "os"
  "net/url"
+ "strings"
+
+ "clean-article-reader/internal/bootstrap"
+ "clean-article-reader/internal/reader"
+ "clean-article-reader/internal/structured"
 
  readability "codeberg.org/readeck/go-readability/v2"
  "clean-article-reader/internal/sourcepreserve"
@@ -22,6 +27,8 @@ type summary struct {
  FlatTextCharacters int `json:"flatTextCharacters"`
  ReadabilityTitlePresent bool `json:"readabilityTitlePresent"`
  SourceSelectedImageAlignment sourcepreserve.ImageAlignment `json:"sourceSelectedImageAlignment"`
+ BaselineImageAlignment sourcepreserve.CanonicalImageAlignment `json:"baselineImageAlignment"`
+ BaselineMethod string `json:"baselineMethod,omitempty"`
 }
 func countKinds(nodes []sourcepreserve.SemanticNode,m map[string]int) {
  for _,n:=range nodes {m[n.Kind]++;countKinds(n.Children,m)}
@@ -36,7 +43,7 @@ func main(){
  if err!=nil || (parsedURL.Scheme!="http"&&parsedURL.Scheme!="https") || parsedURL.Hostname()=="" || parsedURL.User!=nil {
   fmt.Fprintln(os.Stderr,"invalid HTTP(S) base URL");os.Exit(2)
  }
- parsed,err:=readability.FromReader(bytes.NewReader(raw),parsedURL)
+ // Mirror the production handler\u0027s preprocessing so all three paths see\n // the same offline, already-retrieved source representation.\n cleaned:=structured.StripEmbeddedMedia(string(raw))\n parsed,err:=readability.FromReader(strings.NewReader(cleaned),parsedURL)
  if err!=nil {fmt.Fprintln(os.Stderr,"Readability parse:",err);os.Exit(1)}
  var chosenHTML,flatText bytes.Buffer
  if err:=parsed.RenderHTML(&chosenHTML);err!=nil {fmt.Fprintln(os.Stderr,"RenderHTML:",err);os.Exit(1)}
@@ -45,8 +52,13 @@ func main(){
  if err!=nil {fmt.Fprintln(os.Stderr,"selected DOM:",err);os.Exit(1)}
  report:=summary{Status:"offline-comparison",SelectedHTMLKinds:map[string]int{},SelectedHTMLImages:tree.ObservedImages,UnsafeSelectedURLs:tree.UnsafeURLs,FlatTextCharacters:len([]rune(flatText.String())),ReadabilityTitlePresent:parsed.Title()!=""}
  countKinds(tree.Nodes,report.SelectedHTMLKinds)
- report.SourceSelectedImageAlignment,err=sourcepreserve.CompareImageAlignment(string(raw),*base,tree)
+ report.SourceSelectedImageAlignment,err=sourcepreserve.CompareImageAlignment(cleaned,*base,tree)
  if err!=nil {fmt.Fprintln(os.Stderr,"source/selected image match:",err);os.Exit(1)}
+ extracted,err:=bootstrap.ExtractWithEvidence(cleaned,*base)
+ if err!=nil {fmt.Fprintln(os.Stderr,"production baseline extraction:",err);os.Exit(1)}
+ canonical:=reader.DefaultProcessor().Process(extracted,cleaned)
+ report.BaselineImageAlignment=sourcepreserve.CompareCanonicalImages(canonical,tree)
+ report.BaselineMethod=canonical.Method
  enc:=json.NewEncoder(os.Stdout);enc.SetIndent("","  ")
  if err:=enc.Encode(report);err!=nil{fmt.Fprintln(os.Stderr,err);os.Exit(1)}
 }
