@@ -184,7 +184,7 @@ func reportSourceProvenance(raw,sourceURL string,blocks []article.Block,pairs []
   }
   if p.Type=="overlap" && p.Second-p.First==2 {
    e:=extraction.InspectCaptionCreditTriple(blocks,p.Second-1,raw,selected.String())
-   fmt.Printf("    production triple gates: shape=%t rich-combined=%t source-image-scope=%t selected-image-scope=%t eligible=%t\\n",
+   fmt.Printf("    production triple gates: shape=%t rich-combined=%t source-image-scope=%t selected-image-scope=%t eligible=%t\n",
     e.TripleShape,e.CombinedHasRichContent,e.SourceImageScope,e.SelectedImageScope,e.Eligible)
   }
   for _,index:=range indexes {
