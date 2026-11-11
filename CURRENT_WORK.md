@@ -37,6 +37,24 @@ Examples plainly visible in the screenshots:
 
 **Owner verification with Safari Find (Nov 11):** On the ORIGINAL Ars article, searching each of these three exact caption phrases yields **one match each**: “The keyboard and trackpad remain excellent.”, “Ports are another selling point.”, and “On the left you get MagSafe, two more Thunderbolt ports, and a headphone jack.” ScraperGo's same-capture canonical results duplicate those as pairs 17/19, 22/24, 25/27, and the owner screenshots visibly show duplicate caption/credit display. This corroborates **one publisher-visible occurrence of each phrase**, not merely subjective visual assessment. It does **not** establish which of multiple source DOM representations is hidden or that Readability alone (as opposed to existing source markup) generated them. Before Stage 2, investigate figure/gallery display semantics and retain correct left/right caption association and exactly one visible credit per photo. Pair 4/5 remains separately unresolved. No extraction changes or production deployment authorized by this check.
 
+## Stage 2 investigation — structural caption hypothesis, not yet a production fix (Nov 11)
+
+The owner confirmed with the original Ars Technica Safari view and Find that the caption phrases for keyboard/trackpad, right-side ports and left-side MagSafe occur **one visible time each**. ScraperGo's 68-block offline extraction repeats them as paragraph overlaps 17/19, 22/24, 25/27, and the owner screenshots show caption, standalone credit and combined caption-credit text. Original source contains multiple `div`/`span` representations per phrase, whereas selected Readability HTML has multiple `p`/span representations. The exact pair 4/5 still lacks a minimal-element source match.
+
+**Reviewed actual extraction code**: `internal/extraction/readability_pipeline.go` starts from Readability `RenderText()`, then `removeFlattenedFigureCaptions` only suppresses `figure`/`figcaption` text tied to images *in selected Readability HTML* (and preserves standalone prose); `PositionArticleFigures` then adds image blocks from selected HTML. Ars source provenance is `div`/`span` with nearest recognized context `article`, **not an explicit `figcaption`**. A general rule that strips repeated paragraphs just because text matches a caption or credit would risk legitimate prose and same-caption different photos. Therefore **production extraction intentionally remains unchanged** until source structure/visibility provides a reusable semantic predicate.
+
+**Additional opt-in offline evidence committed:** extended `cmd/duplicateprobe -source-provenance` with a `media` field (immediate parent subtree image, figure, figcaption and element sibling counts) and `visibility` field (only explicit `hidden`, `aria-hidden=true`, and inline display/visibility style hints). Tests cover photo-adjacent caption, explicitly hidden duplicate, inherited hidden attribute, and external CSS unknown; README updated. Absence of a hint does **not** prove browser visibility or rule out CSS-based responsive duplicates. No publisher text/URL, class name/ID, style value, image URL or HTML is output. First CI runs failed at **syntax parsing** due to a missing struct brace; fixed at commit `12d7d8845f088cdd04726b34f8914c3117d6cf77`, and exact-head CI must be checked. No production code changed.
+
+**Next owner Mac evidence:** Pull the current branch, `go test -count=1 ./...`, then rerun exactly:
+```sh
+cd ~/projects/scrapergo
+go run ./cmd/duplicateprobe \
+  -input /tmp/pr120-ars-m6.html \
+  -url 'https://arstechnica.com/gadgets/2026/11/review-apples-1999-m6-macbook-pro-feels-stuck-in-the-middle/' \
+  -source-provenance
+```
+Compare for each match the parent image count, sibling count and explicit visibility, separately in original and Readability DOM. If still inconclusive, inspect a bounded structural record locally, not the full publisher source publicly. Only then implement Stage 2 producer-side semantic figure association with positive/negative tests and content preservation; Stage 3 full 100 URL / Safari Print/PDF is still pending. Continue only on Issue #119/draft PR #120. Separate Issue #123 is the future automation idea, not enabled.
+
 ## Defect and exact 100-URL evidence
 
 Original owner-reported defect: ScraperGo returns duplicated article prose and captions, visible through NewsGo. Triggering URL: `https://arstechnica.com/gadgets/2026/11/review-apples-1999-m6-macbook-pro-feels-stuck-in-the-middle/`. ScraperGo owns extraction. A separate reusable NewsGo CLI (`~/projects/newsgo/cmd/duplicateaudit`), permanently merged via NewsGo PR #88, audits final `/api/read` JSON; it **does not** modify either server. The URL export on the owner's Mac is `~/Downloads/newsgo-scrapergo-urls.json`.
