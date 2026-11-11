@@ -142,3 +142,28 @@ func containsCompleteCaptionCredit(n *sourcehtml.Node,target string) bool {
  text:=sourcehtml.Normalize(sourcehtml.Text(n))
  return text==target || strings.EqualFold(strings.Join(strings.Fields(text),""),strings.Join(strings.Fields(target),""))
 }
+
+// CaptionCreditGateEvidence exposes the exact predicates used by the current
+// caption-credit correction for offline diagnostics. It returns only booleans;
+// it never returns publisher text, HTML, attributes, image URLs or IDs.
+// TripleIndex is 0-based and denotes the final combined block.
+type CaptionCreditGateEvidence struct {
+ TripleShape bool
+ CombinedHasRichContent bool
+ SourceImageScope bool
+ SelectedImageScope bool
+ Eligible bool
+}
+
+func InspectCaptionCreditTriple(blocks []article.Block, tripleIndex int, sourceHTML, selectedHTML string) CaptionCreditGateEvidence {
+ var result CaptionCreditGateEvidence
+ if tripleIndex<2 || tripleIndex>=len(blocks) {return result}
+ a,b,c:=blocks[tripleIndex-2],blocks[tripleIndex-1],blocks[tripleIndex]
+ result.CombinedHasRichContent=len(c.Parts)>0 || len(c.Links)>0
+ result.TripleShape=isImageCaptionCreditTriple(a,b,c)
+ if !result.TripleShape || sourceHTML=="" || selectedHTML=="" {return result}
+ result.SourceImageScope=hasImageCaptionCreditScope(sourcehtml.Parse(sourceHTML),a.Text,b.Text,false)
+ result.SelectedImageScope=hasImageCaptionCreditScope(sourcehtml.Parse(selectedHTML),a.Text,b.Text,true)
+ result.Eligible=result.SourceImageScope && result.SelectedImageScope
+ return result
+}
