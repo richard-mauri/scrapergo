@@ -16,8 +16,9 @@ func TestMatchFindsExactAndOverlapWithoutPrintingContents(t *testing.T) {
   {Kind:"p",Text:"Short"},
  }
  found:=matches(blocks)
- if len(found)!=2 || found[0].First!=1 || found[0].Second!=3 || found[0].Type!="exact" ||
-  found[1].First!=1 || found[1].Second!=4 || found[1].Type!="overlap" {
+ if len(found)!=3 || found[0].First!=1 || found[0].Second!=3 || found[0].Type!="exact" ||
+  found[1].First!=1 || found[1].Second!=4 || found[1].Type!="overlap" ||
+  found[2].First!=3 || found[2].Second!=4 || found[2].Type!="overlap" {
   t.Fatalf("unexpected pair attribution: %+v",found)
  }
  if strings.Contains(found[0].Digest,sentence) {t.Fatal("digest leaked source content")}
