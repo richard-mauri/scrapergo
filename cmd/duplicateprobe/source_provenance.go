@@ -185,6 +185,7 @@ func reportSourceProvenance(raw,sourceURL string,blocks []article.Block,pairs []
    passage:=blocks[index-1].Text
    fmt.Printf("    canonical block %d (%s):\n",index,blocks[index-1].Kind)
    renderProvenance("publisher source",scanProvenance(raw,passage))
+   renderPhotoScopes(raw,passage)
    renderProvenance("Readability HTML",scanProvenance(selected.String(),passage))
   }
  }
