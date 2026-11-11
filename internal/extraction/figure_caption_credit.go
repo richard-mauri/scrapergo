@@ -21,19 +21,31 @@ import (
 // Ambiguous source markup is deliberately left unchanged.
 func reconcileImageCaptionCreditTriples(blocks []article.Block, sourceHTML, selectedHTML string) []article.Block {
  if len(blocks)<3 || sourceHTML=="" || selectedHTML=="" {return blocks}
+ // Most articles do not have the exact caption / credit / combined pattern.
+ // Avoid parsing source HTML twice for such articles, including long feeds.
+ candidates:=[]int{}
+ for i:=2;i<len(blocks);i++ {
+  if isImageCaptionCreditTriple(blocks[i-2],blocks[i-1],blocks[i]) {
+   candidates=append(candidates,i)
+  }
+ }
+ if len(candidates)==0 {return blocks}
  source:=sourcehtml.Parse(sourceHTML)
  selected:=sourcehtml.Parse(selectedHTML)
  if source==nil || selected==nil {return blocks}
- result:=make([]article.Block,0,len(blocks))
- for i:=0;i<len(blocks);i++ {
-  if i>=2 && isImageCaptionCreditTriple(blocks[i-2],blocks[i-1],blocks[i]) &&
-   hasImageCaptionCreditScope(source,blocks[i-2].Text,blocks[i-1].Text) &&
+ skip:=map[int]bool{}
+ for _,i:=range candidates {
+  if hasImageCaptionCreditScope(source,blocks[i-2].Text,blocks[i-1].Text) &&
    hasImageCaptionCreditScope(selected,blocks[i-2].Text,blocks[i-1].Text) {
-   // Preserve the independent caption and credit. The image itself is
-   // retained by the existing PositionArticleFigures / reader stages.
-   continue
+   // Preserve the independent caption and credit. Images remain in the
+   // existing figure positioning and postprocessing pipeline.
+   skip[i]=true
   }
-  result=append(result,blocks[i])
+ }
+ if len(skip)==0 {return blocks}
+ result:=make([]article.Block,0,len(blocks)-len(skip))
+ for i,b:=range blocks {
+  if !skip[i] {result=append(result,b)}
  }
  return result
 }
@@ -77,7 +89,17 @@ func hasImageCaptionCreditScope(root *sourcehtml.Node,caption,credit string) boo
    }
    if containsCompleteCaptionCredit(child,target) {textBranch=true}
   }
-  if imageBranch && textBranch {owners[imageNodes[0]]=true}
+  // The image branch must contain the same caption+credit, not merely
+  // be an unrelated photograph alongside a matching prose paragraph.
+  imageCaption:=false
+  for _,child:=range n.Kids {
+   if child.Tag=="#text" || sourcehtml.BlockedTags[child.Tag] {continue}
+   if len(sourcehtml.Find(child,func(x *sourcehtml.Node)bool{return x.Tag=="img"}))==1 &&
+    containsCompleteCaptionCredit(child,target) {
+    imageCaption=true
+   }
+  }
+  if imageBranch && imageCaption && textBranch {owners[imageNodes[0]]=true}
  }
  return len(owners)==1
 }
@@ -87,10 +109,15 @@ func containsCompleteCaptionCredit(n *sourcehtml.Node,target string) bool {
  // Only a fairly compact caption wrapper is eligible. A nested article
  // containing editorial paragraph or heading elements is not a caption.
  if n.Tag=="article" || n.Tag=="main" || n.Tag=="section" {return false}
+ paragraphs:=0
  for _,x:=range sourcehtml.Find(n,func(x *sourcehtml.Node)bool {
   return x.Tag=="p" || x.Tag=="blockquote" || x.Tag=="h1" || x.Tag=="h2" || x.Tag=="h3" || x.Tag=="h4"
  }) {
-  if x!=nil && x!=n {return false}
+  if x.Tag=="blockquote" || strings.HasPrefix(x.Tag,"h") {return false}
+  paragraphs++
+  // A caption can be a single paragraph, but a subtree of multiple
+  // editorial paragraphs must not be classified as one media caption.
+  if paragraphs>1 {return false}
  }
  text:=sourcehtml.Normalize(sourcehtml.Text(n))
  return text==target || strings.EqualFold(strings.Join(strings.Fields(text),""),strings.Join(strings.Fields(target),""))
