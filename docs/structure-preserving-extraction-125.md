@@ -33,6 +33,23 @@ This is a pivot in the existing [Issue #125](https://github.com/richard-mauri/sc
 
 ---
 
+## Initial implementation of the selected-HTML structural converter (Phase 2)
+
+The owner-approved pivot has now produced an **isolated offline-only converter** at `internal/sourcepreserve/selected_html.go`. Its input is specifically **Readability `RenderHTML` output** (not raw source article selection); `ConvertSelectedHTML` parses with the existing `golang.org/x/net/html` parser and builds a typed tree of semantic nodes, keeping child order and explicit parent ownership. It observes headings, paragraphs, inline links and emphasis, lists/list items, tables/rows/cells, time elements with `datetime`, and explicitly nested `figure`/`img`/`figcaption`. Unknown wrappers are transparent, so it must not pretend to retain CSS layouts. It retains a bare `img` as an image with no invented caption. It excludes executable/interactive/noneditorial nodes under the existing experimental exclusion rules, checks link/media HTTP(S) URLs with `sourcehtml.ResolveURL`, and returns **data** rather than browser-renderable HTML.
+
+The new `cmd/selectedstructure` runs the existing Readability dependency on an **already saved local HTML snapshot**, obtains `RenderHTML` **and** `RenderText` on the same parsing result, runs the selected-HTML converter, and prints **aggregate node-kind counts and flat-text character count only**. It deliberately does not print article text, image URLs, or a full copy of the semantic tree. Run from the repository root:
+
+```bash
+go run ./cmd/selectedstructure \
+  -input /tmp/pr120-ars-m6.html \
+  -url 'https://arstechnica.com/gadgets/2026/11/review-apples-1999-m6-macbook-pro-feels-stuck-in-the-middle/'
+```
+
+The summary may be shared after reviewing it; never upload the owner's private publisher capture. Deterministic tests check explicit two-figure caption ownership without proximity matching, inline formatted links, repeated editorial paragraphs, heading hierarchy, time, ordered lists, tables, unsafe `javascript:`/`data:` URLs, active markup removal, and ambiguity of an image adjacent to an editorial paragraph. Neither the converter nor the command is called from `internal/extraction`, `internal/reader` or `internal/ui`. No changes to the production canonical `internal/article` representation have been proposed.
+
+**Limitations / next decision:** This is a small proof of **DOM semantics retention**, not yet a complete article extractor, robust CSS/HTML sanitizer, real photo-caption pairing fix, full list/table semantics validator, complete inline-whitespace normalizer, or side-by-side fidelity evaluation. Readability may still remove source structures; compare the selected-HTML output against source structural inventories and the current production final canonical blocks on identical HTML. Include negative/ambiguous inputs across multiple publishers before proposing any migration. The old ancestor-count diagnostics remain frozen research evidence and are **not** the converter.
+
+---
 ## Question
 
 Can a sanitized, source-DOM-based article representation preserve more editorial meaning (especially photograph-caption-credit relationships and document order) while filtering advertisements, overlays and repeated responsive markup, **without** weakening ScraperGo's current extraction completeness, security or access controls?
