@@ -27,6 +27,8 @@ type Report struct {
  Items []Item `json:"items,omitempty"`
  AmbiguousFigures int `json:"ambiguousFigures,omitempty"`
  UnwrappedImages int `json:"unwrappedImages,omitempty"`
+ CompactImageTextWrappers int `json:"compactImageTextWrappers,omitempty"`
+ OtherUnwrappedImages int `json:"otherUnwrappedImages,omitempty"`
  MultiImageFigures int `json:"multiImageFigures,omitempty"`
  InvalidFigureImages int `json:"invalidFigureImages,omitempty"`
  MultipleCaptions int `json:"multipleCaptions,omitempty"`
@@ -103,6 +105,25 @@ func creditedCaption(n *html.Node)(string,string){
  // and attribution is also retained as separately identified evidence.
  return cap,credit
 }
+
+// compactImageTextWrapper is *diagnostic* evidence only. It searches at most
+// three ancestors below the article for a subtree with exactly one image and
+// a separate sibling branch containing text. It does not infer that the text
+// is a caption, infer CSS visibility, or authorize removal.
+func compactImageTextWrapper(img *html.Node) bool {
+ for scope,depth:=img.Parent,0;scope!=nil && depth<3;scope,depth=scope.Parent,depth+1 {
+  if element(scope,"article") || element(scope,"main") || element(scope,"body") {break}
+  if excluded(scope) {break}
+  if len(find(scope,func(x *html.Node)bool{return element(x,"img")}))!=1 {continue}
+  for child:=scope.FirstChild;child!=nil;child=child.NextSibling{
+   if child.Type!=html.ElementNode || excluded(child) {continue}
+   if len(find(child,func(x *html.Node)bool{return element(x,"img")}))!=0 {continue}
+   if plain(child)!="" {return true}
+  }
+ }
+ return false
+}
+
 func Inspect(raw,baseURL string)(Report,error){
  report:=Report{Status:"inconclusive"}
  base,err:=url.Parse(baseURL)
@@ -149,6 +170,7 @@ func Inspect(raw,baseURL string)(Report,error){
    // Detached images are marked ambiguous rather than guessed into prose.
    report.AmbiguousFigures++
    report.UnwrappedImages++
+   if compactImageTextWrapper(n) {report.CompactImageTextWrappers++} else {report.OtherUnwrappedImages++}
    return
   }
   for c:=n.FirstChild;c!=nil;c=c.NextSibling{walk(c)}
