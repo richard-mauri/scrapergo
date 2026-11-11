@@ -100,3 +100,23 @@ func TestInspectWrapperTextOutsideBoundedScopeNotCounted(t *testing.T){
   t.Fatalf("distant paragraph incorrectly associated with image: %+v",got)
  }
 }
+
+func TestInspectOtherUnwrappedImagesPartitionIntoBoundedGroups(t *testing.T) {
+ raw:=`<article><div><div><img src="/left.jpg"></div><div><img src="/right.jpg"></div><div><span>Shared text, no per-photo caption proof.</span></div></div><div><img src="/standalone.jpg"></div><p>Independent article prose.</p></article>`
+ got,err:=Inspect(raw,baseURL)
+ if err!=nil {t.Fatal(err)}
+ if got.UnwrappedImages!=3 || got.CompactImageTextWrappers!=0 || got.OtherUnwrappedImages!=3 || got.OtherInMultiImageGroups!=2 || got.OtherWithoutBoundedGroup!=1 {
+  t.Fatalf("incorrect bounded group partition: %+v",got)
+ }
+ if len(got.Items)!=1 || got.Items[0].Text!="Independent article prose." {t.Fatalf("diagnostic changed prose: %+v",got.Items)}
+}
+
+func TestInspectMultiImageGroupingDoesNotUseArticleScope(t *testing.T) {
+ raw:=`<article><p>A standalone lead.</p><div><img src="/one.jpg"></div><section><p>A separate section.</p><div><img src="/two.jpg"></div></section></article>`
+ got,err:=Inspect(raw,baseURL)
+ if err!=nil {t.Fatal(err)}
+ if got.OtherUnwrappedImages!=2 || got.OtherInMultiImageGroups!=0 || got.OtherWithoutBoundedGroup!=2 {
+  t.Fatalf("article-wide grouping should not be inferred: %+v",got)
+ }
+ if len(got.Items)!=2 {t.Fatalf("ordinary prose lost: %+v",got.Items)}
+}
