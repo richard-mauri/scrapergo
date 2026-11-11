@@ -40,6 +40,14 @@ Before handing off, require regression cases for the original failure; an unrela
 
 Stay on the existing Issue branch and draft PR for revisions; do not spin up additional branches or PRs to try another heuristic. Prefer completing one general-purpose solution end to end, avoiding parallel branch proliferation. Changes to the architecture or scope require owner approval when they affect unrelated behavior.
 
+## Behavioral parameter configuration and magic-number audit
+
+**Owner requirement:** Numeric choices that determine runtime/extraction behavior must be named tunable parameters. When creating or modifying a heuristic, cutoff, selection count, timeout, size/length limit, ranking score or recovery threshold, declare and document the parameter in the **owning subsystem's configuration contract**. Defaults should be centralized and discoverable; pass configuration explicitly into algorithm boundaries rather than scattering unrelated globals. Record name, unit/type, default, valid range, whether zero means unlimited/disabled/invalid, override mechanism and precedence, intended rationale and downstream safety implications. Test default, below/at/above threshold and rejected invalid overrides. Changes to existing defaults require independent owner review and matched multi-publisher evidence.
+
+**Scope discipline:** Inventory behavioral numbers even when the current task should not alter them. File an issue or record a tracked entry for unparameterized legacy limits instead of silently perpetuating them. An existing numeric limit is **not** evidence that the editorial selection policy is correct; a configurable arbitrary first-N cap still needs a selection design. Distinguish algorithmic knobs from meaningful fixed constants (HTTP protocol limits, safe invariants, minimum field cardinality, structural indices and mathematical definitions). Security limits must not become arbitrary remotely adjustable inputs; configuration must be bounded, validated and owner-controlled.
+
+**Review checklist:** Each behavioral-numeric diff must explain (1) parameter ownership/default/rationale; (2) units, allowed ranges and override route, including whether restart is required; (3) tests proving the override takes effect without changing production by default; (4) backward compatibility, safety and performance; and (5) why any literal numeric comparisons remain non-tunable invariants. Consult `docs/tunable-parameter-audit.md` for the initial inventory and continue it as work progresses.
+
 ## Automated and local checks
 
 GitHub Actions workflow [Go CI](.github/workflows/go-ci.yml) runs on PRs targeting `main`: a non-blocking gofmt debt report, `go test -count=1 ./...` and `go build ./...` (Go version from `go.mod`). Inspect the run and outcome on **this PR's latest commit**. Confirm the intended diff is documentation-only when applicable.
