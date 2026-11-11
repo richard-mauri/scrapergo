@@ -77,3 +77,24 @@ func TestImageCaptionCreditTriplePreservesLinkedCombinedBlock(t *testing.T) {
   t.Fatalf("rich combined caption cannot be discarded: %+v",got)
  }
 }
+
+func TestImageCaptionCreditTripleDoesNotRemoveIndependentSourceParagraph(t *testing.T) {
+ const caption="A landscape photograph illustrates the extensive restoration work."
+ const credit="Credit: Conservation Team"
+ // There is one image/caption, but the separate editorial paragraph has
+ // intentionally repeated the full wording. This is not an alternative
+ // non-paragraph photo caption representation in the original source.
+ raw:=`<article><div><div><img src="/landscape.jpg"><span>`+caption+` `+credit+`</span></div><p>`+caption+` `+credit+`</p></div></article>`
+ blocks:=[]article.Block{{Kind:"p",Text:caption},{Kind:"p",Text:credit},{Kind:"p",Text:caption+" "+credit}}
+ if got:=reconcileImageCaptionCreditTriples(blocks,raw,raw);len(got)!=3 {
+  t.Fatalf("independent source editorial paragraph deleted: %+v",got)
+ }
+}
+
+func TestImageCaptionCreditTripleNoSourceParsingNeededWithoutCandidate(t *testing.T) {
+ blocks:=[]article.Block{{Kind:"p",Text:"The report opens with independent research."},{Kind:"p",Text:"Readers can evaluate the evidence."}}
+ // Invalid HTML has no bearing on unrelated ordinary prose.
+ if got:=reconcileImageCaptionCreditTriples(blocks,"<<bad>>","<<bad>>");len(got)!=len(blocks) {
+  t.Fatalf("ordinary content was changed: %+v",got)
+ }
+}
