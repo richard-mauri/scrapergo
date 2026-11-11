@@ -12,6 +12,7 @@ import (
  "strings"
 
  "clean-article-reader/internal/bootstrap"
+ "clean-article-reader/internal/extraction"
  "clean-article-reader/internal/reader"
  "clean-article-reader/internal/structured"
 
@@ -29,6 +30,23 @@ type summary struct {
  SourceSelectedImageAlignment sourcepreserve.ImageAlignment `json:"sourceSelectedImageAlignment"`
  BaselineImageAlignment sourcepreserve.CanonicalImageAlignment `json:"baselineImageAlignment"`
  BaselineMethod string `json:"baselineMethod,omitempty"`
+ BaselineImageStages []imageStage `json:"baselineImageStages,omitempty"`
+}
+// imageStage uses the production extraction trace's already-established
+// stage counters; no publisher text or image URL is retained.
+type imageStage struct {
+ Stage string `json:"stage"`
+ Outcome string `json:"outcome"`
+ BeforeImages int `json:"beforeImages"`
+ AfterImages int `json:"afterImages"`
+}
+func imageStages(results []extraction.RecoveryStageResult) []imageStage {
+ var stages []imageStage
+ for _,r:=range results {
+  if r.Outcome=="not_reached" || r.Outcome=="" {continue}
+  stages=append(stages,imageStage{Stage:r.Stage,Outcome:r.Outcome,BeforeImages:r.BeforeImages,AfterImages:r.AfterImages})
+ }
+ return stages
 }
 func countKinds(nodes []sourcepreserve.SemanticNode,m map[string]int) {
  for _,n:=range nodes {m[n.Kind]++;countKinds(n.Children,m)}
@@ -57,9 +75,12 @@ func main(){
  countKinds(tree.Nodes,report.SelectedHTMLKinds)
  report.SourceSelectedImageAlignment,err=sourcepreserve.CompareImageAlignment(cleaned,*base,tree)
  if err!=nil {fmt.Fprintln(os.Stderr,"source/selected image match:",err);os.Exit(1)}
- extracted,err:=bootstrap.ExtractWithEvidence(cleaned,*base)
+ trace:=extraction.NewRecoveryTrace()
+ extracted,err:=bootstrap.ExtractWithEvidenceTraced(cleaned,*base,trace)
  if err!=nil {fmt.Fprintln(os.Stderr,"production baseline extraction:",err);os.Exit(1)}
  canonical:=reader.DefaultProcessor().Process(extracted,cleaned)
+ trace.ObserveTransition("reader-postprocessing",extracted.Article.Blocks,canonical.Blocks)
+ report.BaselineImageStages=imageStages(trace.Results())
  report.BaselineImageAlignment=sourcepreserve.CompareCanonicalImages(canonical,tree)
  report.BaselineMethod=canonical.Method
  enc:=json.NewEncoder(os.Stdout);enc.SetIndent("","  ")
