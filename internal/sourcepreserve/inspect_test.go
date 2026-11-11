@@ -71,3 +71,32 @@ func TestInspectUnwrappedImageDoesNotGuessCaptionsByProximity(t *testing.T){
   t.Fatalf("inferred image caption or dropped prose: %+v",got)
  }
 }
+
+func TestInspectCompactSingleImageSiblingTextDiagnostic(t *testing.T){
+ raw:=`<article><div><div><img src="/a.jpg"></div><div><span>Caption A</span></div></div><div><div><img src="/b.jpg"></div><div><span>Caption B</span></div></div><p>Editorial paragraph.</p></article>`
+ got,err:=Inspect(raw,baseURL)
+ if err!=nil {t.Fatal(err)}
+ if got.UnwrappedImages!=2 || got.CompactImageTextWrappers!=2 || got.OtherUnwrappedImages!=0 || got.AmbiguousFigures!=2 {
+  t.Fatalf("single-image text sibling evidence was not identified: %+v",got)
+ }
+ if len(got.Items)!=1||got.Items[0].Text!="Editorial paragraph." {t.Fatalf("diagnostic changed extracted prose: %+v",got.Items)}
+}
+
+func TestInspectDoesNotInferCaptionFromBroadMultiImageGallery(t *testing.T){
+ raw:=`<article><div><div><img src="/left.jpg"></div><div><img src="/right.jpg"></div><div><span>Shared non-caption editorial text.</span></div></div><p>Independent analysis.</p></article>`
+ got,err:=Inspect(raw,baseURL)
+ if err!=nil {t.Fatal(err)}
+ if got.UnwrappedImages!=2 || got.CompactImageTextWrappers!=0 || got.OtherUnwrappedImages!=2 {
+  t.Fatalf("group text incorrectly counted as unique photo ownership evidence: %+v",got)
+ }
+ if len(got.Items)!=1||got.Items[0].Text!="Independent analysis."{t.Fatalf("editorial prose changed: %+v",got.Items)}
+}
+
+func TestInspectWrapperTextOutsideBoundedScopeNotCounted(t *testing.T){
+ raw:=`<article><section><div><div><div><div><img src="/deep.jpg"></div></div></div></div><p>Separate article paragraph.</p></section></article>`
+ got,err:=Inspect(raw,baseURL)
+ if err!=nil {t.Fatal(err)}
+ if got.UnwrappedImages!=1 || got.CompactImageTextWrappers!=0 || got.OtherUnwrappedImages!=1 {
+  t.Fatalf("distant paragraph incorrectly associated with image: %+v",got)
+ }
+}
