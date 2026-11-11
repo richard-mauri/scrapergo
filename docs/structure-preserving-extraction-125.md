@@ -33,6 +33,17 @@ This is a pivot in the existing [Issue #125](https://github.com/richard-mauri/sc
 
 ---
 
+## Real-article A/B/C result and existing recovery-stage trace (November 11, 2026)
+
+The owner ran the matched offline A/B/C command on the unchanged private Ars M6 snapshot. Readability-selected HTML and explicit source `article` both contained **20 image nodes**; **19 exact resolved image URLs matched one-to-one**, and all matched positions **1 through 19** retained order. Source position 20 and selected position 20 were **unmatched by exact URL**, which does **not** establish a lost or extra photograph; query variants or different URL representations remain possible. Exactly one image in each source/selected tree was inside an explicit figure-caption relationship. The selected tree also retained 66 paragraph nodes, 5 headings, 28 links and 2 tables.
+
+The **actual processed reader** yielded **13 canonical `Kind=="img"` blocks**. All 13 had exact selected-HTML URL matches and retained relative order: canonical image blocks 1–12 matched selected image positions 1–12 and canonical image block 13 matched selected image position **19**. Thus selected positions **13–18 and 20** had no matching *canonical image block*; **the standalone lead `Article.ImageURL` was present**. This does **not** prove seven editorial photos were omitted from the rendered article: some may be lead metadata, responsive alternatives, noneditorial/duplicate content or filtered media. Nor does the image-only comparison measure article text completeness.
+
+The project already has `internal/extraction.RecoveryTrace`, so the **same offline comparator** now invokes `bootstrap.ExtractWithEvidenceTraced` (documented as the same extraction path) and records a `reader-postprocessing` before/after transition. A new `baselineImageStages` JSON field prints only **reached production stage names/outcomes and before/after counts of canonical image blocks**, to locate *which stage adds/removes image blocks in aggregate*. It does not invent rules, print source text or URLs, or establish why any specific photograph was removed. A deterministic test protects this existing-trace projection.
+
+**Next owner check:** pull the existing PR branch, run the whole Go suite, then repeat the same offline `cmd/selectedstructure` on the saved Ars source. Share the `baselineImageStages` and matching summary only. We will then know whether the missing canonical image-block identities were never inserted or were dropped in the reader pipeline. Attribution and visual role still require controlled local inspection and another unrelated publisher before suggesting any production alteration.
+
+---
 ## Matched A/B/C image identity and order audit (new offline experiment)
 
 The previous owner Ars M6 replay found **20 image nodes** in Readability selected HTML, one explicit `figure`/`figcaption` pair, 66 paragraphs, 5 section headings, 28 links and 2 tables. This proves structural nodes survive `RenderHTML`, not whether the 20 images are the same images in source or reach the final reader correctly.
