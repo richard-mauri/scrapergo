@@ -117,6 +117,22 @@ Owner ran the PR #120 `cmd/duplicateprobe -source-evidence` against the unchange
 
 **Next diagnostic committed on the same PR:** Extended `cmd/duplicateprobe -source-evidence` to report `Source minimal tags` and `Readability minimal tags`, counting smallest matching HTML elements across source tags (including `div` and inline structures) while excluding blocked tags and preventing ancestor double counting; added tests for inline markup, `div`, `figcaption`, and scripts. This is an offline investigative extension, **not a production extraction change**, and still does not guarantee semantic identity. README describes limitations. Owner should pull the current branch and rerun the same saved Ars capture with `-source-evidence` (no new download). Compare tags: two distinct source matches might be genuine authorial repetition or duplicate media/credit display; one source match and two Readability-selected matches suggests duplication in selection/transformation. If no source match, inspect source locally without exposing full copyrighted HTML. Do not globally strip repeated text.
 
+## Latest Ars source-element attribution (owner Mac, November 11)
+
+Owner reran the **unchanged** private `/tmp/pr120-ars-m6.html` capture with the expanded `cmd/duplicateprobe -source-evidence` at PR #120 head `c5ac3ab8bf85edf1eae2757e05fe0e2455f75a40`. Result remains **68 blocks, 4 candidate pairs** (1 exact, 3 overlaps), all **already present at `readability-render-text`** and unchanged by every subsequent stage. Source/selected counts per pair:
+
+```text
+pair   source p/caption   selected p/caption   source minimal tags   selected minimal tags
+4/5         0/0                 2/0                   none                    none
+17/19       0/0                 2/0                   div:1,span:2            p:1,span:1
+22/24       0/0                 2/0                   div:1,span:2            p:1,span:1
+25/27       0/0                 2/0                   div:1,span:2            p:1,span:1
+```
+
+**Interpretation, with limits:** Readability-selected HTML contains two p elements associated with each shorter text, while the original source represents three overlapping passages using nested div/span markup. Minimal-source matching counts can double-count overlapping sibling/ancestor representations or miss exact matches due to whitespace/HTML entities. Do **not** claim Readability invented the duplicates solely because p/figcaption count is zero. Pair 4/5 has no smallest-element hit despite two selected paragraphs, so its provenance is still unknown. This result makes Readability selection/flattening a stronger investigative target than ScraperGo recovery, but is not enough to authorize a deletion rule.
+
+**Next evidence gate:** Use an *offline*, privacy-preserving local DOM inspection/probe that reports original element ancestry and source ordering for each candidate in the saved HTML, and whether selected p duplicates come from one source node or multiple independent source occurrences. Inspect figure/credit semantics and any alternate/hidden markup. Only then write a generalized source-backed extraction repair with negative tests for intentionally repeated paragraphs, same caption on different photos and reader content preservation. The 100-URL after-heading baseline remains **100 successful / 21 flagged / 54 candidates**. Keep single Issue #119 / draft PR #120, no merge/deploy/release without owner approval.
+
 ## Source code inspection and next engineering work
 
 Inspected `internal/extraction/heading_prose.go` (`RestoreHeadingAnchoredProse`) and `internal/extraction/figures.go` (`PositionArticleFigures`), plus their tests. `RestoreHeadingAnchoredProse` builds an `existing` normalized-text set of retained blocks, finds ≥3 ordered headings in original HTML, and may recover source paragraphs between them or before the first heading; already protects exact present strings, but may admit normalized/partial/structural variants or source repetitions. `PositionArticleFigures` adds `img` blocks using selected-HTML figure caption text and original placement; may produce candidate image/prose overlap even when both blocks are semantically valid. Existing caption reconciliation only targets figure captions found in selected Readability HTML and has not fixed the original Ars/paleo cases.
