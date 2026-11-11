@@ -20,6 +20,10 @@ func ExtractWithReadability(raw, source string, legacy func(string,string)(artic
 // ExtractWithReadabilityTraced uses the exact same extraction path as the
 // standard entry point; tracing only observes stage outcomes.
 func ExtractWithReadabilityTraced(raw, source string, legacy func(string,string)(article.Article,error), inlineParts func(*sourcehtml.Node,string) []article.TextPart, trace *RecoveryTrace) (article.Article, error) {
+ // Resolve the owner-controlled override for each extraction call, without
+ // package globals. An invalid configuration is reported, never ignored.
+ figureConfig,configErr:=FigureSelectionConfigFromEnvironment()
+ if configErr!=nil {return article.Article{},configErr}
 	u, err := url.Parse(source)
 	if err != nil {
 		return article.Article{}, err
@@ -97,7 +101,7 @@ func ExtractWithReadabilityTraced(raw, source string, legacy func(string,string)
                     })
 					if !structuredRecovered {
 						ordered := trace.Run("position-figures", blocks, func() []article.Block {
-                            return PositionArticleFigures(blocks, cleaned, u)
+                            return PositionArticleFiguresWithConfig(blocks, cleaned, u,figureConfig)
                         })
 						if strings.Contains(u.Path, "/gallery/") {
 							ordered = SupplementGalleryFigures(ordered, raw, u)
