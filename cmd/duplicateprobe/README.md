@@ -93,3 +93,21 @@ This differentiates text adjacent to one image, alternative caption text sharing
 The probe has regression cases for one photograph with alternative caption markup; two distinct photographs with identical captions; unrelated repeated editorial prose despite an article image; a two-photo group with ambiguous ownership; and exclusion of image URL, class, id and raw content from the report.
 
 Run the **same command** as above on the unchanged `/tmp/pr120-ars-m6.html`; no new publisher request or credentials are required. Do not begin text removal solely because two nodes share a photo ordinal. A general-purpose extractor correction also requires source-supported image-caption-credit relationships and negative content-preservation tests.
+
+## Stage 2 candidate: source-backed caption/credit reconciliation
+
+The current draft PR #120 now contains a **provisional production extraction fix** in `internal/extraction/figure_caption_credit.go`, invoked at the existing `caption-reconciliation` checkpoint in `internal/extraction/readability_pipeline.go`. It targets two source-backed patterns: `caption → credit → caption+credit` and two successive combined caption-credit representations that differ only in whitespace. The first keeps caption and credit separately; the second keeps the better-spaced representation.
+
+The filter activates **only** when the original publisher HTML *and* Readability-selected HTML each contain an image-associated caption/credit representation and a separate alternative in a compact one-image scope. The original source's alternative cannot be an independent `p` paragraph, and any ambiguity across multiple matching images disables removal. It does not rely on article URLs, classes, photographer names, or global text deduplication. Image blocks, distinct pictures sharing the same caption, unrelated repeated prose and linked/structured blocks are protected by regression cases. The exact Ars M6 block 4/5 pair remains unresolved independently.
+
+**Do not infer that Ars has been fixed from synthetic CI tests.** The saved original publisher snapshot has not yet been run through this new production candidate. On the owner Mac, update the existing `fix/119-caption-duplication` branch, run `go test -count=1 ./...`, then run:
+
+```sh
+go run ./cmd/duplicateprobe \
+  -input /tmp/pr120-ars-m6.html \
+  -url 'https://arstechnica.com/gadgets/2026/11/review-apples-1999-m6-macbook-pro-feels-stuck-in-the-middle/' \
+  -source-provenance
+```
+
+The previous same-snapshot baseline was **68 canonical blocks, 1 exact and 3 overlapping candidate pairs** (4/5, 17/19, 22/24, 25/27). Compare the new `caption-reconciliation` transition, final pair indices and content presence. A count decrease alone is not sufficient: inspect **both** distinct photo captions/credits, left/right association, images, and real story paragraphs in Safari and Print/PDF. Do not merge or deploy until the owner verifies the output and reviews the separate exact 4/5 pair. New Scientist same-snapshot regression and the 100-URL batch are part of Stage 3, not replaced by synthetic tests.
+
