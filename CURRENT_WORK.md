@@ -16,6 +16,14 @@ The last merge includes generalized duplicate-text improvements, the New Scienti
 
 **Validation gate:** exact-head GitHub CI `go test -count=1 ./...` and `go build ./...` are mandatory but do not prove publisher/Safari fidelity. Owner Mac runtime acceptance for later production changes is `git fetch origin`, `git checkout experiment/125-structure-preserving-extraction`, `git pull --ff-only origin experiment/125-structure-preserving-extraction`, `go test -count=1 ./...`, `./devbuild.sh`, `./scrapergo.sh`, followed by Safari reading, images/captions, Print/PDF and cross-publisher comparison. No merge, release, tag or deployment without owner approval.
 
+## Implemented after the pivot — selected-HTML semantic tree (draft PR #126)
+
+`internal/sourcepreserve/selected_html.go` is an **offline, nonproduction converter** that parses Readability-selected HTML using `golang.org/x/net/html` into a typed `SemanticDocument` / `SemanticNode` tree. It preserves explicit headings, paragraphs, nested inline links and emphasis, lists and table topology, time/datetime, and image/figure/figcaption parent-child ownership. Unknown structural wrappers are transparent and free images do **not** gain inferred captions. Unsafe link/media schemes are rejected via `sourcehtml.ResolveURL`; executable/interactive and excluded regions do not become output. It is not a general HTML sanitizer and the representation is never delivered to the browser. No `internal/article`, production extraction, reader, UI, fetcher, version or deployment modifications.
+
+`cmd/selectedstructure` is an offline same-source comparison: Readability parses saved HTML once, emits both `RenderHTML` and `RenderText`, the converter records selected-HTML semantic node-kind counts, and stdout contains **only aggregate counts** (no article text or URLs). New synthetic positive/negative tests check explicit per-image caption ownership, links/inline formatting, headings, table/list/time markup, genuinely repeated paragraphs, active markup, unsafe schemes, and ambiguous prose adjacent to images. The owner-private Ars/New Scientist HTML remain uncommitted on the Mac. **No cross-publisher, final canonical block, Safari or Print/PDF evaluation has yet happened for this converter.**
+
+**Next:** verify exact latest draft PR head Go CI, ask owner to run `go test -count=1 ./...` and `go run ./cmd/selectedstructure -input /tmp/pr120-ars-m6.html -url 'https://arstechnica.com/gadgets/2026/11/review-apples-1999-m6-macbook-pro-feels-stuck-in-the-middle/'`. Compare same-source selected-HTML semantic inventory against original `cmd/readabilityprobe` report and control current reader on the owner's Mac. Then expand synthetic/general-publisher validation, not ancestor-count wrappers. Do not merge/ship/switch extractor until owner-approved architecture and Safari acceptance.
+
 ## Historical prior research (superseded as development direction)
 
 
