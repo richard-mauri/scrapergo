@@ -68,6 +68,23 @@ After pulling the narrow canonical-text comparison fix on PR #120, owner reran `
 
 The owner-side result has been added to Issue #119. **Next test:** use the existing `cmd/htmlcapture`, `cmd/readabilityprobe` and `cmd/duplicateprobe` against the original Ars M6 article (documented in `cmd/duplicateprobe/README.md`), then rerun the exact same NewsGo 100-URL audit with a **new output filename** and `go run ./cmd/duplicateprovenance -last 100`. Historical latest 100-URL candidate benchmark before this fix is **100 matches across 27 flagged articles**, 100/100 success. Do not claim generalized resolution solely from the paleo success; scrutinize remaining image-caption and comment-metadata matches separately. Keep draft PR #120 unmerged pending owner acceptance.
 
+## Same 100-URL owner regression after canonical heading fix (Nov 11, 2026)
+
+Owner uploaded `duplicate-audit-pr120-heading-fix.csv` and Terminal transcript `typescript(20261111-165356)`. NewsGo `cmd/duplicateaudit` replayed the same 100 exported URLs through `https://scrapergo.themauris.org/api/read`: **100/100 successful, 0 failed, 21 flagged articles, 54 duplicate candidates**. Previous run of the same cohort before the heading fix: **100 successful, 27 flagged, 100 candidate pairs**. Thus **46 fewer screening candidates (−46%) and six fewer flagged articles**. CSV comparisons by article index and URL: 70→24 exact matches, 17→17 `image_caption_or_text_overlap`, 11→11 `caption_or_text_overlap`, 2→2 `image_exact`. The entire measured reduction is in exact matches.
+
+Key per-article reductions:
+- LWN article #25: **22→0** exact pairs, previously comment-metadata headers; verify preserved reader comments/legitimate prose, not merely loss of content.
+- New Scientist paleo #10: **15→0** exact prose; separately confirmed by same-snapshot offline probe, 92→77 blocks and all stage duplicate counts 0 after heading recovery change.
+- New Scientist quantum #2: **4→0** exact prose.
+- VulnCheck #32: **2→0**; DeepMind AlphaProof #27: 4→3; Claude #31 and Autopian #20: 1→0 each.
+- **Original Ars M6 #1: unchanged 4→4** (photo-credit exact p/p and three caption/text p/p overlaps).
+- **Maya site #11: unchanged 10→10** predominantly media/caption overlap or repeated same-caption images.
+- Other unchanged concentrations: Ars Polestar #60 5, voltage-glitching #13 4, Ars drone article #61 4, Ars climate #55 3, abandoned architecture #33 3.
+
+The owner transcript contains the 100-URL CLI and an offline paleo `duplicateprobe` reiterating 77 blocks/0 pairs, but **does not contain a new `go run ./cmd/duplicateprovenance -last 100` report**. No independent content-preservation or Safari Print/PDF acceptance yet. The 100 URL statuses remained HTTP 200; this does not prove each source paragraph was preserved. Captions/credits can legitimately duplicate text and same-caption image matches may represent different URLs. Do **not** blindly delete identical strings or remove the figure insertion stage.
+
+**Next specific work:** Investigate original Ars M6 (#1) using secure `htmlcapture` and offline `readabilityprobe`/`duplicateprobe` commands in `cmd/duplicateprobe/README.md`; compare exact source figure/caption placement, preserved prose and image URLs in final output; add positive/negative regression fixtures for evidence-backed text overlap only. Check content preservation on New Scientist and LWN, and run `duplicateprovenance -last 100` if no unrelated article reads have displaced the batch. Keep Issue #119 / draft PR #120 as the only tracker. The next repair must preserve existing semantic content and be tested against the identical 100 URLs. **Do not merge or deploy without explicit owner authorization.**
+
 ## Source code inspection and next engineering work
 
 Inspected `internal/extraction/heading_prose.go` (`RestoreHeadingAnchoredProse`) and `internal/extraction/figures.go` (`PositionArticleFigures`), plus their tests. `RestoreHeadingAnchoredProse` builds an `existing` normalized-text set of retained blocks, finds ≥3 ordered headings in original HTML, and may recover source paragraphs between them or before the first heading; already protects exact present strings, but may admit normalized/partial/structural variants or source repetitions. `PositionArticleFigures` adds `img` blocks using selected-HTML figure caption text and original placement; may produce candidate image/prose overlap even when both blocks are semantically valid. Existing caption reconciliation only targets figure captions found in selected Readability HTML and has not fixed the original Ars/paleo cases.
