@@ -22,7 +22,7 @@ type SemanticNode struct {
 }
 type SemanticDocument struct {
  Nodes []SemanticNode `json:"nodes"`
- UnsupportedImages int `json:"unsupportedImages,omitempty"`
+ ObservedImages int `json:"observedImages,omitempty"`
  UnsafeURLs int `json:"unsafeURLs,omitempty"`
 }
 
@@ -60,8 +60,9 @@ func convertNode(n *html.Node,base *url.URL,report *SemanticDocument)[]SemanticN
  case "img":
   url:=sourcehtml.ResolveURL(attr(n,"src"),base)
   if url=="" {report.UnsafeURLs++;return nil}
-  // A bare image is retained without a claimed caption or figure owner.
-  report.UnsupportedImages++
+  // Image ownership is represented only through preserved parent nodes.
+  // Count observations, never infer a caption or suppress a duplicate.
+  report.ObservedImages++
   return []SemanticNode{{Kind:"image",URL:url}}
  case "script","style","iframe","form","button","object","embed","svg":return nil
  }
