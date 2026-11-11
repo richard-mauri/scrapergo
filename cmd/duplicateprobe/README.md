@@ -57,3 +57,21 @@ The optional `-source-evidence` report prints, for each pair of final duplicate-
 The `-source-evidence` report also displays **Source minimal tags** and **Readability minimal tags**. These counts search for the shortest matching source element across *all nonblocked tag types*, rather than only `p`/`figcaption`. The text is concatenated across inline HTML nodes without injecting spaces between tags, and parent containers are not double-counted when a child already contains the full match. For example `div:2` means two independently matched smallest `div` subtrees; it does **not** prove those copies are editorially identical in meaning. Script/style/navigation text is excluded under existing source parser blocked-tag policy.
 
 If the source has no matching elements even with this broader scan, the unresolved explanations include text/entity normalization differences, publisher generated content, or Readability's own synthesis. Do not infer the cause from an unmatched count alone. Never upload or commit the full captured HTML without permission.
+
+## Stage 1/3: element ancestry, ordering and representation provenance
+
+On the owner's Mac, **reuse the existing private HTML capture**. Pull the current PR branch, then run:
+
+```sh
+cd ~/projects/scrapergo
+go run ./cmd/duplicateprobe \
+  -input /tmp/pr120-ars-m6.html \
+  -url 'https://arstechnica.com/gadgets/2026/11/review-apples-1999-m6-macbook-pro-feels-stuck-in-the-middle/' \
+  -source-provenance
+```
+
+The new `-source-provenance` flag compares **each member** of a duplicate-candidate pair (not just the common shorter text). It prints the earliest/minimal matching HTML elements from the original saved source and the separately rendered Readability HTML, including a local document-order ordinal (`#N`), index-qualified element path (`root/html[1]/body[1]/article[1]/...`), immediate parent tag, nearest article/section/figure/figcaption/etc. container tag, origin (`text`, `attr:alt`, `attr:title`, `attr:aria-label`, `attr:data-caption`), and match mode (`text` or `compact`). The compact mode ignores whitespace across inline nodes; it is weaker and should not alone justify deleting text.
+
+The output contains **no text samples, publisher URLs, class/id or attribute values**; at most eight locations per passage are printed, and truncation is explicit. The command makes no network calls and writes no files. Paths and ordinals are **independent within source versus selected HTML**; a matching index on each side is not the same DOM node. The parser is ScraperGo's legacy source HTML tree, which can misinterpret malformed publisher markup, and Readability provides no stable source-node ID mapping. Therefore the probe can establish whether source contains one or multiple text representations, but **cannot conclusively prove** that a particular selected paragraph was derived from one exact source node. A zero-match case is still inconclusive; text may be supplied via alternate attributes or transformed with punctuation changes.
+
+Interpret the results conservatively: two independent source paths might be intentional editorial repetition, caption+alt, hidden alternatives, or unrelated page furniture. If one source passage appears in two selected paragraphs, Readability duplication is a plausible hypothesis but requires inspecting the precise source/selected containers. Do not expose copyrighted captures or implement a generic string-dedup rule. Stage 2 (production correction) and stage 3 (full regression/Safari validation) remain **out of scope for this probe change**.
