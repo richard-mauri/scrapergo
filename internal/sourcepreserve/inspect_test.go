@@ -52,3 +52,22 @@ func TestInspectDoesNotTrustUserinfoOrUnsafeImageScheme(t *testing.T){
  if err!=nil{t.Fatal(err)}
  if got.AmbiguousFigures!=2||len(got.Items)!=1||got.Items[0].Text!="Safe prose."{t.Fatalf("unsafe image included: %+v",got)}
 }
+
+func TestInspectClassifiesUnwrappedAndMultiImageStructures(t *testing.T){
+ raw:=`<article><p>Ordinary prose remains.</p><div><img src="/unwrapped.jpg"></div><figure><img src="/first.jpg"><img src="/second.jpg"><figcaption>Two images, uncertain caption.</figcaption></figure><figure><img src="/one.jpg"><figcaption>First caption</figcaption><figcaption>Second caption</figcaption></figure><figure><img src="javascript:bad"><figcaption>Unsafe image</figcaption></figure></article>`
+ got,err:=Inspect(raw,baseURL)
+ if err!=nil{t.Fatal(err)}
+ if got.AmbiguousFigures!=4 || got.UnwrappedImages!=1 || got.MultiImageFigures!=1 || got.MultipleCaptions!=1 || got.InvalidFigureImages!=1 {
+  t.Fatalf("incorrect reason counts: %+v",got)
+ }
+ if len(got.Items)!=1 || got.Items[0].Text!="Ordinary prose remains." {t.Fatalf("ineligible figure content promoted to prose: %+v",got.Items)}
+}
+
+func TestInspectUnwrappedImageDoesNotGuessCaptionsByProximity(t *testing.T){
+ raw:=`<article><div><img src="/a.jpg"><span>Photographer attribution</span></div><p>Independent editorial text.</p></article>`
+ got,err:=Inspect(raw,baseURL)
+ if err!=nil{t.Fatal(err)}
+ if got.UnwrappedImages!=1 || got.AmbiguousFigures!=1 || len(got.Items)!=1 || got.Items[0].Text!="Independent editorial text." {
+  t.Fatalf("inferred image caption or dropped prose: %+v",got)
+ }
+}
