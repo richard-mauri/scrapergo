@@ -33,6 +33,31 @@ This is a pivot in the existing [Issue #125](https://github.com/richard-mauri/sc
 
 ---
 
+## Matched A/B/C image identity and order audit (new offline experiment)
+
+The previous owner Ars M6 replay found **20 image nodes** in Readability selected HTML, one explicit `figure`/`figcaption` pair, 66 paragraphs, 5 section headings, 28 links and 2 tables. This proves structural nodes survive `RenderHTML`, not whether the 20 images are the same images in source or reach the final reader correctly.
+
+The offline `cmd/selectedstructure` now uses ScraperGo's actual saved-source preprocessing, **`structured.StripEmbeddedMedia`**, for every branch, and reports two side-by-side **exact resolved URL identity and occurrence-order** comparisons using the same local HTML. Source (C) requires exactly one explicit `article` scope; if there are zero/multiple `article` elements, `sourceStatus=inconclusive` instead of guessing a candidate. Selected (B) walks the typed semantic tree returned from the same Readability `RenderHTML` parse. The actual production control (A) runs **`bootstrap.ExtractWithEvidence` and `reader.DefaultProcessor().Process`** offline on the same preprocessed input; the comparison uses its final `article.Article.Blocks` with `Kind=="img"`, and reports the standalone `Article.ImageURL` as a **separate boolean**, because a lead image is not necessarily a distinct editorial block.
+
+New JSON sections are `sourceSelectedImageAlignment` and `baselineImageAlignment`. Each reports counts of exact resolved URL occurrence matches, missing/extra images, `orderPreserved`, and source/selected index pairs **without ever printing source URLs, image URLs or publisher text**. Same URL occurring multiple times is paired one-to-one in order; different URL variants are *not* declared the same image. Explicit figure and figcaption counts are shown only when the node tree itself establishes ownership. The canonical comparison cannot infer a caption from a neighboring paragraph. The source comparison tests article scope and filters excluded active/hidden regions, so these figures are **not an unfiltered inventory of every `img` on the page**.
+
+This comparison is evidence of **exact URL presence and sequence**, not pixel identity, visual duplication, correct CSS visibility, real caption attribution, editorial completeness, or browser correctness. In particular, an image represented solely by canonical `Article.ImageURL` can be absent from `img` blocks; that difference is intentionally recorded instead of hiding it. Source and selected parsing are separate observations; neither substitutes for a manual source-backed review.
+
+The new tests cover exact URL matches in order, reordered images, omitted/new images, repeated occurrences, query-string variants, unsafe URLs, missing/ambiguous source article scopes, separate canonical lead image and duplicate canonical image blocks. These are synthetic only; owner-side matched Ars and unrelated publisher results remain **not run**.
+
+To run locally without fetching publishers, after pulling this branch:
+
+```bash
+go test -count=1 ./...
+go run ./cmd/selectedstructure \
+  -input /tmp/pr120-ars-m6.html \
+  -url 'https://arstechnica.com/gadgets/2026/11/review-apples-1999-m6-macbook-pro-feels-stuck-in-the-middle/'
+```
+
+Review only the numeric/index JSON; do not share the private raw publisher capture. Full Go CI confirms tests/build; Safari reading, image ownership and Print/PDF are still owner-only future acceptance. The production code and default extractor remain unchanged.
+
+---
+
 ## Initial implementation of the selected-HTML structural converter (Phase 2)
 
 The owner-approved pivot has now produced an **isolated offline-only converter** at `internal/sourcepreserve/selected_html.go`. Its input is specifically **Readability `RenderHTML` output** (not raw source article selection); `ConvertSelectedHTML` parses with the existing `golang.org/x/net/html` parser and builds a typed tree of semantic nodes, keeping child order and explicit parent ownership. It observes headings, paragraphs, inline links and emphasis, lists/list items, tables/rows/cells, time elements with `datetime`, and explicitly nested `figure`/`img`/`figcaption`. Unknown wrappers are transparent, so it must not pretend to retain CSS layouts. It retains a bare `img` as an image with no invented caption. It excludes executable/interactive/noneditorial nodes under the existing experimental exclusion rules, checks link/media HTTP(S) URLs with `sourcehtml.ResolveURL`, and returns **data** rather than browser-renderable HTML.
