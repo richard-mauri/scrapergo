@@ -33,7 +33,7 @@ func TestSelectedHTMLKeepsExplicitFigureOwnershipAndInlineLinks(t *testing.T){
  if len(links)!=1||links[0].URL!="https://example.org/reference"||len(findSemantic(links[0].Children,"emphasis"))!=1 {t.Fatalf("inline link/formatting lost: %+v",links)}
  figures:=findSemantic(got.Nodes,"figure")
  if len(figures)!=2||len(findSemantic(figures[0].Children,"image"))!=1||len(findSemantic(figures[0].Children,"figcaption"))!=1||len(findSemantic(figures[1].Children,"image"))!=1 {t.Fatalf("figure ownership lost: %+v",figures)}
- if got.UnsupportedImages!=2 {t.Fatalf("unattributed image counter counts all images, unexpected: %+v",got)}
+ if got.ObservedImages!=2 {t.Fatalf("image observation count wrong: %+v",got)}
 }
 func TestSelectedHTMLPreservesTablesListsAndTime(t *testing.T){
  raw:=`<section><time datetime="2026-11-11T12:00:00Z">Noon</time><ol><li>First</li><li>Second</li></ol><table><thead><tr><th>Model</th><th>Price</th></tr></thead><tbody><tr><td>A</td><td>100</td></tr></tbody></table></section>`
