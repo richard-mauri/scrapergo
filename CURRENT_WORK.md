@@ -42,6 +42,14 @@ To avoid a new heuristic, the offline `cmd/selectedstructure` now invokes existi
 
 **Next owner step:** pull `experiment/125-structure-preserving-extraction`, `go test -count=1 ./...`, rerun `go run ./cmd/selectedstructure -input /tmp/pr120-ars-m6.html -url 'https://arstechnica.com/gadgets/2026/11/review-apples-1999-m6-macbook-pro-feels-stuck-in-the-middle/'`; return only `baselineImageStages` plus summary. Observe which stages create/remove image blocks before considering any source-backed structural migration. New changes' exact-head CI still must be confirmed; no merge, release, deployment or Safari claims.
 
+## Verified current image-selection boundary — hard 12 candidate cap
+
+Owner's Nov 11 same-capture offline `baselineImageStages`: initial text/structured/leading/tables/caption/links stages retained **0** image blocks; `position-figures` **0 → 12**; subsequent extraction stages **12 → 12**; combined `reader-postprocessing` **12 → 13**. Source and selected HTML each had 20 images; 19 exact identity matches in order; canonical images 1–12 matched selected 1–12, canonical 13 matched selected 19. Selected 13–18 and 20 had no matching canonical image blocks, while a separate lead `Article.ImageURL` exists. Count-only tracing cannot establish identity substitutions or whether the seven unmatched positions are legitimate editorial photos.
+
+**Code inspection confirms** `internal/extraction/figures.go:ArticleImages` contains `if len(images) >= 12 { break }`, and `PositionArticleFigures` uses that function. The hard *first-12 valid unique image URL* candidate limit is sufficient to explain the 0→12 plateau. Reader postprocessing also runs source-backed image recovery and produced a net +1; **which reader stage contributed it is not yet individually proven**. A separate compact-gallery max 12 in `internal/recovery/source_gallery.go` is a different limit, not the cause of initial `ArticleImages` saturation.
+
+**Owner's generality constraint remains binding:** do **not** simply raise 12 or resurrect the seven unmatched image nodes. Study a general editorial-image inclusion policy from preserved Readability-selected structural semantics, with second-publisher and synthetic greater-than-12 genuine photo cases against noise/responsive duplicates. Keep existing Readability+reader as control and cap unchanged while researching. Research docs `docs/structure-preserving-extraction-125.md` updated. No current code change, browser test, release, merge or deployment. Exact latest documentation head GitHub CI to be confirmed.
+
 ## Historical prior research (superseded as development direction)
 
 
