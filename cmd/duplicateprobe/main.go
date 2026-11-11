@@ -61,6 +61,7 @@ func main() {
  file:=flag.String("input","","existing private publisher HTML capture")
  url:=flag.String("url","","publisher article URL used only to resolve source links")
  evidence:=flag.Bool("source-evidence",false,"compare match presence in source and Readability selected HTML")
+ provenance:=flag.Bool("source-provenance",false,"report per-block source and Readability element ancestry and DOM order")
  flag.Parse()
  if *file=="" || *url=="" || flag.NArg()!=0 {
   fmt.Fprintln(os.Stderr,"Usage: go run ./cmd/duplicateprobe -input /tmp/article.html -url https://publisher.example/article")
@@ -92,6 +93,11 @@ func main() {
  if *evidence {
   if err:=reportSourceEvidence(cleaned,*url,final.Blocks,pairs);err!=nil {
    fmt.Fprintln(os.Stderr,"Source evidence:",err);os.Exit(1)
+  }
+ }
+ if *provenance {
+  if err:=reportSourceProvenance(cleaned,*url,final.Blocks,pairs);err!=nil {
+   fmt.Fprintln(os.Stderr,"Source provenance:",err);os.Exit(1)
   }
  }
  fmt.Println("No source URL, text, credentials or HTML has been written to disk by this command.")
