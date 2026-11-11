@@ -4,6 +4,7 @@ import (
  "testing"
 
  "clean-article-reader/internal/article"
+ "clean-article-reader/internal/sourcehtml"
 )
 
 func TestImageCaptionCreditTripleSourceAndSelected(t *testing.T) {
@@ -145,4 +146,41 @@ func TestCaptionCreditGateEvidenceMatchesProductionPredicate(t *testing.T) {
  if got:=InspectCaptionCreditTriple(blocks,0,source,selected);got.Eligible || got.TripleShape {
   t.Fatalf("invalid block index reported eligible: %+v",got)
  }
+}
+
+func TestImageCaptionCreditFlattenedReadabilityPairedPhotoGroup(t *testing.T) {
+ const caption="The keyboard and trackpad remain excellent for the intended workload."
+ const credit="Example Photographer"
+ // Source has both image-associated caption and an alternative NON-p
+ // representation in the same unique image scope.
+ source:=`<article><div><div><img src="/keyboard.jpg"><span>`+caption+`</span><span>`+credit+`</span></div><div><span>`+caption+` `+credit+`</span></div></div></article>`
+ // Readability preserves the image/caption, but puts the duplicate p in
+ // a neighboring branch of a wider two-photo group, not a one-image wrapper.
+ selected:=`<article><div><div><img src="/other.jpg"><span>Different caption</span></div><div><div><img src="/keyboard.jpg"><p>`+caption+` `+credit+`</p></div></div><div><p><span>`+caption+` `+credit+`</span></p></div></div></article>`
+ blocks:=[]article.Block{{Kind:"p",Text:caption},{Kind:"p",Text:credit},{Kind:"p",Text:caption+" "+credit}}
+ if hasImageCaptionCreditScope(source,caption,credit,false)!=true {t.Fatal("source fixture missing unique image scope")}
+ if hasImageCaptionCreditScope(sourcehtml.Parse(selected),caption,credit,true) {t.Fatal("selected fixture unexpectedly satisfies strict guard")}
+ got:=reconcileImageCaptionCreditTriples(blocks,source,selected)
+ if len(got)!=2 || got[0].Text!=caption || got[1].Text!=credit {t.Fatalf("failed to remove only redundant combined text: %+v",got)}
+ e:=InspectCaptionCreditTriple(blocks,2,source,selected)
+ if !e.SelectedImageScope || !e.SourceImageScope || !e.Eligible {t.Fatalf("production/diagnostic disagree: %+v",e)}
+}
+
+func TestFlattenedReadabilityTwoDistinctImagesSameCaptionNotReconciled(t *testing.T) {
+ const caption="The same caption is intentionally attached to two different photographs."
+ const credit="Example Photographer"
+ // Two distinct images render the same caption; there is no unique owner.
+ source:=`<article><div><div><img src="/one.jpg"><span>`+caption+`</span><span>`+credit+`</span></div><div><span>`+caption+` `+credit+`</span></div></div><div><div><img src="/two.jpg"><span>`+caption+`</span><span>`+credit+`</span></div><div><span>`+caption+` `+credit+`</span></div></div></article>`
+ selected:=`<article><div><div><img src="/one.jpg"><p>`+caption+` `+credit+`</p></div><div><img src="/two.jpg"><p>`+caption+` `+credit+`</p></div><div><p>`+caption+` `+credit+`</p></div></div></article>`
+ blocks:=[]article.Block{{Kind:"p",Text:caption},{Kind:"p",Text:credit},{Kind:"p",Text:caption+" "+credit}}
+ if got:=reconcileImageCaptionCreditTriples(blocks,source,selected);len(got)!=3 {t.Fatalf("collapsed two distinct image captions: %+v",got)}
+}
+
+func TestFlattenedReadabilityNoImageRetainsEditorialRepetition(t *testing.T) {
+ const caption="An article paragraph is deliberately repeated for editorial emphasis."
+ const credit="Example Photographer"
+ source:=`<article><div><div><img src="/one.jpg"><span>`+caption+`</span><span>`+credit+`</span></div><div><span>`+caption+` `+credit+`</span></div></div></article>`
+ selected:=`<article><p>`+caption+` `+credit+`</p><p>`+caption+` `+credit+`</p></article>`
+ blocks:=[]article.Block{{Kind:"p",Text:caption},{Kind:"p",Text:credit},{Kind:"p",Text:caption+" "+credit}}
+ if got:=reconcileImageCaptionCreditTriples(blocks,source,selected);len(got)!=3 {t.Fatalf("text-only Readability output must not authorize removal: %+v",got)}
 }
