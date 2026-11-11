@@ -2,7 +2,6 @@ package main
 
 import (
  "fmt"
- "strings"
 
  "clean-article-reader/internal/sourcehtml"
 )
@@ -110,6 +109,3 @@ func renderPhotoScopes(raw,passage string) {
  fmt.Println("    Photo ordinals are local to the source DOM, not image asset identities.")
 }
 
-// Deliberately do not use strings.Contains to infer caption ownership. A
-// repeated editorial paragraph can legitimately occur beside a photo.
-var _ = strings.Builder{}
