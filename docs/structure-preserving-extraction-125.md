@@ -1,6 +1,37 @@
 # Issue #125 — Structure-preserving article extraction evaluation
 
-**Status:** Phase 2 initial offline-only proof of concept. No production behavior change and no switch away from Readability.
+**Status (owner-approved pivot, November 11, 2026):** Stop developing proximity/ancestor-count image-wrapper heuristics. Retain the existing offline inspectors and synthetic tests solely as research evidence. The next active experiment is **structural conversion of Readability-selected HTML**, with original source DOM as a fallback/comparison source. No production behavior change or switch away from Readability.
+
+## Owner-approved architectural pivot: preserve selected HTML as a tree
+
+**Decision:** The previous exploration of 3–4-ancestor searches, 2–8-image containers, compact text siblings and per-image adjacency is too brittle to justify a production extractor. It demonstrated that source HTML contains information lost by flattening, but did **not** prove reliable gallery or caption ownership. **Freeze those diagnostics**: `internal/sourcepreserve` and `cmd/structureprobe` are historical, opt-in offline probes only. Do not add more limits, scoring rules or publisher-specific shortcuts. They are **not** an implementation candidate to merge into production.
+
+### Three parallel inputs, one comparison contract
+
+| Candidate | Responsibility | Scope |
+| --- | --- | --- |
+| A. Current merged Readability + recovery | Control / production behavior | Run `ExtractWithReadability` and the existing reader's final canonical blocks unchanged |
+| B. Readability `RenderHTML` -> structural representation | **Primary experimental path** | Parse selected HTML as a DOM and preserve heading hierarchy, prose, inline links/emphasis, table/list boundaries, images and explicit figure/caption/group relationships in document order |
+| C. Original source DOM -> structural representation | Diagnostic comparator / potential selective fallback | Check which meaningful source relationships are omitted or altered by Readability; do not independently select a different article by proximity or URL heuristics |
+
+**First question to answer:** Does the existing Readability-selected DOM still preserve enough structure to avoid the current `RenderText` -> paragraph block flattening loss? Inspect `RenderHTML` and `RenderText` side by side on identical input, using `cmd/readabilityprobe` and synthetic fixtures before writing a second selector. Do not assume Readability is always more faithful or that the original source DOM is always unambiguous.
+
+### Structural conversion invariants
+
+1. Parse and transform a **tree**, not sequences of flattened text and inferred-nearby captions. Retain order and parent/child relationships. Preserve explicitly evidenced `figure`/`figcaption`, caption/credit grouping, headings, time/update boundaries, inline formatting and links, lists and tables. Do not invent an association where source or selected markup is ambiguous.
+2. Build a **nonrendering intermediate representation** before changing `internal/article` or `internal/ui`. Represent media ownership and groups explicitly rather than shoehorning them into anonymous adjacent paragraphs. Decide which model extensions are justified from multi-publisher examples.
+3. Apply an allowlisted, security-preserving transformation to semantic objects, **not** a pass-through of publisher HTML into ScraperGo. Honor existing fetcher/redirect/access-policy and image-delivery boundaries; reject scriptable URLs and active HTML, preserve the unchanged production fallbacks.
+4. Compare A/B/C on **identical saved source** and include positive and negative fixtures for ordinary prose, nested formatting/links, tables/lists, multi-image groups with and without unambiguous ownership, responsive alternatives, intentional repeated text, sidebars, live updates, malformed markup and denied/partial pages.
+5. Score completeness, ordering, identity, attribution, excluded editorial material, safety, cost and rendering separately. A lower duplicate count or a higher image count is not by itself an improvement.
+6. Only after demonstrated generality: propose a separately owner-approved production migration, browser/Print/PDF testing and fallback gates. No production switch or merge from this research PR without owner authorization.
+
+### Next concrete development increment
+
+Create an isolated offline comparator that feeds a **single captured HTML input** to the existing Readability parser, obtains `RenderHTML` and `RenderText`, and records a structurally typed representation of selected HTML without requiring the reader or network. Start with headings, paragraphs, inline links, `figure` and `figcaption`, lists and tables; explicitly flag unsupported media relationships. Compare this to unchanged control output and original-source-DOM evidence. Avoid evolving the previous wrapper proximity logic into the new converter.
+
+This is a pivot in the existing [Issue #125](https://github.com/richard-mauri/scrapergo/issues/125) / draft [PR #126](https://github.com/richard-mauri/scrapergo/pull/126), not a request to close Issue #124 or reuse its defect branch. The owner-private Ars/New Scientist captures must remain on the Mac; existing synthetic fixtures may be committed. Existing prototype results are historical evidence and should not be cited as proof of a structural extractor's correctness.
+
+---
 
 ## Question
 
@@ -23,7 +54,7 @@ This identifies a **potential loss-of-structure boundary at `RenderText` / split
 
 `ARCHITECTURE.md` allocates HTML parsing to `internal/sourcehtml`, extraction to `internal/extraction`, canonical transport-independent blocks to `internal/article`, media identity to `internal/media`, reader stages to `internal/reader`, and UI presentation to `internal/ui`. Retrieval belongs to `internal/fetcher` and related established security-controlled boundaries. A prototype must respect these boundaries.
 
-## Proposed experiment — not yet implemented
+## Historical proposed source-DOM experiment — superseded by pivot above
 
 1. **Article scope selection.** Use Readability's article selection as supporting evidence, then select or clone one source DOM article region without serializing it to plain text first. Reject uncertain or non-editorial scopes conservatively; preserve fallback.
 2. **Structural editorial filtering.** Exclude noneditorial navigation, adverts, interstitials, popups, newsletter prompts, trackers, and interactive controls using semantic and structural evidence, not blanket keyword deletion. Detect alternative/responsive representations without collapsing genuinely separate photos or repeated editorial paragraphs. Do not assume a lack of `hidden` attributes proves an element is visible.
@@ -61,7 +92,7 @@ The owner can later run **offline** Ars M6 and New Scientist captures on the Mac
 
 **Safety and release boundary:** No bypass of publisher access restrictions; no changes to private tokens, the Cloudflare tunnel, service deployment, semantic version, production default extractor or release. Do not merge without explicit owner authorization.
 
-## Implemented first offline prototype (not production)
+## Historical offline prototype (diagnostics only; frozen by pivot)
 
 `internal/sourcepreserve.Inspect` uses Go's existing `golang.org/x/net/html` parser on an already-saved input string. It **requires exactly one nonexcluded `<article>` element**; ambiguous or absent scopes return `status: inconclusive` rather than claiming a correct result. It observes source-ordered heading and paragraph text, validated HTTP(S) links, and simple explicit `<figure>` wrappers with exactly one `<img>` and at most one `<figcaption>`. For captions, optional explicit `<small>` or `<cite>` credit text is separately reported; no credit is inferred from substring patterns or nearby text. When a figure has multiple images, an unsafe URL, or ambiguous caption structure, it increments `ambiguousFigures` and **does not invent photo-to-caption ownership**. It doesn't render HTML, sanitize HTML for browser insertion, or claim that absence of an HTML hidden attribute proves the source branch is browser-visible.
 
