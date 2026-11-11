@@ -25,7 +25,9 @@ type provenanceNode struct {
  Tag string
  Origin string
  Mode string
-}
+ Media string
+ Visibility string
+
 
 // comparableHTMLText compares publisher text across inline markup boundaries.
 // "compact" matches are weaker evidence: whitespace/entity serialization can
@@ -46,6 +48,35 @@ func containsCandidate(haystack, target string) string {
  a,b:=compactHTMLText(haystack),compactHTMLText(target)
  if len([]rune(b))>=24 && strings.Contains(a,b) {return "compact"}
  return ""
+}
+
+
+func localContext(n *sourcehtml.Node) (string,string) {
+ if n==nil {return "none","unknown"}
+ region:=n.Parent
+ if region==nil {region=n}
+ images,figures,captions:=0,0,0
+ for _,x:=range sourcehtml.Find(region,func(x *sourcehtml.Node)bool {
+  return x.Tag=="img" || x.Tag=="figure" || x.Tag=="figcaption"
+ }) {
+  switch x.Tag {
+  case "img":images++
+  case "figure":figures++
+  case "figcaption":captions++
+  }
+ }
+ siblings:=0
+ if n.Parent!=nil {for _,child:=range n.Parent.Kids {if child.Tag!="#text" {siblings++}}}
+ visibility:="no-explicit-hint"
+ for p:=n;p!=nil;p=p.Parent {
+  if _,ok:=p.Attr["hidden"];ok {visibility="hidden-attr";break}
+  if strings.EqualFold(strings.TrimSpace(p.Attr["aria-hidden"]),"true") {visibility="aria-hidden";break}
+  st:=strings.ToLower(strings.ReplaceAll(p.Attr["style"]," ",""))
+  if strings.Contains(st,"display:none") || strings.Contains(st,"visibility:hidden") {
+   visibility="inline-style";break
+  }
+ }
+ return fmt.Sprintf("parent-img:%d,figure:%d,figcaption:%d,siblings:%d",images,figures,captions,siblings),visibility
 }
 
 // scanProvenance records only minimal matching elements. A container match is
@@ -83,7 +114,9 @@ func scanProvenance(raw, passage string) []provenanceNode {
   }
   mode:=containsCandidate(all.String(),passage)
   if mode!="" && !matchedChild && n.Tag!="root" {
+   media,visibility:=localContext(n)
    out=append(out,provenanceNode{
+    Media:media,Visibility:visibility,
     Order:myOrder,Path:path,Parent:parent,Container:nearest,
     Tag:n.Tag,Origin:"text",Mode:mode,
    })
@@ -93,7 +126,9 @@ func scanProvenance(raw, passage string) []provenanceNode {
   for _,attr:=range []string{"alt","title","aria-label","data-caption"} {
    if value:=n.Attr[attr];value!="" {
     if mode:=containsCandidate(value,passage);mode!="" {
+     media,visibility:=localContext(n)
      out=append(out,provenanceNode{
+      Media:media,Visibility:visibility,
       Order:myOrder,Path:path,Parent:parent,Container:nearest,
       Tag:n.Tag,Origin:"attr:"+attr,Mode:mode,
      })
@@ -120,8 +155,8 @@ func renderProvenance(label string,nodes []provenanceNode) {
  const max=8
  for i,n:=range nodes {
   if i>=max {fmt.Printf("      ... %d further matches omitted\n",len(nodes)-max);break}
-  fmt.Printf("      #%d %s parent=%s context=%s origin=%s mode=%s\n",
-   n.Order,n.Path,n.Parent,n.Container,n.Origin,n.Mode)
+  fmt.Printf("      #%d %s parent=%s context=%s origin=%s mode=%s media=%s visibility=%s\n",
+   n.Order,n.Path,n.Parent,n.Container,n.Origin,n.Mode,n.Media,n.Visibility)
  }
 }
 
