@@ -60,6 +60,7 @@ func matches(blocks []article.Block) []match {
 func main() {
  file:=flag.String("input","","existing private publisher HTML capture")
  url:=flag.String("url","","publisher article URL used only to resolve source links")
+ evidence:=flag.Bool("source-evidence",false,"compare match presence in source and Readability selected HTML")
  flag.Parse()
  if *file=="" || *url=="" || flag.NArg()!=0 {
   fmt.Fprintln(os.Stderr,"Usage: go run ./cmd/duplicateprobe -input /tmp/article.html -url https://publisher.example/article")
@@ -87,6 +88,11 @@ func main() {
  fmt.Println("Final candidate pairs: block indices are 1-based; digest identifies matching text locally")
  for _,p:=range pairs {
   fmt.Printf("  %d(%s) / %d(%s) %-7s text-hash=%s\n",p.First,p.FirstKind,p.Second,p.SecondKind,p.Type,p.Digest)
+ }
+ if *evidence {
+  if err:=reportSourceEvidence(cleaned,*url,final.Blocks,pairs);err!=nil {
+   fmt.Fprintln(os.Stderr,"Source evidence:",err);os.Exit(1)
+  }
  }
  fmt.Println("No source URL, text, credentials or HTML has been written to disk by this command.")
 }
