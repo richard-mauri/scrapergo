@@ -8,6 +8,26 @@ GitHub `main` is the authoritative **merged** baseline at `41061a1feb9047419b6a0
 
 Start a fresh session by reading `AGENTS.md`, this file, `ARCHITECTURE.md`, and `DEVELOPMENT.md` on the **current PR branch**; check actual GitHub PR/head/CI. For source changes, acknowledge the repository's workflow and safeguard existing tests, secure fetcher/access restrictions, document semantics, Mac/Safari validation, and owner merge gate.
 
+## Current stage: 1/3 source-element provenance (November 11)
+
+**Owner-directed current work:** Stage 1 only of the agreed three-stage Issue #119 approach. Stages 2 (source-backed production correction) and 3 (full 100-URL/Safari validation) are not authorized by this iteration and have not begun. Separate new [Issue #123](https://github.com/richard-mauri/scrapergo/issues/123) proposes a future staging Render/CI/agent-assisted loop; it is not deployed or part of this PR.
+
+**What is established:** ScraperGo's main extraction initially splits Go Readability `RenderText()` into ordered paragraph chunks, before source HTML recovery stages. New Scientist paleo same snapshot improved from 15 exact pairs / 92 blocks to 0 pairs / 77 blocks after the canonical `RestoreHeadingAnchoredProse` comparison. Full 100-URL audit improved from 100 candidates/27 articles to **54 candidates/21 articles**, with 100/100 successful reads; article-content preservation remains unverified. For original Ars M6, private capture `/tmp/pr120-ars-m6.html` (SHA256 `8bc65dad6714447409e5a6a3b6367339b0363f86f0703d4e6e500eb0a8055b9a`), four pairs appear in the **initial Readability text**: 4/5 exact; 17/19, 22/24, 25/27 overlaps. No recovery stage changed them. A prior source-evidence search found source minimal tags `div:1,span:2` for each overlap pair, while Readability returned `p:1,span:1` minimal tags and two containing paragraphs; pair 4/5 had no minimal-source match. These are suggestive counts, **not** a complete source-node provenance.
+
+**Stage 1 implementation added on existing PR #120 branch:** `cmd/duplicateprobe/source_provenance.go`, `source_provenance_test.go`, and a `-source-provenance` switch in `cmd/duplicateprobe/main.go`. This opt-in, network-free diagnostic inspects **both members of each candidate pair** in the same private captured HTML and independently rendered Readability-selected HTML. For each matching **minimal** source element, it reports a document-order ordinal, index-qualified element path, immediate parent tag, nearest semantic container (article/section/figure/figcaption/etc.), origin (element text versus safe-listed attribute name such as image `alt`), and text-versus-weaker whitespace-compact matching mode. It prints no publisher text, URL, attribute values, IDs, classes or HTML and writes no files. Multiple source occurrences and independently selected paragraphs can be compared in order, but the tool cannot prove one-to-one transformation because Readability does not expose original node IDs. Synthetic tests check two independent paragraphs, one source container versus two selected paragraphs, figure caption plus image alt, inline text, and noise exclusion. Production extraction unchanged.
+
+**Next action — owner must run on saved private Mac capture, no download:** After pulling this branch and running `go test -count=1 ./...`, execute:
+
+```sh
+cd ~/projects/scrapergo
+go run ./cmd/duplicateprobe \
+  -input /tmp/pr120-ars-m6.html \
+  -url 'https://arstechnica.com/gadgets/2026/11/review-apples-1999-m6-macbook-pro-feels-stuck-in-the-middle/' \
+  -source-provenance
+```
+
+Paste only stdout. Compare ancestry/order for p4/5 and each overlap to determine if source offers one element, multiple independent elements, media alt/credit, or ambiguous transformed content. If ambiguous, keep staging investigation; **do not manufacture a source/Readability mapping or remove text merely because it overlaps**. Stage 2 begins only with a justified general source-semantic invariant plus positive/negative tests. Current PR must remain draft, no owner production/Safari merge acceptance yet. Document exact-head CI status after final documentation commit.
+
 ## Defect and exact 100-URL evidence
 
 Original owner-reported defect: ScraperGo returns duplicated article prose and captions, visible through NewsGo. Triggering URL: `https://arstechnica.com/gadgets/2026/11/review-apples-1999-m6-macbook-pro-feels-stuck-in-the-middle/`. ScraperGo owns extraction. A separate reusable NewsGo CLI (`~/projects/newsgo/cmd/duplicateaudit`), permanently merged via NewsGo PR #88, audits final `/api/read` JSON; it **does not** modify either server. The URL export on the owner's Mac is `~/Downloads/newsgo-scrapergo-urls.json`.
