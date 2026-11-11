@@ -90,13 +90,21 @@ func TestProductionReadabilityCandidateLimitOverride(t *testing.T) {
  read:=func(limit string) int {
   t.Helper()
   t.Setenv(ArticleImageCandidateLimitEnv,limit)
-  got,err:=ExtractWithReadability(raw,"https://example.org/report",LegacyExtract,InlineTextParts)
+  trace:=NewRecoveryTrace()
+  got,err:=ExtractWithReadabilityTraced(raw,"https://example.org/report",LegacyExtract,InlineTextParts,trace)
   if err!=nil{t.Fatal(err)}
-  n:=0;for _,b:=range got.Blocks{if b.Kind=="img"{n++}}
   if got.Method!="Go Readability v2"{t.Fatalf("unexpected fallback: %s",got.Method)}
-  return n
+  for _,stage:=range trace.Results(){
+   if stage.Stage=="position-figures" {
+    if stage.Outcome=="not_reached"{t.Fatalf("position-figures not reached at limit %s",limit)}
+    return stage.AfterImages
+   }
+  }
+  t.Fatalf("position-figures trace missing at limit %s",limit)
+  return -1
  }
  atDefault:=read("12")
  atHigher:=read("14")
- if atDefault!=12||atHigher!=14{t.Fatalf("production extraction image counts default=%d configured=%d (want 12,14)",atDefault,atHigher)}
+ if atDefault!=12||atHigher!=14{t.Fatalf("position-figures image counts default=%d configured=%d (want 12,14)",atDefault,atHigher)}
+
 }
