@@ -31,6 +31,11 @@ type Report struct {
  OtherUnwrappedImages int `json:"otherUnwrappedImages,omitempty"`
  OtherInMultiImageGroups int `json:"otherInMultiImageGroups,omitempty"`
  OtherWithoutBoundedGroup int `json:"otherWithoutBoundedGroup,omitempty"`
+ BoundedMultiImageGroups int `json:"boundedMultiImageGroups,omitempty"`
+ ResolvableUnwrappedImages int `json:"resolvableUnwrappedImages,omitempty"`
+ UniqueUnwrappedImageURLs int `json:"uniqueUnwrappedImageURLs,omitempty"`
+ RepeatedUnwrappedImageOccurrences int `json:"repeatedUnwrappedImageOccurrences,omitempty"`
+ UnresolvableUnwrappedImages int `json:"unresolvableUnwrappedImages,omitempty"`
  MultiImageFigures int `json:"multiImageFigures,omitempty"`
  InvalidFigureImages int `json:"invalidFigureImages,omitempty"`
  MultipleCaptions int `json:"multipleCaptions,omitempty"`
@@ -131,7 +136,7 @@ func compactImageTextWrapper(img *html.Node) bool {
 // find a nonarticle container with 2–8 images in at least two distinct
 // child branches. It is evidence of a common image group, *not* evidence
 // of caption ownership, visibility, or duplicate image identity.
-func boundedMultiImageGroup(img *html.Node) bool {
+func boundedMultiImageGroup(img *html.Node) *html.Node {
  for scope,depth:=img.Parent,0;scope!=nil && depth<4;scope,depth=scope.Parent,depth+1 {
   if element(scope,"article") || element(scope,"main") || element(scope,"body") {break}
   if excluded(scope) {break}
@@ -142,9 +147,9 @@ func boundedMultiImageGroup(img *html.Node) bool {
    if child.Type!=html.ElementNode || excluded(child) {continue}
    if len(find(child,func(x *html.Node)bool{return element(x,"img")}))>0 {branches++}
   }
-  if branches>=2 {return true}
+  if branches>=2 {return scope}
  }
- return false
+ return nil
 }
 
 func Inspect(raw,baseURL string)(Report,error){
@@ -159,6 +164,8 @@ func Inspect(raw,baseURL string)(Report,error){
  if len(articles)!=1 {return report,nil}
  report.Status="candidate"
  article:=articles[0]
+ imageURLs:=map[string]bool{}
+ boundedGroups:=map[*html.Node]bool{}
  // Track media wrappers so nested paragraphs are never copied as
  // independent editorial prose.
  var walk func(*html.Node)
@@ -193,7 +200,21 @@ func Inspect(raw,baseURL string)(Report,error){
    // Detached images are marked ambiguous rather than guessed into prose.
    report.AmbiguousFigures++
    report.UnwrappedImages++
-   if compactImageTextWrapper(n) {report.CompactImageTextWrappers++} else {report.OtherUnwrappedImages++; if boundedMultiImageGroup(n) {report.OtherInMultiImageGroups++} else {report.OtherWithoutBoundedGroup++}}
+   resolved:=sourcehtml.ResolveURL(attr(n,"src"),base)
+   if resolved=="" {report.UnresolvableUnwrappedImages++} else {
+    report.ResolvableUnwrappedImages++
+    if imageURLs[resolved] {report.RepeatedUnwrappedImageOccurrences++} else {
+     imageURLs[resolved]=true
+     report.UniqueUnwrappedImageURLs++
+    }
+   }
+   if compactImageTextWrapper(n) {report.CompactImageTextWrappers++} else {
+    report.OtherUnwrappedImages++
+    if group:=boundedMultiImageGroup(n);group!=nil {
+     report.OtherInMultiImageGroups++
+     if !boundedGroups[group] {boundedGroups[group]=true;report.BoundedMultiImageGroups++}
+    } else {report.OtherWithoutBoundedGroup++}
+   }
    return
   }
   for c:=n.FirstChild;c!=nil;c=c.NextSibling{walk(c)}
