@@ -1,14 +1,14 @@
 #!/bin/bash
 
-# Start ScraperGo (Intel/amd64) and its Cloudflare Tunnel on port 8083.
+# Start ScraperGo (Apple Silicon/arm64) and its Cloudflare Tunnel on port 8083.
 # Leave the sailing and stock applications and tunnels untouched.
 #
-# pgrep -fl 'scrapergo-darwin-amd64|cloudflared'
+# pgrep -fl 'scrapergo-darwin-arm64|cloudflared'
 # curl -fsS http://localhost:8083/
 
 HOME=/Users/richardmauri
 APP_DIR="$HOME/projects/scrapergo"
-APP="$APP_DIR/dist/scrapergo-darwin-amd64"
+APP="$APP_DIR/dist/scrapergo-darwin-arm64"
 TOKEN="$APP_DIR/.cloudflared/token"
 CLOUDFLARED="$HOME/Applications/cloudflared"
 
@@ -21,7 +21,8 @@ for file in "$APP" "$TOKEN" "$CLOUDFLARED"; do
     fi
 done
 
-# Stop only the previous ScraperGo application.
+# Stop only previous ScraperGo application processes (including a legacy Intel build).
+pkill -x scrapergo-darwin-arm64 2>/dev/null || true
 pkill -x scrapergo-darwin-amd64 2>/dev/null || true
 
 # Stop only the cloudflared process associated with this token file.
