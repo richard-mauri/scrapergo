@@ -81,7 +81,7 @@ func TestSourceProvenanceReportsSiblingMediaAndExplicitHiddenOnly(t *testing.T) 
 
 func TestSourceProvenanceInlineHiddenAncestor(t *testing.T) {
  const passage="A detailed description of an image that appears in a hidden alternative block."
- raw:="<article><div hidden><span>"+passage+"</span></div></article>"
+ raw:="<article><div hidden='hidden'><span>"+passage+"</span></div></article>"
  got:=scanProvenance(raw,passage)
  if len(got)!=1 || got[0].Visibility!="hidden-attr" {t.Fatalf("hidden ancestor lost: %+v",got)}
 }
