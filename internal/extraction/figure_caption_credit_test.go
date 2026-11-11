@@ -127,3 +127,22 @@ func TestImageCaptionCombinedRepresentationsKeepPlainProse(t *testing.T) {
  got:=reconcileImageCaptionCreditTriples(blocks,source,source)
  if len(got)!=2 {t.Fatalf("plain repeated prose was deleted: %+v",got)}
 }
+
+func TestCaptionCreditGateEvidenceMatchesProductionPredicate(t *testing.T) {
+ const caption="An image shows the redesigned keyboard and trackpad in clear daylight."
+ const credit="Photo credit: Example Reporter"
+ source:=`<article><div><div><img src="/keyboard.jpg"><span>`+caption+`</span><span>`+credit+`</span></div><div><span>`+caption+` `+credit+`</span></div></div></article>`
+ selected:=`<article><div><div><img src="/keyboard.jpg"><p>`+caption+` `+credit+`</p></div><p>`+caption+` `+credit+`</p></div></article>`
+ blocks:=[]article.Block{{Kind:"p",Text:caption},{Kind:"p",Text:credit},{Kind:"p",Text:caption+" "+credit}}
+ good:=InspectCaptionCreditTriple(blocks,2,source,selected)
+ if !good.TripleShape || !good.SourceImageScope || !good.SelectedImageScope || !good.Eligible {
+  t.Fatalf("eligible source-backed triple not reported: %+v",good)
+ }
+ bad:=InspectCaptionCreditTriple(blocks,2,source,`<article><p>`+caption+` `+credit+`</p></article>`)
+ if !bad.TripleShape || !bad.SourceImageScope || bad.SelectedImageScope || bad.Eligible {
+  t.Fatalf("selected HTML guard should prevent removal: %+v",bad)
+ }
+ if got:=InspectCaptionCreditTriple(blocks,0,source,selected);got.Eligible || got.TripleShape {
+  t.Fatalf("invalid block index reported eligible: %+v",got)
+ }
+}
