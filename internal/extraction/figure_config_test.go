@@ -78,3 +78,25 @@ func TestActualReadabilityExtractorRejectsInvalidOverride(t *testing.T) {
  _,err:=ExtractWithReadability(imageLimitFixture(14),"https://example.org/article",LegacyExtract,InlineTextParts)
  if err==nil||!strings.Contains(err.Error(),ArticleImageCandidateLimitEnv){t.Fatalf("expected configuration error, got %v",err)}
 }
+
+func TestProductionReadabilityCandidateLimitOverride(t *testing.T) {
+ // A substantial ordinary article with 14 explicit illustrations. This test
+ // exercises the production Readability path, not only the image helper.
+ raw:="<html><body><article><h1>A long technical field report</h1><p>"+
+  strings.Repeat("Researchers analyzed measurements from each instrument to explain the observed results. ",22)+
+  "</p>"+imageLimitFixture(14)+"<p>"+
+  strings.Repeat("The report continues with details of the analysis and its practical implications. ",22)+
+  "</p></article></body></html>"
+ read:=func(limit string) int {
+  t.Helper()
+  t.Setenv(ArticleImageCandidateLimitEnv,limit)
+  got,err:=ExtractWithReadability(raw,"https://example.org/report",LegacyExtract,InlineTextParts)
+  if err!=nil{t.Fatal(err)}
+  n:=0;for _,b:=range got.Blocks{if b.Kind=="img"{n++}}
+  if got.Method!="Go Readability v2"{t.Fatalf("unexpected fallback: %s",got.Method)}
+  return n
+ }
+ atDefault:=read("12")
+ atHigher:=read("14")
+ if atDefault!=12||atHigher!=14{t.Fatalf("production extraction image counts default=%d configured=%d (want 12,14)",atDefault,atHigher)}
+}
