@@ -96,6 +96,7 @@ func main() {
   }
  }
  if *provenance {
+  printCaptionCandidateShapes(final.Blocks,pairs)
   if err:=reportSourceProvenance(cleaned,*url,final.Blocks,pairs);err!=nil {
    fmt.Fprintln(os.Stderr,"Source provenance:",err);os.Exit(1)
   }
