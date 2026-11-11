@@ -98,3 +98,32 @@ func TestImageCaptionCreditTripleNoSourceParsingNeededWithoutCandidate(t *testin
   t.Fatalf("ordinary content was changed: %+v",got)
  }
 }
+
+func TestImageCaptionCombinedRepresentationsDropOnlyWeakerCopy(t *testing.T) {
+ const caption="An image shows the two connectors and the compact enclosure."
+ const credit="Photo credit: Field Reporter"
+ source:=`<article><div><div><img src="/ports.jpg"><span>`+caption+`</span><span>`+credit+`</span></div><div><span>`+caption+` `+credit+`</span></div></div></article>`
+ selected:=`<article><div><div><img src="/ports.jpg"><p>`+caption+credit+`</p></div><p>`+caption+` `+credit+`</p></div></article>`
+ blocks:=[]article.Block{{Kind:"p",Text:caption+credit},{Kind:"p",Text:caption+" "+credit}}
+ got:=reconcileImageCaptionCreditTriples(blocks,source,selected)
+ if len(got)!=1 || got[0].Text!=blocks[1].Text {
+  t.Fatalf("failed to retain correctly spaced combined caption: %+v",got)
+ }
+}
+
+func TestImageCaptionCombinedRepresentationsKeepDistinctPhotoCopies(t *testing.T) {
+ const caption="The same detailed description legitimately belongs to both images."
+ const credit="Photo credit: Field Reporter"
+ source:=`<article><div><img src="/first.jpg"><span>`+caption+` `+credit+`</span></div><div><img src="/second.jpg"><span>`+caption+` `+credit+`</span></div></article>`
+ blocks:=[]article.Block{{Kind:"p",Text:caption+" "+credit},{Kind:"p",Text:caption+" "+credit}}
+ got:=reconcileImageCaptionCreditTriples(blocks,source,source)
+ if len(got)!=2 {t.Fatalf("two distinct photographs lost independent captions: %+v",got)}
+}
+
+func TestImageCaptionCombinedRepresentationsKeepPlainProse(t *testing.T) {
+ const text="This report includes a deliberately repeated quotation about the research."
+ source:=`<article><p>`+text+`</p><p>`+text+`</p><img src="/unrelated.jpg"></article>`
+ blocks:=[]article.Block{{Kind:"p",Text:text},{Kind:"p",Text:text}}
+ got:=reconcileImageCaptionCreditTriples(blocks,source,source)
+ if len(got)!=2 {t.Fatalf("plain repeated prose was deleted: %+v",got)}
+}
