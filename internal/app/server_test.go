@@ -58,3 +58,14 @@ func TestOptionalActivityDoesNotChangeReaderRouting(t *testing.T){
  noActivity:=httptest.NewRecorder();plain.ServeHTTP(noActivity,httptest.NewRequest("GET","http://127.0.0.1/",nil))
  if strings.Contains(noActivity.Body.String(),"scrapergo-activity-tab-v1"){t.Fatal("telemetry active when unconfigured")}
 }
+
+func TestActivityTestListenerLoopbackOnly(t *testing.T) {
+ t.Setenv("SCRAPERGO_ACTIVITY_TEST_LISTEN","")
+ if got,err:=testListenAddress("8088");err!=nil||got!=":8088" {t.Fatalf("normal listener: %q %v",got,err)}
+ t.Setenv("SCRAPERGO_ACTIVITY_TEST_LISTEN","127.0.0.1:8088")
+ if got,err:=testListenAddress("8088");err!=nil||got!="127.0.0.1:8088"{t.Fatalf("test listener: %q %v",got,err)}
+ for _,bad:=range []string{":8088","0.0.0.0:8088","127.0.0.1:8083","example.com:8088","localhost:8088"}{
+  t.Setenv("SCRAPERGO_ACTIVITY_TEST_LISTEN",bad)
+  if _,err:=testListenAddress("8088");err==nil{t.Errorf("unsafe test bind accepted: %s",bad)}
+ }
+}
