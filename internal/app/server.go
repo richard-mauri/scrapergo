@@ -7,6 +7,7 @@ import (
  "errors"
  "fmt"
  "log"
+ "net"
  "net/http"
  "syscall"
  "time"
@@ -79,6 +80,18 @@ func Router(h Handlers, config Config) http.Handler {
  })
 }
 
+// testListenAddress preserves the normal listener unless the operator has
+// explicitly selected a loopback-only isolated test socket.
+func testListenAddress(port string) (string,error) {
+ addr:=os.Getenv("SCRAPERGO_ACTIVITY_TEST_LISTEN")
+ if addr=="" {return ":"+port,nil}
+ host,actualPort,err:=net.SplitHostPort(addr)
+ if err!=nil || (host!="127.0.0.1" && host!="::1") || actualPort!=port {
+  return "",fmt.Errorf("invalid loopback-only activity test listener")
+ }
+ return addr,nil
+}
+
 func Run(config Config, handlers Handlers) error {
  reporter,err:=activity.NewActivityReporter(os.Getenv("SCRAPERGO_ACTIVITY_URL"),os.Getenv("HOMEPAGE_ACTIVITY_KEY_SCRAPERGO"))
  if err!=nil {log.Print("ScraperGo activity reporting disabled: invalid configuration")}
@@ -88,7 +101,9 @@ func Run(config Config, handlers Handlers) error {
   defer cancel()
   go reporter.Run(ctx)
  }
- server:=&http.Server{Addr:":"+config.Port,Handler:Router(handlers,config),ReadHeaderTimeout:5*time.Second}
+ addr,addrErr:=testListenAddress(config.Port)
+ if addrErr!=nil {return addrErr}
+ server:=&http.Server{Addr:addr,Handler:Router(handlers,config),ReadHeaderTimeout:5*time.Second}
  log.Printf("ScraperGo v%s · %s listening on http://localhost:%s",config.Version,config.Build,config.Port)
  if err:=server.ListenAndServe();err!=nil {
   if errors.Is(err,syscall.EADDRINUSE) {
