@@ -42,6 +42,41 @@ jobs:
             head -c 1400 "readability-probe-results/$fixture/readability.txt"
             echo
           done
+      - name: Smoke-test retained offline diagnostic tools
+        run: |
+          set -eu
+          fixture="testdata/diagnostics/offline-article.html"
+          base="https://example.org/harbor-navigation"
+          mkdir -p diagnostic-smoke-results
+          go run ./cmd/structureprobe -input "$fixture" -url "$base" > diagnostic-smoke-results/structureprobe.json
+          go run ./cmd/structureprobe -input "$fixture" -url "$base" -structure-trace > diagnostic-smoke-results/structure-trace.json
+          go run ./cmd/selectedstructure -input "$fixture" -url "$base" > diagnostic-smoke-results/selectedstructure.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path("diagnostic-smoke-results")
+          def load(name):
+              with (root / name).open(encoding="utf-8") as stream:
+                  return json.load(stream)
+
+          full = load("structureprobe.json")
+          assert full["status"] == "candidate", full
+          assert len(full.get("items", [])) >= 2, full
+          assert any(item["kind"] == "figure" for item in full["items"]), full
+          trace = load("structure-trace.json")
+          assert trace["status"] == "candidate", trace
+          assert len(trace.get("images", [])) >= 1, trace
+          assert all("imageIndex" in item and "pattern" in item for item in trace["images"]), trace
+          selected = load("selectedstructure.json")
+          assert selected["status"] == "offline-comparison", selected
+          assert selected["selectedHTMLImages"] >= 1, selected
+          assert isinstance(selected["selectedHTMLKinds"], dict), selected
+          assert "sourceSelectedImageAlignment" in selected, selected
+          assert "baselineImageAlignment" in selected, selected
+          assert isinstance(selected["baselineImageStages"], list), selected
+          print("Both offline diagnostic commands produced valid, structurally checked JSON.")
+          PY
       - name: Upload Readability experiment outputs
         if: always()
         uses: actions/upload-artifact@v4

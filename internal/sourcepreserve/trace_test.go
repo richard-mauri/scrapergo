@@ -1,0 +1,64 @@
+package sourcepreserve
+
+import (
+ "encoding/json"
+ "strings"
+ "testing"
+)
+
+func TestTraceStructureGroupsImagesWithoutExposingSourceContent(t *testing.T){
+ raw:=`<article><h2>Private section</h2><div><div><img src="/one.jpg"></div><div><img src="/two.jpg"></div><div><span>Publisher caption</span></div></div><div><div><img src="/three.jpg"></div><div><span>Different caption</span></div></div><p>Editorial paragraph</p></article>`
+ got,err:=TraceStructure(raw,baseURL)
+ if err!=nil {t.Fatal(err)}
+ if got.Status!="candidate"||len(got.Images)!=3 {t.Fatalf("unexpected image trace: %+v",got)}
+ if got.Images[0].Pattern!="bounded-multi-image-group"||got.Images[1].Pattern!="bounded-multi-image-group"||got.Images[0].GroupIndex!=1||got.Images[1].GroupIndex!=1||got.Images[0].GroupImages!=2||got.Images[0].GroupImageBranches!=2||got.Images[0].GroupTextBranches!=1 {t.Fatalf("group shape lost: %+v",got.Images)}
+ if got.Images[2].Pattern!="compact-text-sibling"||got.Images[2].GroupIndex!=0 {t.Fatalf("single image wrongly grouped: %+v",got.Images[2])}
+ data,err:=json.Marshal(got)
+ if err!=nil {t.Fatal(err)}
+ for _,s:=range []string{"Publisher caption","Editorial paragraph","Private section","one.jpg","two.jpg","three.jpg","/one","/two","/three"}{
+  if strings.Contains(string(data),s){t.Fatalf("structural output leaked source content %q: %s",s,data)}
+ }
+}
+
+func TestTraceStructureRejectsAmbiguousArticleAndUnsafeBase(t *testing.T){
+ got,err:=TraceStructure(`<article><p>One</p></article><article><p>Two</p></article>`,baseURL)
+ if err!=nil||got.Status!="inconclusive"||len(got.Images)!=0 {t.Fatalf("multiple article scopes accepted: %+v %v",got,err)}
+ _,err=TraceStructure(`<article><img src="/x.jpg"></article>`,"javascript:bad")
+ if err==nil {t.Fatal("unsafe URL accepted")}
+}
+
+func TestTraceStructureRespectsExcludedAndFigureBranches(t *testing.T){
+ raw:=`<article><div class="ad"><img src="/ad.jpg"></div><div hidden><img src="/hidden.jpg"></div><figure><img src="/fig.jpg"><figcaption>Figure caption</figcaption></figure><div><img src="/unwrapped.jpg"></div></article>`
+ got,err:=TraceStructure(raw,baseURL)
+ if err!=nil{t.Fatal(err)}
+ if len(got.Images)!=1||got.Images[0].ImageIndex!=1||got.Images[0].Pattern!="unwrapped"{
+  t.Fatalf("excluded/figure images leaked into trace: %+v",got)
+ }
+}
+
+func TestTraceAncestorsShowsImageAndTextBranchOrderWithoutCaptionInference(t *testing.T){
+ raw:=`<article><div><section><span>Before image</span><a href="/photo"><img src="/img.jpg"></a><div><small>After image credit</small></div></section></div></article>`
+ got,err:=TraceStructure(raw,baseURL)
+ if err!=nil{t.Fatal(err)}
+ if len(got.Images)!=1||len(got.Images[0].Ancestors)<2{t.Fatalf("missing hierarchy: %+v",got)}
+ // Depth 1 is the image's anchor; depth 2 is a section with a separate
+ // text-bearing branch before and after the image-bearing anchor.
+ a:=got.Images[0].Ancestors
+ if a[0].Tag!="a"||a[1].Tag!="section"||a[1].Images!=1||a[1].ImageBranches!=1||a[1].TextBranchesBefore!=1||a[1].TextBranchesAfter!=1{
+  t.Fatalf("incorrect direct child relationship: %+v",a)
+ }
+ encoded,err:=json.Marshal(got);if err!=nil{t.Fatal(err)}
+ for _,secret:=range []string{"Before image","After image credit","img.jpg","/photo"}{
+  if strings.Contains(string(encoded),secret){t.Fatalf("source leaked: %s",encoded)}
+ }
+}
+
+func TestTraceAncestorsDoesNotExportCustomTagNames(t *testing.T){
+ raw:=`<article><private-secret-user-identifier><a><img src="/photo.png"></a></private-secret-user-identifier></article>`
+ got,err:=TraceStructure(raw,baseURL)
+ if err!=nil||len(got.Images)!=1 {t.Fatalf("bad trace: %+v, %v",got,err)}
+ data,err:=json.Marshal(got);if err!=nil{t.Fatal(err)}
+ if strings.Contains(string(data),"private-secret")||!strings.Contains(string(data),`"tag":"other"`){
+  t.Fatalf("custom publisher tag name leaked: %s",data)
+ }
+}
