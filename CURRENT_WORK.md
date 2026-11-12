@@ -1,4 +1,31 @@
-# CURRENT WORK — ScraperGo handoff (November 12, 2026)
+# CURRENT WORK — ScraperGo (November 12, 2026)
+
+## Active Issue #131 — Homepage suite activity reporter
+
+**Current scoped implementation:** [Issue #131](https://github.com/richard-mauri/scrapergo/issues/131), branch `feat/131-suite-activity` from merged GitHub `main` (baseline `92f68f16f846dbf3ad247a243ff3d8095c6636ed`), [draft PR #132](https://github.com/richard-mauri/scrapergo/pull/132). This is independent of *still-draft* diagnostic PR #126 on `experiment/125-structure-preserving-extraction`; do not merge, modify or replace that diagnostics branch as part of telemetry.
+
+- **Implemented:** optional `SCRAPERGO_ACTIVITY_URL` / `HOMEPAGE_ACTIVITY_KEY_SCRAPERGO` server-only reporter to Homepage's `scrapergo` identity; ephemeral anonymous/unverified same-origin browser heartbeat; rolling 2/5/15/60-minute counts; active API request work (read/classify/PDF/thumbnail/image/diagnostics); 60-second private aggregate reports with nonce and timestamp. Code confined to `internal/activity`, `internal/app`, and `internal/ui`. No production root/extraction/fetcher/SSRF modifications.
+- **Privacy:** no publisher URL, article text, individual accounts, tab IDs or browser/session secrets exported to Homepage. Signed-in browser classification is unverified and included under anonymous. Missing reports are unknown, never a restart permission.
+- **Verification:** CI #684 **passed** tests, build and existing diagnostic checks on code checkpoint `bf89d76baf97927011171d4c0691cb8f2c203764`. Documentation update heads must be checked at exact SHA. Mac/Safari test and actual Homepage-to-ScraperGo integration remain **unverified**. No merge/deploy/release/tag or service restart.
+- **Next:** verify final-head CI. Isolated owner Mac test on port **8088** against disposable Homepage test on **8788**, after checking/stopping only a previous *test* listener on 8788. Never stop production Homepage 8787 or ScraperGo 8083. Use a new private per-service key and existing disposable Homepage admin/history. After Safari acceptance, owner decides whether to merge, in what order, and how to configure private keys for controlled rollout.
+
+## Owner Mac test/build workflow (the launch command below needs explicit production restart approval)
+
+```sh
+cd ~/projects/scrapergo
+git fetch origin
+git checkout feat/131-suite-activity
+git pull --ff-only origin feat/131-suite-activity
+go test -count=1 ./...
+./devbuild.sh
+./scrapergo.sh
+```
+
+**Do not run `./scrapergo.sh` for isolated acceptance or without owner authorization.** It owns a production process and tunnel. For the smoke test use a detached test worktree, `go build -o` to a fresh temp directory, and `--port 8088` only. Preserve local build counters, credentials, live diagnostics and unpushed edits.
+
+---
+
+## Previous development context and independent diagnostics work
 
 ## Authoritative repository state
 
