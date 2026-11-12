@@ -32,3 +32,12 @@ func Render(version, build string) string {
  page := Template()
  return strings.Replace(page,"__APP_VERSION__","v"+version+" · "+build,1)
 }
+
+// RenderWithActivity adds an anonymous, same-origin heartbeat only when the
+// server has an explicitly configured private reporter. No service key enters
+// this HTML. The existing inline-script CSP continues to apply.
+func RenderWithActivity(version,build,browserScript string) string {
+ page:=Render(version,build)
+ if browserScript=="" {return page}
+ return strings.Replace(page,"</body>","<script>"+browserScript+"</script></body>",1)
+}
