@@ -105,6 +105,9 @@ func (a *ActivityReporter) Ping(w http.ResponseWriter,r *http.Request) {
  w.WriteHeader(204)
 }
 
+// InFlight reports active HTTP operations without exposing browser identifiers.
+func (a *ActivityReporter) InFlight() int {a.mu.Lock();defer a.mu.Unlock();return a.inFlight}
+
 func (a *ActivityReporter) Working() func(){
  a.mu.Lock();a.inFlight++;a.mu.Unlock()
  return func(){a.mu.Lock();a.inFlight--;a.mu.Unlock()}
