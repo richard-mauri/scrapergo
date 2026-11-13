@@ -220,15 +220,34 @@ func TestDirectScraperGoVisitProbesExistingHomepageSession(t *testing.T) {
  for _,fragment:=range []string{
   "let localOnly=false",
   "localOnly=true",
-  "if(localOnly) {statusElement.textContent='Guest — not signed in';return;}",
+  "if(localOnly) {statusElement.textContent='Sign-in required';setVerified(false,true);return;}",
   "let identity=bearer?await identityResult():{state:'guest'}",
   "const recovery=await recoverHandoff()",
-  "hadHandoff?'Session expired — Sign in again':'Guest — not signed in'",
+  "hadHandoff?'Session expired — Sign in again':'Sign-in required'",
   "hadHandoff=true",
  } {
   if !strings.Contains(script,fragment){t.Errorf("missing direct-login invariant: %q",fragment)}
  }
  if strings.Contains(script,"location.assign(")||strings.Contains(script,"location.replace(") {
   t.Fatal("direct login probe must never navigate")
+ }
+}
+
+func TestSignedOutReaderExplainsHomepageGuestAccessWithoutNavigation(t *testing.T) {
+ script:=BrowserScript()
+ for _,fragment:=range []string{
+  "Suite sign-in required",
+  "temporary authenticated guest session valid for one hour",
+  "Guest sessions do not save or restore server settings",
+  "homepageLink.href='https://home.themauris.org/'",
+  "signInDialog.showModal()",
+  "readerURL.disabled=!verified",
+  "readerButton.disabled=!verified",
+  "setVerified(true)",
+ } {
+  if !strings.Contains(script,fragment){t.Errorf("missing guest access invariant: %q",fragment)}
+ }
+ if strings.Contains(script,"location.assign(")||strings.Contains(script,"location.replace(") {
+  t.Fatal("sign-in prompt must not navigate automatically")
  }
 }
