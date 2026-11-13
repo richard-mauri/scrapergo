@@ -1,5 +1,7 @@
 # Current work — ScraperGo
 
+- **Heartbeat revocation follow-up:** Each normal 60-second activity ping now returns HTTP 401 for a supplied invalid/revoked bearer, while anonymous presence stays distinct and Homepage outages remain 503. ScraperGo immediately clears its guest status and shows the existing non-dismissible sign-in dialog on 401. CI #728 passed before this note; Mac Safari acceptance pending.
+
 ## Issues #136 and Homepage #39 — Guest sign-in modal and immediate arrival activity
 
 - **Baseline:** GitHub `main`, including merged ScraperGo PRs #133 and #135 (Homepage guest handoffs, verified first heartbeat).
