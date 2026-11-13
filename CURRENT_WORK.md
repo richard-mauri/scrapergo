@@ -1,5 +1,18 @@
 # CURRENT WORK — ScraperGo (November 12, 2026)
 
+
+## Current scope — Homepage activity identity integration
+
+- **Authoritative baseline:** GitHub `main` contains merged initial activity reporter PR #132. Existing independent diagnostics work remains out of scope.
+- **Branch:** `feat/132-suite-presence-identity` from current `main`; companion to Homepage draft PR #33 and coordinating Homepage Issue #32. No new ScraperGo login requirement.
+- **Change:** ScraperGo remains publicly readable as a guest. When arriving with a verified Homepage-issued child handoff, the browser stores it only in origin-scoped sessionStorage and removes the fragment; the reporter verifies the bearer against Homepage's profile endpoint on each presence ping. The validation returns only origin-scoped telemetry aliases for the parent session and user; ScraperGo deduplicates tabs sharing a session and sends aggregate counts, never identities or credentials, to Homepage.
+- **Homepage dependency:** PR #33 adds the allowlisted `/launch/scrapergo` bridge, authenticated Homepage app launch, scoped profile validation, and pseudonymous aliases. ScraperGo profile access is not granted account-storage privileges. The NewsGo → ScraperGo link/recovery path is **not yet implemented** and requires coordination before final acceptance.
+- **Tests/risks:** New reporter regression checks same-session deduplication, independent sessions, shared user and guest counting. Need exact-head Go CI, additional auth expiry/revocation and browser fragment tests, and owner Mac/Safari acceptance. The handoff is advisory for telemetry and must never gate article access or relax fetcher/SSRF rules.
+- **Mac acceptance when ready:** `cd ~/projects/scrapergo`; `git fetch origin`; `git checkout feat/132-suite-presence-identity`; `git pull --ff-only origin feat/132-suite-presence-identity`; `go test -count=1 ./...`; `./devbuild.sh`; `./scrapergo.sh`. The last command restarts production ScraperGo and its tunnel and must run only if Richard explicitly approves deployment. Test direct anonymous reading and Homepage handoff in Safari after both companion builds.
+- **Restrictions:** no merge/tag/version bump/release/restart, production token changes, root extractor modifications or unrelated PR changes.
+
+## Earlier development notes (verify before acting)
+
 ## Active Issue #131 — Homepage suite activity reporter
 
 **Current scoped implementation:** [Issue #131](https://github.com/richard-mauri/scrapergo/issues/131), branch `feat/131-suite-activity` from merged GitHub `main` (baseline `92f68f16f846dbf3ad247a243ff3d8095c6636ed`), [draft PR #132](https://github.com/richard-mauri/scrapergo/pull/132). This is independent of *still-draft* diagnostic PR #126 on `experiment/125-structure-preserving-extraction`; do not merge, modify or replace that diagnostics branch as part of telemetry.
