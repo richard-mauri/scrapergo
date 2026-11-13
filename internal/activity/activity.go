@@ -29,6 +29,7 @@ type ActivityReporter struct {
  now func() time.Time
  client *http.Client
  endpoint string
+ profileEndpoint string
  key string
  presence map[string]activityPresence
  inFlight int
@@ -38,6 +39,8 @@ type activityPresence struct {
  seen time.Time
  interacted time.Time
  visible bool
+ sessionKey string
+ userKey string
 }
 type activityPing struct {
  ID string `json:"id"`
@@ -53,6 +56,7 @@ type activityPayload struct {
  Background int `json:"background"`
  Anonymous int `json:"anonymous"`
  Authenticated int `json:"authenticated"`
+ UniqueUsers int `json:"uniqueUsers,omitempty"`
  InFlight int `json:"inFlight"`
  LastInteraction string `json:"lastInteraction,omitempty"`
 }
@@ -71,8 +75,27 @@ func NewActivityReporter(endpoint,key string) (*ActivityReporter,error) {
  }
  return &ActivityReporter{
   now:time.Now,client:&http.Client{Timeout:3*time.Second,CheckRedirect:func(*http.Request,[]*http.Request)error{return http.ErrUseLastResponse}},
-  endpoint:endpoint,key:key,presence:make(map[string]activityPresence),
+  endpoint:endpoint,profileEndpoint:strings.TrimSuffix(endpoint,"/api/admin/activity/ingest")+"/api/session/profile",key:key,presence:make(map[string]activityPresence),
  },nil
+}
+
+// verifyHandoff revalidates the child bearer with Homepage on each ping.
+// Only origin-scoped pseudonymous identifiers enter the telemetry map.
+func (a *ActivityReporter) verifyHandoff(ctx context.Context,bearer string) (string,string) {
+ if len(bearer)!=64 || strings.Trim(bearer,"0123456789abcdef")!="" {return "",""}
+ req,err:=http.NewRequestWithContext(ctx,http.MethodGet,a.profileEndpoint,nil)
+ if err!=nil{return "",""}
+ req.Header.Set("Origin","https://scrapergo.themauris.org")
+ req.Header.Set("Authorization","Bearer "+bearer)
+ resp,err:=a.client.Do(req)
+ if err!=nil{return "",""}
+ defer resp.Body.Close()
+ if resp.StatusCode!=http.StatusOK{return "",""}
+ var profile struct {ActivitySession string `json:"activitySession"`; ActivityUser string `json:"activityUser"`}
+ if json.NewDecoder(io.LimitReader(resp.Body,2048)).Decode(&profile)!=nil{return "",""}
+ if len(profile.ActivitySession)!=64 || len(profile.ActivityUser)!=64 ||
+  strings.Trim(profile.ActivitySession,"0123456789abcdef")!="" || strings.Trim(profile.ActivityUser,"0123456789abcdef")!="" {return "",""}
+ return profile.ActivitySession,profile.ActivityUser
 }
 
 func (a *ActivityReporter) Ping(w http.ResponseWriter,r *http.Request) {
@@ -91,6 +114,10 @@ func (a *ActivityReporter) Ping(w http.ResponseWriter,r *http.Request) {
  if dec.Decode(&extra)!=io.EOF || len(p.ID)!=32 || strings.Trim(p.ID,"0123456789abcdef")!=""{
   http.Error(w,"invalid activity ID",400);return
  }
+ sessionKey,userKey:="",""
+ if bearer,ok:=strings.CutPrefix(r.Header.Get("Authorization"),"Bearer ");ok {
+  sessionKey,userKey=a.verifyHandoff(r.Context(),bearer)
+ }
  now:=a.now()
  a.mu.Lock()
  defer a.mu.Unlock()
@@ -100,6 +127,8 @@ func (a *ActivityReporter) Ping(w http.ResponseWriter,r *http.Request) {
  if exists && now.Sub(past.seen)<15*time.Second {w.WriteHeader(204);return}
  past.seen=now
  past.visible=p.Visible
+ past.sessionKey=sessionKey
+ past.userKey=userKey
  if p.Interacted && p.Visible {past.interacted=now;a.lastInteraction=now}
  a.presence[p.ID]=past
  w.WriteHeader(204)
@@ -117,21 +146,29 @@ func (a *ActivityReporter) snapshot() activityPayload {
  a.mu.Lock();defer a.mu.Unlock()
  now:=a.now()
  p:=activityPayload{InFlight:a.inFlight}
+ identities:=make(map[string]activityPresence,len(a.presence))
  for id,v:=range a.presence {
   age:=now.Sub(v.seen)
   if age>time.Hour {delete(a.presence,id);continue}
   if age<0 {continue}
-  if age<=time.Hour {p.Active60++}
+  key:="guest:"+id
+  if v.sessionKey!="" {key="session:"+v.sessionKey}
+  previous,exists:=identities[key]
+  if !exists || v.seen.After(previous.seen) {identities[key]=v}
+ }
+ users:=make(map[string]bool)
+ for _,v:=range identities {
+  age:=now.Sub(v.seen)
+  p.Active60++
   if age<=15*time.Minute {p.Active15++}
   if age<=5*time.Minute {p.Active5++}
   if age<=2*time.Minute {
    p.Active2++
    if v.visible {p.Foreground++}else{p.Background++}
-   // A ScraperGo tab is anonymous/unverified until its Homepage identity is
-   // verified by the server. Never trust browser-provided role flags.
-   p.Anonymous++
+   if v.sessionKey!="" {p.Authenticated++;users[v.userKey]=true}else{p.Anonymous++}
   }
  }
+ p.UniqueUsers=len(users)
  if !a.lastInteraction.IsZero(){p.LastInteraction=a.lastInteraction.UTC().Format(time.RFC3339)}
  return p
 }
