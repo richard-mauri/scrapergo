@@ -16,9 +16,11 @@
   // Fragments are removed before any article/network request.
   const handoffKey='scrapergo-suite-handoff-v1';
   let bearer='';
+  let localOnly=false;
   try {
     const hash=new URLSearchParams(location.hash.slice(1));
     if(hash.has('suite_mode') && hash.get('suite_mode')==='local') {
+      localOnly=true;
       sessionStorage.removeItem(handoffKey);
     } else if(hash.has('suite_token')) {
       const token=hash.get('suite_token')||'';
@@ -31,9 +33,10 @@
   }catch(_){bearer=''}
   const statusElement=document.getElementById('suite-auth-status');
   let statusPending=false;
-  // Only a tab that was handed a Homepage credential attempts background
-  // recovery. Direct public visits remain guests.
+  // Direct navigation also recognizes an existing Homepage login silently.
+  // An explicit suite_mode=local remains a deliberate guest launch.
   let hadHandoff=!!bearer;
+
   const homepageRecoverURL='https://home.themauris.org/api/handoff/scrapergo-recover';
   async function recoverHandoff() {
     const response=await fetch(homepageRecoverURL,{
@@ -58,7 +61,7 @@
   }
   async function updateIdentityStatus() {
     if(!statusElement || statusPending)return;
-    if(!hadHandoff) {statusElement.textContent='Guest — not signed in';return;}
+    if(localOnly) {statusElement.textContent='Guest — not signed in';return;}
     statusPending=true;
     try {
       statusElement.textContent='Checking sign-in…';
@@ -70,13 +73,14 @@
         if(recovery==='expired'){
           bearer='';
           try{sessionStorage.removeItem(handoffKey)}catch(_){}
-          statusElement.textContent='Session expired — Sign in again';
+          statusElement.textContent=hadHandoff?'Session expired — Sign in again':'Guest — not signed in';
           return;
         }
         if(recovery!=='recovered'){
           statusElement.textContent='Unable to verify sign-in';
           return;
         }
+        hadHandoff=true;
         identity=await identityResult();
       }
       if(identity.state==='signed-in' && typeof identity.user==='string' && identity.user){
