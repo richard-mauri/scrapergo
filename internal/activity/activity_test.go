@@ -101,3 +101,34 @@ func TestVerifiedHandoffCountsSessionsAndUsersWithoutExportingIDs(t *testing.T) 
   t.Fatal("collector aggregate exposed identity tags")
  }
 }
+
+func TestRevokedAndMalformedScraperHandoffsAreGuestPresence(t *testing.T) {
+ secret:=strings.Repeat("s",40)
+ valid:=strings.Repeat("a",64)
+ revoked:=false
+ server:=httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter,r *http.Request) {
+  if revoked {w.WriteHeader(http.StatusUnauthorized);return}
+  _,_=w.Write([]byte(`{"activitySession":"`+strings.Repeat("1",64)+`","activityUser":"`+strings.Repeat("2",64)+`"}`))
+ }))
+ defer server.Close()
+ a,err:=NewActivityReporter(server.URL+"/api/admin/activity/ingest",secret)
+ if err!=nil{t.Fatal(err)}
+ now:=time.Now().UTC().Truncate(time.Second)
+ a.now=func()time.Time{return now}
+ ping:=func(token string)int{
+  req:=httptest.NewRequest(http.MethodPost,"http://127.0.0.1:8088/api/activity/ping",
+   strings.NewReader(`{"id":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","visible":true}`))
+  req.Header.Set("Origin","http://127.0.0.1:8088")
+  req.Header.Set("Content-Type","application/json")
+  if token!=""{req.Header.Set("Authorization","Bearer "+token)}
+  w:=httptest.NewRecorder();a.Ping(w,req);return w.Code
+ }
+ if got:=ping(valid);got!=204{t.Fatalf("valid ping %d",got)}
+ if p:=a.snapshot();p.Authenticated!=1||p.UniqueUsers!=1||p.Anonymous!=0{t.Fatalf("valid profile %+v",p)}
+ revoked=true;now=now.Add(16*time.Second)
+ if got:=ping(valid);got!=204{t.Fatalf("revoked ping %d",got)}
+ if p:=a.snapshot();p.Authenticated!=0||p.UniqueUsers!=0||p.Anonymous!=1{t.Fatalf("revoked bearer must become guest %+v",p)}
+ now=now.Add(16*time.Second)
+ if got:=ping("invalid");got!=204{t.Fatalf("malformed ping %d",got)}
+ if p:=a.snapshot();p.Authenticated!=0||p.Anonymous!=1{t.Fatalf("malformed bearer must remain guest %+v",p)}
+}
