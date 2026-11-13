@@ -75,7 +75,7 @@ func TestVerifiedHandoffCountsSessionsAndUsersWithoutExportingIDs(t *testing.T) 
   }
   if r.Header.Get("Authorization")!="Bearer "+bearer {w.WriteHeader(401);return}
   w.Header().Set("Content-Type","application/json")
-  _,_=w.Write([]byte(`{"activitySession":"`+sessionOne+`","activityUser":"`+userTag+`"}`))
+  _,_=w.Write([]byte(`{"user":"richard","activitySession":"`+sessionOne+`","activityUser":"`+userTag+`"}`))
  }))
  defer server.Close()
  a,err:=NewActivityReporter(server.URL+"/api/admin/activity/ingest",secret)
@@ -108,7 +108,7 @@ func TestRevokedAndMalformedScraperHandoffsAreGuestPresence(t *testing.T) {
  revoked:=false
  server:=httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter,r *http.Request) {
   if revoked {w.WriteHeader(http.StatusUnauthorized);return}
-  _,_=w.Write([]byte(`{"activitySession":"`+strings.Repeat("1",64)+`","activityUser":"`+strings.Repeat("2",64)+`"}`))
+  _,_=w.Write([]byte(`{"user":"richard","activitySession":"`+strings.Repeat("1",64)+`","activityUser":"`+strings.Repeat("2",64)+`"}`))
  }))
  defer server.Close()
  a,err:=NewActivityReporter(server.URL+"/api/admin/activity/ingest",secret)
@@ -167,4 +167,32 @@ func TestTemporaryHomepageProfileOutageDoesNotInventGuest(t *testing.T) {
  if w.Code!=http.StatusServiceUnavailable{t.Fatalf("outage should not fabricate guest: %d",w.Code)}
  p:=a.snapshot()
  if p.Active2!=0||p.Anonymous!=0||p.Authenticated!=0{t.Fatalf("outage created false presence: %+v",p)}
+}
+
+func TestScraperGoIdentityStatusGuestSignedInAndUnavailable(t *testing.T) {
+ valid:=strings.Repeat("a",64)
+ unavailable:=false
+ server:=httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter,r *http.Request) {
+  if unavailable {w.WriteHeader(http.StatusServiceUnavailable);return}
+  if r.Header.Get("Authorization")!="Bearer "+valid {w.WriteHeader(http.StatusUnauthorized);return}
+  _,_=w.Write([]byte(`{"user":"richard","activitySession":"`+strings.Repeat("1",64)+`","activityUser":"`+strings.Repeat("2",64)+`"}`))
+ }))
+ defer server.Close()
+ a,err:=NewActivityReporter(server.URL+"/api/admin/activity/ingest",strings.Repeat("k",40))
+ if err!=nil{t.Fatal(err)}
+ check:=func(bearer string)(int,string){
+  req:=httptest.NewRequest(http.MethodGet,"http://127.0.0.1:8088/api/activity/identity",nil)
+  if bearer!=""{req.Header.Set("Authorization","Bearer "+bearer)}
+  w:=httptest.NewRecorder();a.IdentityStatus(w,req)
+  return w.Code,w.Body.String()
+ }
+ if code,body:=check("");code!=200||!strings.Contains(body,`"guest"`){t.Fatalf("guest status %d %s",code,body)}
+ if code,body:=check(valid);code!=200||!strings.Contains(body,`"signed-in"`)||!strings.Contains(body,"richard"){
+  t.Fatalf("authenticated status %d %s",code,body)
+ }
+ if code,body:=check(strings.Repeat("b",64));code!=200||!strings.Contains(body,`"guest"`){
+  t.Fatalf("revoked status %d %s",code,body)
+ }
+ unavailable=true
+ if code,_:=check(valid);code!=503{t.Fatalf("outage status %d",code)}
 }
