@@ -196,3 +196,21 @@ func TestScraperGoIdentityStatusGuestSignedInAndUnavailable(t *testing.T) {
  unavailable=true
  if code,_:=check(valid);code!=503{t.Fatalf("outage status %d",code)}
 }
+
+func TestSilentRecoveryDoesNotNavigateOrLeakParentCredential(t *testing.T) {
+ script:=BrowserScript()
+ for _,required:=range []string{
+  "https://home.themauris.org/api/handoff/scrapergo-recover",
+  "method:'POST',mode:'cors',credentials:'include'",
+  "hadHandoff=!!bearer",
+  "Session expired — Sign in again",
+  "Unable to verify sign-in",
+  "Signed in as ",
+ } {
+  if !strings.Contains(script,required){t.Errorf("missing silent recovery invariant %q",required)}
+ }
+ if strings.Contains(script,"location.assign(")||strings.Contains(script,"location.replace(")||
+  strings.Contains(script,"window.location=")||strings.Contains(script,"/api/session/renew") {
+  t.Fatal("silent recovery must not navigate or renew Homepage parent login")
+ }
+}
