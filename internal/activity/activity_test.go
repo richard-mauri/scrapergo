@@ -150,3 +150,21 @@ func TestBrowserHandoffPreservesReaderAndRemovesTokenFragment(t *testing.T) {
   t.Fatal("browser handoff cannot use token query strings or renew Homepage login")
  }
 }
+
+func TestTemporaryHomepageProfileOutageDoesNotInventGuest(t *testing.T) {
+ server:=httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter,r *http.Request) {
+  w.WriteHeader(http.StatusServiceUnavailable)
+ }))
+ defer server.Close()
+ a,err:=NewActivityReporter(server.URL+"/api/admin/activity/ingest",strings.Repeat("k",40))
+ if err!=nil{t.Fatal(err)}
+ req:=httptest.NewRequest(http.MethodPost,"http://127.0.0.1:8088/api/activity/ping",
+  strings.NewReader(`{"id":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","visible":true}`))
+ req.Header.Set("Origin","http://127.0.0.1:8088")
+ req.Header.Set("Content-Type","application/json")
+ req.Header.Set("Authorization","Bearer "+strings.Repeat("a",64))
+ w:=httptest.NewRecorder();a.Ping(w,req)
+ if w.Code!=http.StatusServiceUnavailable{t.Fatalf("outage should not fabricate guest: %d",w.Code)}
+ p:=a.snapshot()
+ if p.Active2!=0||p.Anonymous!=0||p.Authenticated!=0{t.Fatalf("outage created false presence: %+v",p)}
+}
