@@ -40,6 +40,7 @@ func Router(h Handlers, config Config) http.Handler {
  mux:=http.NewServeMux()
  if config.Activity!=nil {
   mux.HandleFunc("/api/activity/ping",config.Activity.Ping)
+  mux.HandleFunc("/api/activity/identity",config.Activity.IdentityStatus)
  }
  mux.Handle("/api/read",h.Read)
  if h.PDF != nil { mux.Handle("/api/pdf",h.PDF) }
@@ -71,7 +72,7 @@ func Router(h Handlers, config Config) http.Handler {
  // Count only application work; never count lightweight presence observations,
  // the UI bootstrap, or the static Tanner image as in-flight extraction work.
  return http.HandlerFunc(func(w http.ResponseWriter,r *http.Request){
-  if r.URL.Path=="/" || r.URL.Path=="/tanner.jpg" || r.URL.Path=="/api/activity/ping" {
+  if r.URL.Path=="/" || r.URL.Path=="/tanner.jpg" || r.URL.Path=="/api/activity/ping" || r.URL.Path=="/api/activity/identity" {
    mux.ServeHTTP(w,r);return
   }
   done:=config.Activity.Working()
