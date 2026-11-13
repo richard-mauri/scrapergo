@@ -151,6 +151,11 @@ func (a *ActivityReporter) Ping(w http.ResponseWriter,r *http.Request) {
   var available bool
   sessionKey,userKey,username,available=a.verifyHandoff(r.Context(),bearer)
   if !available {http.Error(w,"Homepage identity validation unavailable",503);return}
+  if sessionKey=="" {
+   // A supplied but rejected identity is not an anonymous heartbeat.
+   a.mu.Lock();delete(a.presence,p.ID);a.mu.Unlock()
+   http.Error(w,"Homepage session unauthorized",http.StatusUnauthorized);return
+  }
  }
  now:=a.now()
  a.mu.Lock()
