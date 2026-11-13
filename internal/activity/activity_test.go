@@ -270,3 +270,13 @@ func TestFirstBrowserPresenceWaitsForIdentityVerification(t *testing.T) {
   t.Fatal("identity recovery may race an eager anonymous ping")
  }
 }
+
+func TestSignInDialogRemainsOpenUntilIdentityVerified(t *testing.T) {
+ script:=BrowserScript()
+ for _,snippet:=range []string{
+  "signInDialog.addEventListener('cancel',event=>event.preventDefault())",
+  "dialogActions.append(homepageLink)",
+  "if(verified && signInDialog.open)signInDialog.close()",
+ } {if !strings.Contains(script,snippet) {t.Errorf("missing sign-in dialog contract: %s",snippet)}}
+ if strings.Contains(script,"closeDialog.textContent='Close'") {t.Fatal("sign-in dialog still offers Close bypass")}
+}
