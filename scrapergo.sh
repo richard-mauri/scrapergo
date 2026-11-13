@@ -13,6 +13,16 @@ TOKEN="$APP_DIR/.cloudflared/token"
 CLOUDFLARED="$HOME/Applications/cloudflared"
 
 cd "$APP_DIR" || exit 1
+# BEGIN SUITE ACTIVITY ENV - managed by setup-suite-activity.sh
+ACTIVITY_ENV="$APP_DIR/.activity.env"
+if [[ ! -r "$ACTIVITY_ENV" ]]; then
+  echo "Missing readable activity configuration: $ACTIVITY_ENV" >&2
+  exit 1
+fi
+# Private file is generated with export-only assignments; never print it.
+# shellcheck disable=SC1090
+source "$ACTIVITY_ENV"
+# END SUITE ACTIVITY ENV
 
 for file in "$APP" "$TOKEN" "$CLOUDFLARED"; do
     if [[ ! -f "$file" ]]; then
