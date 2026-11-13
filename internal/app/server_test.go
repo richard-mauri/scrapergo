@@ -25,6 +25,8 @@ func TestRouterPreservesRoutesAndCSP(t *testing.T){
  rec:=httptest.NewRecorder();h.ServeHTTP(rec,httptest.NewRequest(http.MethodGet,"/",nil))
  if rec.Code!=http.StatusOK || !strings.Contains(rec.Body.String(),"Architecture PR #47"){t.Fatalf("root page changed: %d",rec.Code)}
  if !strings.Contains(rec.Header().Get("Content-Security-Policy"),"img-src 'self' https: data:"){t.Fatal("image CSP changed")}
+ if !strings.Contains(rec.Header().Get("Content-Security-Policy"),"connect-src 'self' https://home.themauris.org;") {t.Fatal("Homepage silent-recovery CSP allowance missing")}
+ if strings.Contains(rec.Header().Get("Content-Security-Policy"),"connect-src *") {t.Fatal("CSP permits arbitrary recovery origins")}
  rec=httptest.NewRecorder();h.ServeHTTP(rec,httptest.NewRequest(http.MethodGet,"/missing",nil))
  if rec.Code!=http.StatusNotFound {t.Fatalf("unknown path: %d",rec.Code)}
 }
