@@ -12,6 +12,23 @@
   } catch (_) {
     id=Array.from(crypto.getRandomValues(new Uint8Array(16)),b=>b.toString(16).padStart(2,'0')).join('');
   }
+  // Accept a Homepage-issued child handoff without changing public reader access.
+  // Fragments are removed before any article/network request.
+  const handoffKey='scrapergo-suite-handoff-v1';
+  let bearer='';
+  try {
+    const hash=new URLSearchParams(location.hash.slice(1));
+    if(hash.has('suite_mode') && hash.get('suite_mode')==='local') {
+      sessionStorage.removeItem(handoffKey);
+    } else if(hash.has('suite_token')) {
+      const token=hash.get('suite_token')||'';
+      if(/^[a-f0-9]{64}$/.test(token))sessionStorage.setItem(handoffKey,token);
+    }
+    if(hash.has('suite_mode')||hash.has('suite_token'))
+      history.replaceState(null,'',location.pathname+location.search);
+    bearer=sessionStorage.getItem(handoffKey)||'';
+    if(!/^[a-f0-9]{64}$/.test(bearer))bearer='';
+  }catch(_){bearer=''}
   let interacted=false;
   let sentAt=0;
   function send() {
@@ -22,8 +39,10 @@
     const body=JSON.stringify({id,visible:true,interacted});
     interacted=false;
     try {
+      const headers={'Content-Type':'application/json'};
+      if(bearer)headers.Authorization='Bearer '+bearer;
       fetch('/api/activity/ping',{method:'POST',cache:'no-store',credentials:'same-origin',
-        headers:{'Content-Type':'application/json'},body,keepalive:true}).catch(()=>{});
+        headers,body,keepalive:true}).catch(()=>{});
     }catch(_){}
   }
   function mark() {interacted=true;send()}
