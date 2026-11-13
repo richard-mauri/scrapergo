@@ -1,6 +1,14 @@
 # CURRENT WORK — ScraperGo (November 12, 2026)
 
 
+## November 13, 2026 — temporary guest authentication in existing PR
+
+- **Coordination:** Homepage Issue #32 / draft PR #33 is the sole feature narrative. ScraperGo draft PR #133 remains the one companion PR; no new issue or PR, no unrelated services, no merge/restart.
+- **Decision:** Guest `guest-xxx` IDs are **temporary authenticated Homepage identities** (one hour), not unauthenticated ScraperGo operating mode. Homepage issues, verifies, expires, and garbage-collects them entirely in process memory. ScraperGo continues to consume its existing Homepage child-handoff/profile authentication protocol without adopting a guest-token store.
+- **Browser behavior:** The ScraperGo URL input and Read button are disabled until Homepage verifies identity. A user-visible modal explains how to visit Homepage and sign in with a named credential or one-hour temporary guest; it only opens Homepage on a user's explicit click. Never redirect or reload automatically. Once validated, it shows `Signed in as richard` or `Signed in as guest-xxx` on the same header row.
+- **Persistence:** Temporary guests may use the reader but cannot save or restore server preferences. Homepage enforces refusal on storage endpoints; ScraperGo does not gain a separate settings store.
+- **Validation:** CI tests verify sign-in prompt text, disabled reader controls, no automatic navigation and existing identity recovery. Owner Mac requires `darwin-arm64` and existing `./scrapergo.sh` launcher, only after explicit deployment approval. Safari needs named and guest identity, inactivity, expiration, and cross-service activity verification.
+
 ## Current scope — Homepage activity identity integration
 
 - **Authoritative baseline:** GitHub `main` contains merged initial activity reporter PR #132. Existing independent diagnostics work remains out of scope.
