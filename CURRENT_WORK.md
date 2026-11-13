@@ -1,12 +1,27 @@
 # Current work — ScraperGo
 
-## November 13, 2026 — first verified heartbeat (Issue #134)
+- **Heartbeat revocation follow-up:** Each normal 60-second activity ping now returns HTTP 401 for a supplied invalid/revoked bearer, while anonymous presence stays distinct and Homepage outages remain 503. ScraperGo immediately clears its guest status and shows the existing non-dismissible sign-in dialog on 401. CI #728 passed before this note; Mac Safari acceptance pending.
 
-- **Authoritative baseline:** GitHub `main` contains merged Homepage/ScraperGo temporary-authentication and per-user activity work (ScraperGo PR #133). This follow-up is branch `fix/134-first-verified-heartbeat` from `main`, one scoped draft PR, with no merge/release/deployment.
-- **Owner observation:** One-hour `guest-xxx` visited NewsGo then ScraperGo. Homepage's admin view initially showed NewsGo activity but no ScraperGo guest observation; a subsequent screenshot showed one active ScraperGo guest session. Cross-app guest identity propagation was demonstrated, but the first heartbeat can be anonymous because ScraperGo starts asynchronous handoff validation and fires an immediate presence ping concurrently.
-- **Focused fix:** In `internal/activity/activity.js`, gate the first presence ping until the initial identity verification/recovery completes. Visible-page, interaction and pageshow pings cannot race the initial check. Continue reporting unverified presence if verification fails; preserve the same 60-second scheduled heartbeat, 25-second client throttle, 15-second server throttle, origin-scoped sessionStorage handoffs, explicit sign-in modal, no automatic navigation, and existing one-hour guest semantics.
-- **Tests:** Added source-contract checks for the first-ping ordering and unchanged heartbeat cadence. GitHub Go CI and owner Safari acceptance pending on exact PR head; no local Safari test has occurred.
-- **Ownership/security:** `internal/activity` alone owns this change; keep scraper/reader/SSRF/extraction pipeline, one-hour guest policy, server-only activity credentials, launch scripts and all other suite apps untouched. Homepage and NewsGo still have separate unmerged draft integration PRs #35 / #92. There is no ScraperGo preference persistence for guests.
-- **Deferred:** Homepage's guest page-presence row can be empty after a very brief post-login visit; that is not proof of failed authentication. The owner may later choose wording/heartbeat refinements in Homepage separately. Cross-suite expiry, logout and multi-tab Safari acceptance remain prerequisites for the wider checkpoint.
-- **Owner Apple Silicon acceptance after explicit restart approval:** `cd ~/projects/scrapergo`; `git fetch origin`; `git checkout fix/134-first-verified-heartbeat`; `git pull --ff-only origin fix/134-first-verified-heartbeat`; `go test -count=1 ./...`; `./devbuild.sh`; `./dist/scrapergo-darwin-arm64 --version`; `./scrapergo.sh`. Use the existing dedicated ARM64 launcher; no Intel binary on this Mac.
-- **Restrictions:** No merge, tag, release, semantic-version bump, credential/tunnel modification or service restart without explicit owner authorization.
+## Issues #136 and Homepage #39 — Guest sign-in modal and immediate arrival activity
+
+- **Baseline:** GitHub `main`, including merged ScraperGo PRs #133 and #135 (Homepage guest handoffs, verified first heartbeat).
+- **Branch/PR:** `fix/136-block-signin-dismiss`, draft PR #137, targeting `main`. The owner authorized completing the full Homepage→apps, NewsGo→ScraperGo, and apps→Homepage transition acceptance before merging; companion Homepage draft PR #40.
+- **Sign-in UX:** Remove **Close** from the sign-in-required dialog and prevent native Escape/cancel dismissal. **Go to Homepage** remains a user-controlled link, with no automatic redirects. Verified Homepage identity closes the modal.
+- **Arrival telemetry:** The already authenticated `POST /api/activity/ping` invokes the existing server-to-server report promptly on an accepted verified ping, including after NewsGo opens ScraperGo directly. It does not introduce cross-origin JavaScript, new identities, new secrets, token renewal or a shorter browser heartbeat. The normal 60-second ticker restarts after an immediate event to avoid duplicate scheduled reports. The Homepage collector still owns per-user activity diagnostics.
+- **Boundaries:** No alteration to article APIs, extraction/SSRF, persistence, versioning, private credentials, launcher or tunnel. Broader API guarding remains deferred to Homepage Issue #38.
+- **Checks:** Regression tests for non-dismissible dialog and immediate verified report. Exact-head CI and owner Mac/Safari acceptance required; CI does not prove live Safari behavior.
+- **Owner test:** From a verified Homepage guest, visit NewsGo then click an article that opens ScraperGo. In admin Users & Access, expect a ScraperGo last-seen/current observation promptly, without waiting a full minute. Repeat from an existing ScraperGo tab; test invalid/revoked guest popup and manual Back to Homepage. Do not merge without explicit owner approval.
+
+Mac commands:
+
+```bash
+cd ~/projects/scrapergo
+git status -sb
+git fetch origin
+git checkout fix/136-block-signin-dismiss
+git pull --ff-only origin fix/136-block-signin-dismiss
+go test -count=1 ./...
+./devbuild.sh
+./dist/scrapergo-darwin-arm64 --version
+./scrapergo.sh
+```

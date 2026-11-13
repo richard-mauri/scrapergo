@@ -49,9 +49,9 @@
   dialogInfo.textContent='Visit Homepage to sign in with your personal token or obtain a temporary authenticated guest session valid for one hour. Guest sessions do not save or restore server settings.';
   const dialogActions=document.createElement('div');dialogActions.className='suite-signin-actions';
   const homepageLink=document.createElement('a');homepageLink.href='https://home.themauris.org/';homepageLink.target='_blank';homepageLink.rel='noopener noreferrer';homepageLink.textContent='Go to Homepage';
-  const closeDialog=document.createElement('button');closeDialog.type='button';closeDialog.textContent='Close';
-  closeDialog.addEventListener('click',()=>signInDialog.close());
-  dialogActions.append(homepageLink,closeDialog);signInDialog.append(dialogTitle,dialogInfo,dialogActions);
+  // Invalid identity cannot dismiss this prompt; verified Homepage identity closes it.
+  signInDialog.addEventListener('cancel',event=>event.preventDefault());
+  dialogActions.append(homepageLink);signInDialog.append(dialogTitle,dialogInfo,dialogActions);
   document.body.append(signInDialog);
   function setVerified(verified,explain=false) {
     if(readerURL)readerURL.disabled=!verified;
@@ -141,8 +141,16 @@
     try {
       const headers={'Content-Type':'application/json'};
       if(bearer)headers.Authorization='Bearer '+bearer;
+      const pingBearer=bearer;
       fetch('/api/activity/ping',{method:'POST',cache:'no-store',credentials:'same-origin',
-        headers,body,keepalive:true}).catch(()=>{});
+        headers,body,keepalive:true}).then(response=>{
+          // Only the current bearer can be invalidated by this reply.
+          if(response.status!==401 || !pingBearer || bearer!==pingBearer)return;
+          bearer='';
+          try{sessionStorage.removeItem(handoffKey)}catch(_){}
+          statusElement.textContent='Session expired or revoked — Sign in again';
+          setVerified(false,true);
+        }).catch(()=>{});
     }catch(_){}
   }
   function mark() {interacted=true;send()}

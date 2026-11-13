@@ -32,6 +32,7 @@ type ActivityReporter struct {
  profileEndpoint string
  key string
  presence map[string]activityPresence
+ verifiedArrival chan struct{}
  inFlight int
  lastInteraction time.Time
 }
@@ -82,7 +83,7 @@ func NewActivityReporter(endpoint,key string) (*ActivityReporter,error) {
  }
  return &ActivityReporter{
   now:time.Now,client:&http.Client{Timeout:3*time.Second,CheckRedirect:func(*http.Request,[]*http.Request)error{return http.ErrUseLastResponse}},
-  endpoint:endpoint,profileEndpoint:strings.TrimSuffix(endpoint,"/api/admin/activity/ingest")+"/api/session/profile",key:key,presence:make(map[string]activityPresence),
+  endpoint:endpoint,profileEndpoint:strings.TrimSuffix(endpoint,"/api/admin/activity/ingest")+"/api/session/profile",key:key,presence:make(map[string]activityPresence),verifiedArrival:make(chan struct{},1),
  },nil
 }
 
@@ -150,6 +151,11 @@ func (a *ActivityReporter) Ping(w http.ResponseWriter,r *http.Request) {
   var available bool
   sessionKey,userKey,username,available=a.verifyHandoff(r.Context(),bearer)
   if !available {http.Error(w,"Homepage identity validation unavailable",503);return}
+  if sessionKey=="" {
+   // A supplied but rejected identity is not an anonymous heartbeat.
+   a.mu.Lock();delete(a.presence,p.ID);a.mu.Unlock()
+   http.Error(w,"Homepage session unauthorized",http.StatusUnauthorized);return
+  }
  }
  now:=a.now()
  a.mu.Lock()
@@ -159,12 +165,14 @@ func (a *ActivityReporter) Ping(w http.ResponseWriter,r *http.Request) {
  if !exists && len(a.presence)>=5000{http.Error(w,"activity capacity reached",503);return}
  if exists && now.Sub(past.seen)<15*time.Second {w.WriteHeader(204);return}
  past.seen=now
+ verifiedArrival:=sessionKey!=""
  past.visible=p.Visible
  past.sessionKey=sessionKey
  past.userKey=userKey
  past.username=username
  if p.Interacted && p.Visible {past.interacted=now;a.lastInteraction=now}
  a.presence[p.ID]=past
+ if verifiedArrival {select {case a.verifiedArrival<-struct{}{}:default:}}
  w.WriteHeader(204)
 }
 
@@ -246,6 +254,9 @@ func (a *ActivityReporter) Run(ctx context.Context) {
  for {
   select {
   case <-ctx.Done():return
+  case <-a.verifiedArrival:
+   _=a.report(ctx)
+   ticker.Reset(60*time.Second)
   case <-ticker.C:
    _=a.report(ctx)
   }
