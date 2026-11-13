@@ -49,9 +49,9 @@
   dialogInfo.textContent='Visit Homepage to sign in with your personal token or obtain a temporary authenticated guest session valid for one hour. Guest sessions do not save or restore server settings.';
   const dialogActions=document.createElement('div');dialogActions.className='suite-signin-actions';
   const homepageLink=document.createElement('a');homepageLink.href='https://home.themauris.org/';homepageLink.target='_blank';homepageLink.rel='noopener noreferrer';homepageLink.textContent='Go to Homepage';
-  const closeDialog=document.createElement('button');closeDialog.type='button';closeDialog.textContent='Close';
-  closeDialog.addEventListener('click',()=>signInDialog.close());
-  dialogActions.append(homepageLink,closeDialog);signInDialog.append(dialogTitle,dialogInfo,dialogActions);
+  // Invalid identity cannot dismiss this prompt; verified Homepage identity closes it.
+  signInDialog.addEventListener('cancel',event=>event.preventDefault());
+  dialogActions.append(homepageLink);signInDialog.append(dialogTitle,dialogInfo,dialogActions);
   document.body.append(signInDialog);
   function setVerified(verified,explain=false) {
     if(readerURL)readerURL.disabled=!verified;
