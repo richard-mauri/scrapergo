@@ -251,3 +251,22 @@ func TestSignedOutReaderExplainsHomepageGuestAccessWithoutNavigation(t *testing.
   t.Fatal("sign-in prompt must not navigate automatically")
  }
 }
+
+func TestFirstBrowserPresenceWaitsForIdentityVerification(t *testing.T) {
+ s:=BrowserScript()
+ for _,required:=range []string{
+  "let initialIdentityChecked=false",
+  "if (!initialIdentityChecked || document.hidden)return",
+  "void updateIdentityStatus().finally(()=>{initialIdentityChecked=true;send()})",
+  "setInterval(send,60000)",
+  "if (now-sentAt<25000)return",
+ } {
+  if !strings.Contains(s,required){t.Errorf("missing first-heartbeat invariant %q",required)}
+ }
+ if strings.Index(s,"void updateIdentityStatus().finally(")<strings.Index(s,"function send()") {
+  t.Fatal("initial identity check sends heartbeat before send function is ready")
+ }
+ if strings.Contains(s,"  void updateIdentityStatus();") {
+  t.Fatal("identity recovery may race an eager anonymous ping")
+ }
+}
