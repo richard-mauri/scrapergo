@@ -81,24 +81,45 @@ func NewActivityReporter(endpoint,key string) (*ActivityReporter,error) {
 
 // verifyHandoff revalidates the child bearer with Homepage on each ping.
 // Only origin-scoped pseudonymous identifiers enter the telemetry map.
-func (a *ActivityReporter) verifyHandoff(ctx context.Context,bearer string) (string,string,bool) {
- if len(bearer)!=64 || strings.Trim(bearer,"0123456789abcdef")!="" {return "","",true}
+func (a *ActivityReporter) verifyHandoff(ctx context.Context,bearer string) (string,string,string,bool) {
+ if len(bearer)!=64 || strings.Trim(bearer,"0123456789abcdef")!="" {return "","","",true}
  req,err:=http.NewRequestWithContext(ctx,http.MethodGet,a.profileEndpoint,nil)
- if err!=nil{return "","",false}
+ if err!=nil{return "","","",false}
  req.Header.Set("Origin","https://scrapergo.themauris.org")
  req.Header.Set("Authorization","Bearer "+bearer)
  resp,err:=a.client.Do(req)
- if err!=nil{return "","",false}
+ if err!=nil{return "","","",false}
  defer resp.Body.Close()
- // A definitive revoked/expired handoff becomes guest activity. Temporary
- // server/network failures are unknown, never fabricated guest observations.
- if resp.StatusCode==http.StatusUnauthorized || resp.StatusCode==http.StatusForbidden {return "","",true}
- if resp.StatusCode!=http.StatusOK{return "","",false}
- var profile struct {ActivitySession string `json:"activitySession"`; ActivityUser string `json:"activityUser"`}
- if json.NewDecoder(io.LimitReader(resp.Body,2048)).Decode(&profile)!=nil{return "","",false}
- if len(profile.ActivitySession)!=64 || len(profile.ActivityUser)!=64 ||
-  strings.Trim(profile.ActivitySession,"0123456789abcdef")!="" || strings.Trim(profile.ActivityUser,"0123456789abcdef")!="" {return "","",false}
- return profile.ActivitySession,profile.ActivityUser,true
+ if resp.StatusCode==http.StatusUnauthorized || resp.StatusCode==http.StatusForbidden {return "","","",true}
+ if resp.StatusCode!=http.StatusOK{return "","","",false}
+ var profile struct {
+  User string `json:"user"`
+  ActivitySession string `json:"activitySession"`
+  ActivityUser string `json:"activityUser"`
+ }
+ if json.NewDecoder(io.LimitReader(resp.Body,2048)).Decode(&profile)!=nil{return "","","",false}
+ if len(profile.ActivitySession)!=64 || len(profile.ActivityUser)!=64 || len(profile.User)==0 || len(profile.User)>128 ||
+  strings.Trim(profile.ActivitySession,"0123456789abcdef")!="" || strings.Trim(profile.ActivityUser,"0123456789abcdef")!="" {return "","","",false}
+ return profile.ActivitySession,profile.ActivityUser,profile.User,true
+}
+
+// IdentityStatus provides an informational, read-only account indicator.
+// A guest remains free to use ScraperGo, and no token is returned to the UI.
+func (a *ActivityReporter) IdentityStatus(w http.ResponseWriter,r *http.Request) {
+ w.Header().Set("Cache-Control","no-store")
+ w.Header().Set("X-Content-Type-Options","nosniff")
+ if r.Method!=http.MethodGet {w.Header().Set("Allow","GET");http.Error(w,"method not allowed",405);return}
+ if origin:=r.Header.Get("Origin");origin!="" && origin!="http://"+r.Host && origin!="https://"+r.Host {
+  http.Error(w,"invalid origin",403);return
+ }
+ state,user:="guest",""
+ if bearer,ok:=strings.CutPrefix(r.Header.Get("Authorization"),"Bearer ");ok {
+  sessionKey,_,name,available:=a.verifyHandoff(r.Context(),bearer)
+  if !available {http.Error(w,"identity validation unavailable",503);return}
+  if sessionKey!="" {state,user="signed-in",name}
+ }
+ w.Header().Set("Content-Type","application/json")
+ _=json.NewEncoder(w).Encode(map[string]string{"state":state,"user":user})
 }
 
 func (a *ActivityReporter) Ping(w http.ResponseWriter,r *http.Request) {
@@ -120,7 +141,7 @@ func (a *ActivityReporter) Ping(w http.ResponseWriter,r *http.Request) {
  sessionKey,userKey:="",""
  if bearer,ok:=strings.CutPrefix(r.Header.Get("Authorization"),"Bearer ");ok {
   var available bool
-  sessionKey,userKey,available=a.verifyHandoff(r.Context(),bearer)
+  sessionKey,userKey,_,available=a.verifyHandoff(r.Context(),bearer)
   if !available {http.Error(w,"Homepage identity validation unavailable",503);return}
  }
  now:=a.now()
