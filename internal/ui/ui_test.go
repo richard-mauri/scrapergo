@@ -27,3 +27,17 @@ func TestEmbeddedAssetsRetainInlineCSPContract(t *testing.T) {
   t.Fatal("inline CSP contract changed")
  }
 }
+
+func TestScraperGoAccountStatusInlineWithHomepageLink(t *testing.T) {
+ page:=Render("0.2.85","test")
+ for _,required:=range []string{
+  `<div class="suite-auth-line"><a class="suite-home-link"`,
+  `<span id="suite-auth-status" class="suite-auth-status" role="status" aria-live="polite">`,
+  "Guest — not signed in",
+  ".suite-auth-line{display:flex",
+  ".suite-auth-status{color:var(--accent);font:700",
+ } {
+  if !strings.Contains(page,required) {t.Errorf("missing inline account state: %s",required)}
+ }
+ if strings.Contains(page,`<p id="suite-auth-status"`) {t.Fatal("account status must not occupy a separate paragraph")}
+}

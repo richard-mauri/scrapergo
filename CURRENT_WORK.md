@@ -1,5 +1,29 @@
 # CURRENT WORK — ScraperGo (November 12, 2026)
 
+
+## November 13, 2026 — temporary guest authentication in existing PR
+
+- **Coordination:** Homepage Issue #32 / draft PR #33 is the sole feature narrative. ScraperGo draft PR #133 remains the one companion PR; no new issue or PR, no unrelated services, no merge/restart.
+- **Decision:** Guest `guest-xxx` IDs are **temporary authenticated Homepage identities** (one hour), not unauthenticated ScraperGo operating mode. Homepage issues, verifies, expires, and garbage-collects them entirely in process memory. ScraperGo continues to consume its existing Homepage child-handoff/profile authentication protocol without adopting a guest-token store.
+- **Browser behavior:** The ScraperGo URL input and Read button are disabled until Homepage verifies identity. A user-visible modal explains how to visit Homepage and sign in with a named credential or one-hour temporary guest; it only opens Homepage on a user's explicit click. Never redirect or reload automatically. Once validated, it shows `Signed in as richard` or `Signed in as guest-xxx` on the same header row.
+- **Persistence:** Temporary guests may use the reader but cannot save or restore server preferences. Homepage enforces refusal on storage endpoints; ScraperGo does not gain a separate settings store.
+- **Validation:** CI tests verify sign-in prompt text, disabled reader controls, no automatic navigation and existing identity recovery. Owner Mac requires `darwin-arm64` and existing `./scrapergo.sh` launcher, only after explicit deployment approval. Safari needs named and guest identity, inactivity, expiration, and cross-service activity verification.
+
+## Current scope — Homepage activity identity integration
+
+- **Authoritative baseline:** GitHub `main` contains merged initial activity reporter PR #132. Existing independent diagnostics work remains out of scope.
+- **Branch:** `feat/132-suite-presence-identity` from current `main`; companion to Homepage draft PR #33 and coordinating Homepage Issue #32. No new ScraperGo login requirement.
+- **Change:** ScraperGo remains publicly readable as a guest. When arriving with a verified Homepage-issued child handoff, the browser stores it only in origin-scoped sessionStorage and removes the fragment; the reporter verifies the bearer against Homepage's profile endpoint on each presence ping. The validation returns only origin-scoped telemetry aliases for the parent session and user; ScraperGo deduplicates tabs sharing a session and sends aggregate counts, never identities or credentials, to Homepage.
+- **Inline presentation refinement:** Owner requested the same suite navigation style shown in MauriStocks: ScraperGo's Back to Homepage link and verified sign-in/guest state now share one horizontal row, with teal bold status. Added UI regression to ensure the status is not rendered as a separate paragraph.
+- **Visible session indicator:** The reader now displays **Guest — not signed in**, **Signed in as <user>** after server validation, or **Unable to verify sign-in** for validation errors. A new read-only `/api/activity/identity` endpoint serves a same-origin status response without revealing raw tokens or aliases. Identity checks are refreshed while visible; article access remains public. Regression tests cover guest/signed-in/unavailable responses and UI rendering.
+- **Homepage dependency:** PR #33 adds the allowlisted `/launch/scrapergo` bridge, authenticated Homepage app launch, scoped profile validation, and pseudonymous aliases. ScraperGo profile access is not granted account-storage privileges. The NewsGo → ScraperGo link/recovery path is **not yet implemented** and requires coordination before final acceptance.
+- **Tests/risks:** New reporter regression checks same-session deduplication, independent sessions, shared user and guest counting. Need exact-head Go CI, completed auth revocation/invalid-handoff, fragment contract, and temporary Homepage validation outage tests; full end-to-end Safari tests, and owner Mac/Safari acceptance. The handoff is advisory for telemetry and must never gate article access or relax fetcher/SSRF rules.
+- **Mac acceptance when ready:** `cd ~/projects/scrapergo`; `git fetch origin`; `git checkout feat/132-suite-presence-identity`; `git pull --ff-only origin feat/132-suite-presence-identity`; `go test -count=1 ./...`; `./devbuild.sh`; `./dist/scrapergo-darwin-arm64 --version`; `./scrapergo.sh`. The last command restarts production ScraperGo and its tunnel and must run only if Richard explicitly approves deployment. Test direct anonymous reading and Homepage handoff in Safari after both companion builds.
+- **Mac documentation correction:** `DEVELOPMENT.md` now matches `main`'s Apple Silicon `scrapergo.sh` launcher, using `dist/scrapergo-darwin-arm64` and `.activity.env`; the Intel artifact is compatibility output only. No runtime launcher change.
+- **Restrictions:** no merge/tag/version bump/release/restart, production token changes, root extractor modifications or unrelated PR changes.
+
+## Earlier development notes (verify before acting)
+
 ## Active Issue #131 — Homepage suite activity reporter
 
 **Current scoped implementation:** [Issue #131](https://github.com/richard-mauri/scrapergo/issues/131), branch `feat/131-suite-activity` from merged GitHub `main` (baseline `92f68f16f846dbf3ad247a243ff3d8095c6636ed`), [draft PR #132](https://github.com/richard-mauri/scrapergo/pull/132). This is independent of *still-draft* diagnostic PR #126 on `experiment/125-structure-preserving-extraction`; do not merge, modify or replace that diagnostics branch as part of telemetry.

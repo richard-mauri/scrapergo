@@ -40,6 +40,7 @@ func Router(h Handlers, config Config) http.Handler {
  mux:=http.NewServeMux()
  if config.Activity!=nil {
   mux.HandleFunc("/api/activity/ping",config.Activity.Ping)
+  mux.HandleFunc("/api/activity/identity",config.Activity.IdentityStatus)
  }
  mux.Handle("/api/read",h.Read)
  if h.PDF != nil { mux.Handle("/api/pdf",h.PDF) }
@@ -64,14 +65,14 @@ func Router(h Handlers, config Config) http.Handler {
  mux.HandleFunc("/",func(w http.ResponseWriter,r *http.Request) {
   if r.URL.Path!="/" {http.NotFound(w,r);return}
   w.Header().Set("Content-Type","text/html; charset=utf-8")
-  w.Header().Set("Content-Security-Policy","default-src 'self'; img-src 'self' https: data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; base-uri 'none'; object-src 'none'; frame-src 'self'")
+  w.Header().Set("Content-Security-Policy","default-src 'self'; connect-src 'self' https://home.themauris.org; img-src 'self' https: data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; base-uri 'none'; object-src 'none'; frame-src 'self'")
   if config.Activity!=nil {fmt.Fprint(w,ui.RenderWithActivity(config.Version,config.Build,activity.BrowserScript()))} else {fmt.Fprint(w,ui.Render(config.Version,config.Build))}
  })
  if config.Activity==nil {return mux}
  // Count only application work; never count lightweight presence observations,
  // the UI bootstrap, or the static Tanner image as in-flight extraction work.
  return http.HandlerFunc(func(w http.ResponseWriter,r *http.Request){
-  if r.URL.Path=="/" || r.URL.Path=="/tanner.jpg" || r.URL.Path=="/api/activity/ping" {
+  if r.URL.Path=="/" || r.URL.Path=="/tanner.jpg" || r.URL.Path=="/api/activity/ping" || r.URL.Path=="/api/activity/identity" {
    mux.ServeHTTP(w,r);return
   }
   done:=config.Activity.Working()
