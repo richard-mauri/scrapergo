@@ -214,3 +214,21 @@ func TestSilentRecoveryDoesNotNavigateOrLeakParentCredential(t *testing.T) {
   t.Fatal("silent recovery must not navigate or renew Homepage parent login")
  }
 }
+
+func TestDirectScraperGoVisitProbesExistingHomepageSession(t *testing.T) {
+ script:=BrowserScript()
+ for _,fragment:=range []string{
+  "let localOnly=false",
+  "localOnly=true",
+  "if(localOnly) {statusElement.textContent='Guest — not signed in';return;}",
+  "let identity=bearer?await identityResult():{state:'guest'}",
+  "const recovery=await recoverHandoff()",
+  "hadHandoff?'Session expired — Sign in again':'Guest — not signed in'",
+  "hadHandoff=true",
+ } {
+  if !strings.Contains(script,fragment){t.Errorf("missing direct-login invariant: %q",fragment)}
+ }
+ if strings.Contains(script,"location.assign(")||strings.Contains(script,"location.replace(") {
+  t.Fatal("direct login probe must never navigate")
+ }
+}
