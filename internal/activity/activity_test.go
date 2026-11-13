@@ -102,7 +102,7 @@ func TestVerifiedHandoffCountsSessionsAndUsersWithoutExportingIDs(t *testing.T) 
  }
 }
 
-func TestRevokedAndMalformedScraperHandoffsAreGuestPresence(t *testing.T) {
+func TestRevokedAndMalformedScraperHandoffsAreRejected(t *testing.T) {
  secret:=strings.Repeat("s",40)
  valid:=strings.Repeat("a",64)
  revoked:=false
@@ -126,11 +126,13 @@ func TestRevokedAndMalformedScraperHandoffsAreGuestPresence(t *testing.T) {
  if got:=ping(valid);got!=204{t.Fatalf("valid ping %d",got)}
  if p:=a.snapshot();p.Authenticated!=1||p.UniqueUsers!=1||p.Anonymous!=0{t.Fatalf("valid profile %+v",p)}
  revoked=true;now=now.Add(16*time.Second)
- if got:=ping(valid);got!=204{t.Fatalf("revoked ping %d",got)}
- if p:=a.snapshot();p.Authenticated!=0||p.UniqueUsers!=0||p.Anonymous!=1{t.Fatalf("revoked bearer must become guest %+v",p)}
+ if got:=ping(valid);got!=401{t.Fatalf("revoked ping %d",got)}
+ if p:=a.snapshot();p.Authenticated!=0||p.UniqueUsers!=0||p.Anonymous!=0{t.Fatalf("revoked bearer must be removed, not become guest %+v",p)}
  now=now.Add(16*time.Second)
- if got:=ping("invalid");got!=204{t.Fatalf("malformed ping %d",got)}
- if p:=a.snapshot();p.Authenticated!=0||p.Anonymous!=1{t.Fatalf("malformed bearer must remain guest %+v",p)}
+ if got:=ping("invalid");got!=401{t.Fatalf("malformed ping %d",got)}
+ if p:=a.snapshot();p.Authenticated!=0||p.Anonymous!=0{t.Fatalf("malformed bearer must not become guest %+v",p)}
+ now=now.Add(16*time.Second)
+ if got:=ping("");got!=204{t.Fatalf("anonymous presence should remain allowed: %d",got)}
 }
 
 func TestBrowserHandoffPreservesReaderAndRemovesTokenFragment(t *testing.T) {
@@ -143,6 +145,8 @@ func TestBrowserHandoffPreservesReaderAndRemovesTokenFragment(t *testing.T) {
   "history.replaceState(null,'',location.pathname+location.search)",
   "headers.Authorization='Bearer '+bearer",
   "fetch('/api/activity/ping'",
+  "response.status!==401",
+  "setVerified(false,true)",
  } {
   if !strings.Contains(script,required){t.Errorf("missing ScraperGo handoff invariant: %s",required)}
  }
