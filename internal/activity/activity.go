@@ -41,11 +41,17 @@ type activityPresence struct {
  visible bool
  sessionKey string
  userKey string
+ username string
 }
 type activityPing struct {
  ID string `json:"id"`
  Visible bool `json:"visible"`
  Interacted bool `json:"interacted"`
+}
+type activityUserSummary struct {
+ User string `json:"user"`
+ Sessions int `json:"sessions"`
+ LastSeen string `json:"lastSeen"`
 }
 type activityPayload struct {
  Active2 int `json:"active2"`
@@ -57,6 +63,7 @@ type activityPayload struct {
  Anonymous int `json:"anonymous"`
  Authenticated int `json:"authenticated"`
  UniqueUsers int `json:"uniqueUsers,omitempty"`
+ Users []activityUserSummary `json:"users,omitempty"`
  InFlight int `json:"inFlight"`
  LastInteraction string `json:"lastInteraction,omitempty"`
 }
@@ -138,10 +145,10 @@ func (a *ActivityReporter) Ping(w http.ResponseWriter,r *http.Request) {
  if dec.Decode(&extra)!=io.EOF || len(p.ID)!=32 || strings.Trim(p.ID,"0123456789abcdef")!=""{
   http.Error(w,"invalid activity ID",400);return
  }
- sessionKey,userKey:="",""
+ sessionKey,userKey,username:="","",""
  if bearer,ok:=strings.CutPrefix(r.Header.Get("Authorization"),"Bearer ");ok {
   var available bool
-  sessionKey,userKey,_,available=a.verifyHandoff(r.Context(),bearer)
+  sessionKey,userKey,username,available=a.verifyHandoff(r.Context(),bearer)
   if !available {http.Error(w,"Homepage identity validation unavailable",503);return}
  }
  now:=a.now()
@@ -155,6 +162,7 @@ func (a *ActivityReporter) Ping(w http.ResponseWriter,r *http.Request) {
  past.visible=p.Visible
  past.sessionKey=sessionKey
  past.userKey=userKey
+ past.username=username
  if p.Interacted && p.Visible {past.interacted=now;a.lastInteraction=now}
  a.presence[p.ID]=past
  w.WriteHeader(204)
@@ -183,18 +191,28 @@ func (a *ActivityReporter) snapshot() activityPayload {
   if !exists || v.seen.After(previous.seen) {identities[key]=v}
  }
  users:=make(map[string]bool)
+ summaries:=make(map[string]activityUserSummary)
  for _,v:=range identities {
   age:=now.Sub(v.seen)
   p.Active60++
+  if v.sessionKey!="" && v.username!="" {
+   summary:=summaries[v.username];summary.User=v.username
+   if summary.LastSeen=="" || v.seen.UTC().Format(time.RFC3339)>summary.LastSeen {summary.LastSeen=v.seen.UTC().Format(time.RFC3339)}
+   if age<=2*time.Minute {summary.Sessions++}
+   summaries[v.username]=summary
+  }
   if age<=15*time.Minute {p.Active15++}
   if age<=5*time.Minute {p.Active5++}
   if age<=2*time.Minute {
    p.Active2++
    if v.visible {p.Foreground++}else{p.Background++}
-   if v.sessionKey!="" {p.Authenticated++;users[v.userKey]=true}else{p.Anonymous++}
+   if v.sessionKey!="" {
+    p.Authenticated++;users[v.userKey]=true
+   }else{p.Anonymous++}
   }
  }
  p.UniqueUsers=len(users)
+ for _,summary:=range summaries {p.Users=append(p.Users,summary)}
  if !a.lastInteraction.IsZero(){p.LastInteraction=a.lastInteraction.UTC().Format(time.RFC3339)}
  return p
 }
