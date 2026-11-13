@@ -29,6 +29,37 @@
     bearer=sessionStorage.getItem(handoffKey)||'';
     if(!/^[a-f0-9]{64}$/.test(bearer))bearer='';
   }catch(_){bearer=''}
+  const statusElement=document.getElementById('suite-auth-status');
+  let statusPending=false;
+  async function updateIdentityStatus() {
+    if(!statusElement || statusPending)return;
+    if(!bearer) {statusElement.textContent='Guest — not signed in';return;}
+    statusPending=true;
+    statusElement.textContent='Checking sign-in…';
+    try {
+      const response=await fetch('/api/activity/identity',{
+        method:'GET',cache:'no-store',credentials:'same-origin',
+        headers:{Authorization:'Bearer '+bearer}
+      });
+      if(!response.ok) {
+        statusElement.textContent='Unable to verify sign-in';
+      }else{
+        const identity=await response.json();
+        if(identity.state==='signed-in' && typeof identity.user==='string' && identity.user){
+          statusElement.textContent='Signed in as '+identity.user;
+        }else{
+          // A definitively expired or revoked handoff is no longer signed in.
+          bearer='';
+          try{sessionStorage.removeItem(handoffKey)}catch(_){}
+          statusElement.textContent='Guest — not signed in';
+        }
+      }
+    }catch(_){statusElement.textContent='Unable to verify sign-in'}
+    finally{statusPending=false}
+  }
+  void updateIdentityStatus();
+  setInterval(()=>{if(!document.hidden)void updateIdentityStatus()},60000);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)void updateIdentityStatus()});
   let interacted=false;
   let sentAt=0;
   function send() {
