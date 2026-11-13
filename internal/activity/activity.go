@@ -81,21 +81,24 @@ func NewActivityReporter(endpoint,key string) (*ActivityReporter,error) {
 
 // verifyHandoff revalidates the child bearer with Homepage on each ping.
 // Only origin-scoped pseudonymous identifiers enter the telemetry map.
-func (a *ActivityReporter) verifyHandoff(ctx context.Context,bearer string) (string,string) {
- if len(bearer)!=64 || strings.Trim(bearer,"0123456789abcdef")!="" {return "",""}
+func (a *ActivityReporter) verifyHandoff(ctx context.Context,bearer string) (string,string,bool) {
+ if len(bearer)!=64 || strings.Trim(bearer,"0123456789abcdef")!="" {return "","",true}
  req,err:=http.NewRequestWithContext(ctx,http.MethodGet,a.profileEndpoint,nil)
- if err!=nil{return "",""}
+ if err!=nil{return "","",false}
  req.Header.Set("Origin","https://scrapergo.themauris.org")
  req.Header.Set("Authorization","Bearer "+bearer)
  resp,err:=a.client.Do(req)
- if err!=nil{return "",""}
+ if err!=nil{return "","",false}
  defer resp.Body.Close()
- if resp.StatusCode!=http.StatusOK{return "",""}
+ // A definitive revoked/expired handoff becomes guest activity. Temporary
+ // server/network failures are unknown, never fabricated guest observations.
+ if resp.StatusCode==http.StatusUnauthorized || resp.StatusCode==http.StatusForbidden {return "","",true}
+ if resp.StatusCode!=http.StatusOK{return "","",false}
  var profile struct {ActivitySession string `json:"activitySession"`; ActivityUser string `json:"activityUser"`}
- if json.NewDecoder(io.LimitReader(resp.Body,2048)).Decode(&profile)!=nil{return "",""}
+ if json.NewDecoder(io.LimitReader(resp.Body,2048)).Decode(&profile)!=nil{return "","",false}
  if len(profile.ActivitySession)!=64 || len(profile.ActivityUser)!=64 ||
-  strings.Trim(profile.ActivitySession,"0123456789abcdef")!="" || strings.Trim(profile.ActivityUser,"0123456789abcdef")!="" {return "",""}
- return profile.ActivitySession,profile.ActivityUser
+  strings.Trim(profile.ActivitySession,"0123456789abcdef")!="" || strings.Trim(profile.ActivityUser,"0123456789abcdef")!="" {return "","",false}
+ return profile.ActivitySession,profile.ActivityUser,true
 }
 
 func (a *ActivityReporter) Ping(w http.ResponseWriter,r *http.Request) {
@@ -116,7 +119,9 @@ func (a *ActivityReporter) Ping(w http.ResponseWriter,r *http.Request) {
  }
  sessionKey,userKey:="",""
  if bearer,ok:=strings.CutPrefix(r.Header.Get("Authorization"),"Bearer ");ok {
-  sessionKey,userKey=a.verifyHandoff(r.Context(),bearer)
+  var available bool
+  sessionKey,userKey,available=a.verifyHandoff(r.Context(),bearer)
+  if !available {http.Error(w,"Homepage identity validation unavailable",503);return}
  }
  now:=a.now()
  a.mu.Lock()
