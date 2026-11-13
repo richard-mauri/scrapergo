@@ -141,8 +141,16 @@
     try {
       const headers={'Content-Type':'application/json'};
       if(bearer)headers.Authorization='Bearer '+bearer;
+      const pingBearer=bearer;
       fetch('/api/activity/ping',{method:'POST',cache:'no-store',credentials:'same-origin',
-        headers,body,keepalive:true}).catch(()=>{});
+        headers,body,keepalive:true}).then(response=>{
+          // Only the current bearer can be invalidated by this reply.
+          if(response.status!==401 || !pingBearer || bearer!==pingBearer)return;
+          bearer='';
+          try{sessionStorage.removeItem(handoffKey)}catch(_){}
+          statusElement.textContent='Session expired or revoked — Sign in again';
+          setVerified(false,true);
+        }).catch(()=>{});
     }catch(_){}
   }
   function mark() {interacted=true;send()}
