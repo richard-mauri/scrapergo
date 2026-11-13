@@ -38,6 +38,30 @@
   }catch(_){bearer=''}
   const statusElement=document.getElementById('suite-auth-status');
   let statusPending=false;
+  const readerForm=document.getElementById('form');
+  const readerURL=document.getElementById('url');
+  const readerButton=document.getElementById('read');
+  const signInDialog=document.createElement('dialog');
+  signInDialog.className='suite-signin-dialog';
+  signInDialog.setAttribute('aria-labelledby','suite-signin-title');
+  const dialogTitle=document.createElement('h2');dialogTitle.id='suite-signin-title';dialogTitle.textContent='Suite sign-in required';
+  const dialogInfo=document.createElement('p');
+  dialogInfo.textContent='Visit Homepage to sign in with your personal token or obtain a temporary authenticated guest session valid for one hour. Guest sessions do not save or restore server settings.';
+  const dialogActions=document.createElement('div');dialogActions.className='suite-signin-actions';
+  const homepageLink=document.createElement('a');homepageLink.href='https://home.themauris.org/';homepageLink.target='_blank';homepageLink.rel='noopener noreferrer';homepageLink.textContent='Go to Homepage';
+  const closeDialog=document.createElement('button');closeDialog.type='button';closeDialog.textContent='Close';
+  closeDialog.addEventListener('click',()=>signInDialog.close());
+  dialogActions.append(homepageLink,closeDialog);signInDialog.append(dialogTitle,dialogInfo,dialogActions);
+  document.body.append(signInDialog);
+  function setVerified(verified,explain=false) {
+    if(readerURL)readerURL.disabled=!verified;
+    if(readerButton)readerButton.disabled=!verified;
+    if(readerForm)readerForm.setAttribute('aria-disabled',String(!verified));
+    if(verified && signInDialog.open)signInDialog.close();
+    if(!verified && explain && !signInDialog.open)signInDialog.showModal();
+  }
+  setVerified(false);
+
   // Direct navigation also recognizes an existing Homepage login silently.
   // An explicit suite_mode=local remains a deliberate guest launch.
   let hadHandoff=!!bearer;
@@ -66,7 +90,7 @@
   }
   async function updateIdentityStatus() {
     if(!statusElement || statusPending)return;
-    if(localOnly) {statusElement.textContent='Guest — not signed in';return;}
+    if(localOnly) {statusElement.textContent='Sign-in required';setVerified(false,true);return;}
     statusPending=true;
     try {
       statusElement.textContent='Checking sign-in…';
@@ -78,11 +102,13 @@
         if(recovery==='expired'){
           bearer='';
           try{sessionStorage.removeItem(handoffKey)}catch(_){}
-          statusElement.textContent=hadHandoff?'Session expired — Sign in again':'Guest — not signed in';
+          statusElement.textContent=hadHandoff?'Session expired — Sign in again':'Sign-in required';
+          setVerified(false,true);
           return;
         }
         if(recovery!=='recovered'){
           statusElement.textContent='Unable to verify sign-in';
+          setVerified(false,false);
           return;
         }
         hadHandoff=true;
@@ -90,10 +116,12 @@
       }
       if(identity.state==='signed-in' && typeof identity.user==='string' && identity.user){
         statusElement.textContent='Signed in as '+identity.user;
+        setVerified(true);
       }else{
         statusElement.textContent='Unable to verify sign-in';
+        setVerified(false,false);
       }
-    }catch(_){statusElement.textContent='Unable to verify sign-in'}
+    }catch(_){statusElement.textContent='Unable to verify sign-in';setVerified(false,false)}
     finally{statusPending=false}
   }
   void updateIdentityStatus();
