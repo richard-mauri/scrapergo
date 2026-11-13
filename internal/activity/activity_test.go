@@ -93,7 +93,7 @@ func TestVerifiedHandoffCountsSessionsAndUsersWithoutExportingIDs(t *testing.T) 
  a.presence["guest"]=activityPresence{seen:now,visible:true}
  a.mu.Unlock()
  p:=a.snapshot()
- if p.Active2!=3||p.Authenticated!=2||p.UniqueUsers!=1||p.Anonymous!=1 {
+ if p.Active2!=3||p.Authenticated!=2||p.UniqueUsers!=1||p.Anonymous!=1 || len(p.Users)!=1 || p.Users[0].User!="richard" || p.Users[0].Sessions!=1 {
   t.Fatalf("expected two sessions, one user, one guest: %+v",p)
  }
  body,_:=json.Marshal(p)
