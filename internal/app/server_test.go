@@ -44,7 +44,7 @@ func TestOptionalActivityDoesNotChangeReaderRouting(t *testing.T){
  handler:=Router(testHandlers(),config)
  root:=httptest.NewRecorder()
  handler.ServeHTTP(root,httptest.NewRequest("GET","http://127.0.0.1:8088/",nil))
- if root.Code!=200||!strings.Contains(root.Body.String(),"/api/activity/ping"){t.Fatalf("opt-in UI missing: %d",root.Code)}
+ if root.Code!=200||!strings.Contains(root.Body.String(),"/api/activity/ping")||!strings.Contains(root.Body.String(),`id="suite-auth-status"`){t.Fatalf("opt-in UI or status missing: %d",root.Code)}
  if strings.Contains(root.Body.String(),key){t.Fatal("private collector key exposed")}
  if !strings.Contains(root.Header().Get("Content-Security-Policy"),"script-src 'unsafe-inline'"){t.Fatal("reader CSP changed")}
  req:=httptest.NewRequest("POST","http://127.0.0.1:8088/api/activity/ping",strings.NewReader(`{"id":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","visible":true,"interacted":true}`))
@@ -53,6 +53,11 @@ func TestOptionalActivityDoesNotChangeReaderRouting(t *testing.T){
  if pong.Code!=204{t.Fatalf("ping status %d",pong.Code)}
  read:=httptest.NewRecorder();handler.ServeHTTP(read,httptest.NewRequest("GET","http://127.0.0.1:8088/api/read",nil))
  if read.Code!=405{t.Fatalf("read contract changed: %d",read.Code)}
+ identity:=httptest.NewRecorder()
+ handler.ServeHTTP(identity,httptest.NewRequest("GET","http://127.0.0.1:8088/api/activity/identity",nil))
+ if identity.Code!=200 || !strings.Contains(identity.Body.String(),`"guest"`) {
+  t.Fatalf("public guest identity status: %d %s",identity.Code,identity.Body.String())
+ }
  if got:=a.InFlight();got!=0{t.Fatalf("in-flight leaked: %d",got)}
  plain:=Router(testHandlers(),Config{Version:"0.2.85"})
  noActivity:=httptest.NewRecorder();plain.ServeHTTP(noActivity,httptest.NewRequest("GET","http://127.0.0.1/",nil))
