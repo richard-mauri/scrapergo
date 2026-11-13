@@ -1,12 +1,24 @@
 # Current work — ScraperGo
 
-## November 13, 2026 — first verified heartbeat (Issue #134)
+## Issue #136 — Non-dismissible suite sign-in prompt
 
-- **Authoritative baseline:** GitHub `main` contains merged Homepage/ScraperGo temporary-authentication and per-user activity work (ScraperGo PR #133). This follow-up is branch `fix/134-first-verified-heartbeat` from `main`, one scoped draft PR, with no merge/release/deployment.
-- **Owner observation:** One-hour `guest-xxx` visited NewsGo then ScraperGo. Homepage's admin view initially showed NewsGo activity but no ScraperGo guest observation; a subsequent screenshot showed one active ScraperGo guest session. Cross-app guest identity propagation was demonstrated, but the first heartbeat can be anonymous because ScraperGo starts asynchronous handoff validation and fires an immediate presence ping concurrently.
-- **Focused fix:** In `internal/activity/activity.js`, gate the first presence ping until the initial identity verification/recovery completes. Visible-page, interaction and pageshow pings cannot race the initial check. Continue reporting unverified presence if verification fails; preserve the same 60-second scheduled heartbeat, 25-second client throttle, 15-second server throttle, origin-scoped sessionStorage handoffs, explicit sign-in modal, no automatic navigation, and existing one-hour guest semantics.
-- **Tests:** Added source-contract checks for the first-ping ordering and unchanged heartbeat cadence. GitHub Go CI and owner Safari acceptance pending on exact PR head; no local Safari test has occurred.
-- **Ownership/security:** `internal/activity` alone owns this change; keep scraper/reader/SSRF/extraction pipeline, one-hour guest policy, server-only activity credentials, launch scripts and all other suite apps untouched. Homepage and NewsGo still have separate unmerged draft integration PRs #35 / #92. There is no ScraperGo preference persistence for guests.
-- **Deferred:** Homepage's guest page-presence row can be empty after a very brief post-login visit; that is not proof of failed authentication. The owner may later choose wording/heartbeat refinements in Homepage separately. Cross-suite expiry, logout and multi-tab Safari acceptance remain prerequisites for the wider checkpoint.
-- **Owner Apple Silicon acceptance after explicit restart approval:** `cd ~/projects/scrapergo`; `git fetch origin`; `git checkout fix/134-first-verified-heartbeat`; `git pull --ff-only origin fix/134-first-verified-heartbeat`; `go test -count=1 ./...`; `./devbuild.sh`; `./dist/scrapergo-darwin-arm64 --version`; `./scrapergo.sh`. Use the existing dedicated ARM64 launcher; no Intel binary on this Mac.
-- **Restrictions:** No merge, tag, release, semantic-version bump, credential/tunnel modification or service restart without explicit owner authorization.
+- **Baseline:** GitHub `main`, including merged ScraperGo PRs #133 and #135 (Homepage guest handoffs and first verified heartbeat).
+- **Branch:** `fix/136-block-signin-dismiss` from `main`; focused draft PR pending.
+- **Owner-reproduced UX:** Admin revokes a temporary guest; ScraperGo correctly reports sign-out but its modal's **Close** button let an unidentified visitor continue reading articles.
+- **Change:** Remove **Close** from the sign-in-required dialog; prevent native Escape/cancel dismissal. Preserve explicit **Go to Homepage** link and successful Homepage verification's programmatic dismissal, without automatic navigation.
+- **Boundaries:** No changes to ScraperGo extraction, request handlers, public API authorization, optional telemetry cadence, private tokens, launchers or publisher safety. Homepage Issue #38 separately tracks a deferred API authorization audit.
+- **Regression:** Source-contract test in `internal/activity/activity_test.go`; exact-head Go CI plus owner Apple Silicon Safari acceptance pending. CI is not Safari acceptance.
+- **Owner acceptance:** Revoked or missing identity shows modal with only **Go to Homepage**; Escape cannot dismiss; verified identity restores reader UI. No merge, tag, release or service restart without explicit owner approval.
+
+Mac commands:
+
+```bash
+cd ~/projects/scrapergo
+git fetch origin
+git checkout fix/136-block-signin-dismiss
+git pull --ff-only origin fix/136-block-signin-dismiss
+go test -count=1 ./...
+./devbuild.sh
+./dist/scrapergo-darwin-arm64 --version
+./scrapergo.sh
+```
