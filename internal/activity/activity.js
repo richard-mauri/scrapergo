@@ -124,13 +124,15 @@
     }catch(_){statusElement.textContent='Unable to verify sign-in';setVerified(false,false)}
     finally{statusPending=false}
   }
-  void updateIdentityStatus();
+  // Do not record an anonymous first ping while Homepage handoff recovery is
+  // still in progress. The first observation uses the verified bearer, if any.
+  let initialIdentityChecked=false;
   setInterval(()=>{if(!document.hidden)void updateIdentityStatus()},60000);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)void updateIdentityStatus()});
   let interacted=false;
   let sentAt=0;
   function send() {
-    if (document.hidden)return;
+    if (!initialIdentityChecked || document.hidden)return;
     const now=Date.now();
     if (now-sentAt<25000)return;
     sentAt=now;
@@ -149,6 +151,6 @@
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)send()});
   window.addEventListener('pageshow',send);
   window.addEventListener('focus',send);
-  send();
+  void updateIdentityStatus().finally(()=>{initialIdentityChecked=true;send()});
   setInterval(send,60000);
 })();
