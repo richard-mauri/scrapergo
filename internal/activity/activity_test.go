@@ -62,3 +62,42 @@ func TestBrowserScriptKeepsServiceKeyPrivate(t *testing.T) {
  if !strings.Contains(s,"/api/activity/ping")||!strings.Contains(s,"sessionStorage"){t.Fatal("ephemeral same-origin script missing")}
  if strings.Contains(s,"HOMEPAGE_ACTIVITY_KEY_SCRAPERGO")||strings.Contains(s,"SCRAPERGO_ACTIVITY_URL"){t.Fatal("server-only config exposed")}
 }
+
+func TestVerifiedHandoffCountsSessionsAndUsersWithoutExportingIDs(t *testing.T) {
+ secret:=strings.Repeat("k",40)
+ bearer:=strings.Repeat("a",64)
+ sessionOne:=strings.Repeat("1",64)
+ sessionTwo:=strings.Repeat("2",64)
+ userTag:=strings.Repeat("3",64)
+ server:=httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter,r *http.Request) {
+  if r.URL.Path!="/api/session/profile" || r.Header.Get("Origin")!="https://scrapergo.themauris.org" {
+   t.Errorf("unexpected profile request: %s %s",r.URL.Path,r.Header.Get("Origin"))
+  }
+  if r.Header.Get("Authorization")!="Bearer "+bearer {w.WriteHeader(401);return}
+  w.Header().Set("Content-Type","application/json")
+  _,_=w.Write([]byte(`{"activitySession":"`+sessionOne+`","activityUser":"`+userTag+`"}`))
+ }))
+ defer server.Close()
+ a,err:=NewActivityReporter(server.URL+"/api/admin/activity/ingest",secret)
+ if err!=nil{t.Fatal(err)}
+ req:=httptest.NewRequest("POST","http://127.0.0.1:8088/api/activity/ping",strings.NewReader(`{"id":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","visible":true}`))
+ req.Header.Set("Origin","http://127.0.0.1:8088")
+ req.Header.Set("Content-Type","application/json")
+ req.Header.Set("Authorization","Bearer "+bearer)
+ w:=httptest.NewRecorder();a.Ping(w,req)
+ if w.Code!=204{t.Fatalf("verified ping: %d",w.Code)}
+ now:=a.now()
+ a.mu.Lock()
+ a.presence["second-tab"]=activityPresence{seen:now,sessionKey:sessionOne,userKey:userTag,visible:true}
+ a.presence["second-login"]=activityPresence{seen:now,sessionKey:sessionTwo,userKey:userTag,visible:true}
+ a.presence["guest"]=activityPresence{seen:now,visible:true}
+ a.mu.Unlock()
+ p:=a.snapshot()
+ if p.Active2!=3||p.Authenticated!=2||p.UniqueUsers!=1||p.Anonymous!=1 {
+  t.Fatalf("expected two sessions, one user, one guest: %+v",p)
+ }
+ body,_:=json.Marshal(p)
+ if strings.Contains(string(body),sessionOne)||strings.Contains(string(body),userTag) {
+  t.Fatal("collector aggregate exposed identity tags")
+ }
+}
