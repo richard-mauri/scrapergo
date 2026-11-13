@@ -88,12 +88,12 @@ func TestVerifiedHandoffCountsSessionsAndUsersWithoutExportingIDs(t *testing.T) 
  if w.Code!=204{t.Fatalf("verified ping: %d",w.Code)}
  now:=a.now()
  a.mu.Lock()
- a.presence["second-tab"]=activityPresence{seen:now,sessionKey:sessionOne,userKey:userTag,visible:true}
- a.presence["second-login"]=activityPresence{seen:now,sessionKey:sessionTwo,userKey:userTag,visible:true}
+ a.presence["second-tab"]=activityPresence{seen:now,sessionKey:sessionOne,userKey:userTag,username:"richard",visible:true}
+ a.presence["second-login"]=activityPresence{seen:now,sessionKey:sessionTwo,userKey:userTag,username:"richard",visible:true}
  a.presence["guest"]=activityPresence{seen:now,visible:true}
  a.mu.Unlock()
  p:=a.snapshot()
- if p.Active2!=3||p.Authenticated!=2||p.UniqueUsers!=1||p.Anonymous!=1 || len(p.Users)!=1 || p.Users[0].User!="richard" || p.Users[0].Sessions!=1 {
+ if p.Active2!=3||p.Authenticated!=2||p.UniqueUsers!=1||p.Anonymous!=1 || len(p.Users)!=1 || p.Users[0].User!="richard" || p.Users[0].Sessions!=2 {
   t.Fatalf("expected two sessions, one user, one guest: %+v",p)
  }
  body,_:=json.Marshal(p)
