@@ -65,7 +65,7 @@ func Router(h Handlers, config Config) http.Handler {
  mux.HandleFunc("/",func(w http.ResponseWriter,r *http.Request) {
   if r.URL.Path!="/" {http.NotFound(w,r);return}
   w.Header().Set("Content-Type","text/html; charset=utf-8")
-  w.Header().Set("Content-Security-Policy","default-src 'self'; img-src 'self' https: data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; base-uri 'none'; object-src 'none'; frame-src 'self'")
+  w.Header().Set("Content-Security-Policy","default-src 'self'; connect-src 'self' https://home.themauris.org; img-src 'self' https: data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; base-uri 'none'; object-src 'none'; frame-src 'self'")
   if config.Activity!=nil {fmt.Fprint(w,ui.RenderWithActivity(config.Version,config.Build,activity.BrowserScript()))} else {fmt.Fprint(w,ui.Render(config.Version,config.Build))}
  })
  if config.Activity==nil {return mux}
