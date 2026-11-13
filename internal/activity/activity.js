@@ -31,28 +31,58 @@
   }catch(_){bearer=''}
   const statusElement=document.getElementById('suite-auth-status');
   let statusPending=false;
+  // Only a tab that was handed a Homepage credential attempts background
+  // recovery. Direct public visits remain guests.
+  let hadHandoff=!!bearer;
+  const homepageRecoverURL='https://home.themauris.org/api/handoff/scrapergo-recover';
+  async function recoverHandoff() {
+    const response=await fetch(homepageRecoverURL,{
+      method:'POST',mode:'cors',credentials:'include',cache:'no-store'
+    });
+    if(response.status===401 || response.status===403)return 'expired';
+    if(!response.ok)return 'unavailable';
+    const data=await response.json();
+    if(!/^[a-f0-9]{64}$/.test(data.token)||!Number.isFinite(Date.parse(data.expiresAt)))
+      return 'unavailable';
+    bearer=data.token;
+    try{sessionStorage.setItem(handoffKey,bearer)}catch(_){}
+    return 'recovered';
+  }
+  async function identityResult() {
+    const response=await fetch('/api/activity/identity',{
+      method:'GET',cache:'no-store',credentials:'same-origin',
+      headers:{Authorization:'Bearer '+bearer}
+    });
+    if(!response.ok)return {state:'unavailable'};
+    return response.json();
+  }
   async function updateIdentityStatus() {
     if(!statusElement || statusPending)return;
-    if(!bearer) {statusElement.textContent='Guest — not signed in';return;}
+    if(!hadHandoff) {statusElement.textContent='Guest — not signed in';return;}
     statusPending=true;
-    statusElement.textContent='Checking sign-in…';
     try {
-      const response=await fetch('/api/activity/identity',{
-        method:'GET',cache:'no-store',credentials:'same-origin',
-        headers:{Authorization:'Bearer '+bearer}
-      });
-      if(!response.ok) {
-        statusElement.textContent='Unable to verify sign-in';
-      }else{
-        const identity=await response.json();
-        if(identity.state==='signed-in' && typeof identity.user==='string' && identity.user){
-          statusElement.textContent='Signed in as '+identity.user;
-        }else{
-          // A definitively expired or revoked handoff is no longer signed in.
+      statusElement.textContent='Checking sign-in…';
+      let identity=bearer?await identityResult():{state:'guest'};
+      if(identity.state==='guest'){
+        // Never navigate: a same-site credentialed request to Homepage
+        // obtains a new, parent-bound child bearer if the login survives.
+        const recovery=await recoverHandoff();
+        if(recovery==='expired'){
           bearer='';
           try{sessionStorage.removeItem(handoffKey)}catch(_){}
-          statusElement.textContent='Guest — not signed in';
+          statusElement.textContent='Session expired — Sign in again';
+          return;
         }
+        if(recovery!=='recovered'){
+          statusElement.textContent='Unable to verify sign-in';
+          return;
+        }
+        identity=await identityResult();
+      }
+      if(identity.state==='signed-in' && typeof identity.user==='string' && identity.user){
+        statusElement.textContent='Signed in as '+identity.user;
+      }else{
+        statusElement.textContent='Unable to verify sign-in';
       }
     }catch(_){statusElement.textContent='Unable to verify sign-in'}
     finally{statusPending=false}
