@@ -17,12 +17,17 @@
   const handoffKey='scrapergo-suite-handoff-v1';
   let bearer='';
   let localOnly=false;
+  const localKey='scrapergo-suite-local-v1';
   try {
+    localOnly=sessionStorage.getItem(localKey)==='1';
     const hash=new URLSearchParams(location.hash.slice(1));
     if(hash.has('suite_mode') && hash.get('suite_mode')==='local') {
       localOnly=true;
+      sessionStorage.setItem(localKey,'1');
       sessionStorage.removeItem(handoffKey);
     } else if(hash.has('suite_token')) {
+      localOnly=false;
+      sessionStorage.removeItem(localKey);
       const token=hash.get('suite_token')||'';
       if(/^[a-f0-9]{64}$/.test(token))sessionStorage.setItem(handoffKey,token);
     }
