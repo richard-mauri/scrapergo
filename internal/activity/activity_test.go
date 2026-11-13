@@ -132,3 +132,21 @@ func TestRevokedAndMalformedScraperHandoffsAreGuestPresence(t *testing.T) {
  if got:=ping("invalid");got!=204{t.Fatalf("malformed ping %d",got)}
  if p:=a.snapshot();p.Authenticated!=0||p.Anonymous!=1{t.Fatalf("malformed bearer must remain guest %+v",p)}
 }
+
+func TestBrowserHandoffPreservesReaderAndRemovesTokenFragment(t *testing.T) {
+ script:=BrowserScript()
+ for _,required:=range []string{
+  "new URLSearchParams(location.hash.slice(1))",
+  "hash.get('suite_token')",
+  "hash.get('suite_mode')==='local'",
+  "sessionStorage.removeItem(handoffKey)",
+  "history.replaceState(null,'',location.pathname+location.search)",
+  "headers.Authorization='Bearer '+bearer",
+  "fetch('/api/activity/ping'",
+ } {
+  if !strings.Contains(script,required){t.Errorf("missing ScraperGo handoff invariant: %s",required)}
+ }
+ if strings.Contains(script,"?suite_token=") || strings.Contains(script,"/api/session/renew") {
+  t.Fatal("browser handoff cannot use token query strings or renew Homepage login")
+ }
+}
