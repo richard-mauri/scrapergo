@@ -1,6 +1,6 @@
 # Current work — ScraperGo
 
-**Active documentation review:** Issue #138, branch `docs/138-session-markdown-refresh` based on the merged `main` snapshot; documentation-only draft PR, awaiting owner approval. This branch does not change runtime behavior.
+**Active documentation review:** [Issue #138](https://github.com/richard-mauri/scrapergo/issues/138), branch `docs/138-session-markdown-refresh` targeting `main`, [draft PR #139](https://github.com/richard-mauri/scrapergo/pull/139). This branch changes only Markdown; exact-head CI and owner merge approval are pending.
 
 GitHub `main` at `8ab1bb0` includes merged suite activity, verified Homepage guest/session reporting, immediate first-arrival activity, revoked-heartbeat handling and non-dismissible sign-in UI (PRs #133, #135, #137). Issues #134 and #136 are closed. No issues or PRs remain open and no implementation branch is active.
 
