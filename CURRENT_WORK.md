@@ -1,27 +1,9 @@
 # Current work — ScraperGo
 
-- **Heartbeat revocation follow-up:** Each normal 60-second activity ping now returns HTTP 401 for a supplied invalid/revoked bearer, while anonymous presence stays distinct and Homepage outages remain 503. ScraperGo immediately clears its guest status and shows the existing non-dismissible sign-in dialog on 401. CI #728 passed before this note; Mac Safari acceptance pending.
+**Active documentation review:** [Issue #138](https://github.com/richard-mauri/scrapergo/issues/138), branch `docs/138-session-markdown-refresh` targeting `main`, [draft PR #139](https://github.com/richard-mauri/scrapergo/pull/139). This branch changes only Markdown; exact-head CI and owner merge approval are pending.
 
-## Issues #136 and Homepage #39 — Guest sign-in modal and immediate arrival activity
+GitHub `main` at `8ab1bb0` includes merged suite activity, verified Homepage guest/session reporting, immediate first-arrival activity, revoked-heartbeat handling and non-dismissible sign-in UI (PRs #133, #135, #137). Issues #134 and #136 are closed. No issues or PRs remain open and no implementation branch is active.
 
-- **Baseline:** GitHub `main`, including merged ScraperGo PRs #133 and #135 (Homepage guest handoffs, verified first heartbeat).
-- **Branch/PR:** `fix/136-block-signin-dismiss`, draft PR #137, targeting `main`. The owner authorized completing the full Homepage→apps, NewsGo→ScraperGo, and apps→Homepage transition acceptance before merging; companion Homepage draft PR #40.
-- **Sign-in UX:** Remove **Close** from the sign-in-required dialog and prevent native Escape/cancel dismissal. **Go to Homepage** remains a user-controlled link, with no automatic redirects. Verified Homepage identity closes the modal.
-- **Arrival telemetry:** The already authenticated `POST /api/activity/ping` invokes the existing server-to-server report promptly on an accepted verified ping, including after NewsGo opens ScraperGo directly. It does not introduce cross-origin JavaScript, new identities, new secrets, token renewal or a shorter browser heartbeat. The normal 60-second ticker restarts after an immediate event to avoid duplicate scheduled reports. The Homepage collector still owns per-user activity diagnostics.
-- **Boundaries:** No alteration to article APIs, extraction/SSRF, persistence, versioning, private credentials, launcher or tunnel. Broader API guarding remains deferred to Homepage Issue #38.
-- **Checks:** Regression tests for non-dismissible dialog and immediate verified report. Exact-head CI and owner Mac/Safari acceptance required; CI does not prove live Safari behavior.
-- **Owner test:** From a verified Homepage guest, visit NewsGo then click an article that opens ScraperGo. In admin Users & Access, expect a ScraperGo last-seen/current observation promptly, without waiting a full minute. Repeat from an existing ScraperGo tab; test invalid/revoked guest popup and manual Back to Homepage. Do not merge without explicit owner approval.
+Homepage is the identity authority. ScraperGo verifies supplied bearers for optional activity; revoked identity returns 401, verification outage returns 503, and anonymous visits remain distinct. A verified NewsGo arrival promptly reaches the Homepage activity collector. The sign-in dialog cannot be dismissed with Close/Escape, while manual Homepage navigation remains available. Article extraction, SSRF protections, rendering, storage, listener and tunnel are unchanged. The broader API-authorization audit is separately tracked by [Homepage Issue #38](https://github.com/richard-mauri/homepage/issues/38).
 
-Mac commands:
-
-```bash
-cd ~/projects/scrapergo
-git status -sb
-git fetch origin
-git checkout fix/136-block-signin-dismiss
-git pull --ff-only origin fix/136-block-signin-dismiss
-go test -count=1 ./...
-./devbuild.sh
-./dist/scrapergo-darwin-arm64 --version
-./scrapergo.sh
-```
+**Next:** reconcile Markdown through a scoped docs-only draft PR from `main`; verify Markdown references and exact-head CI. Runtime acceptance on Safari/live publishers and merge, restart, release or tunnel actions remain owner-controlled. Recheck current GitHub and any owner-local divergence before resuming.

@@ -1,6 +1,6 @@
 # ScraperGo architecture contract
 
-**Status:** current merged `main` after PR #63 (2026-10-23). This is an ownership contract, not a claim that every implementation or test is perfect.
+**Status:** current merged `main` including the session-aware activity and sign-in integration. This is an ownership contract, not a claim that every implementation or test is perfect.
 
 ## Runtime and dependency direction
 
@@ -43,10 +43,10 @@ The suite-wide return button uses the same `.suite-home-link` presentation in al
 
 The shared suite navigation style is now intentionally a quiet 12px text link directly below each page's primary heading, with subtle hover background and underline and keyboard focus outline (rather than the former 38px bordered button). NewsGo does not render a duplicate signed-out Homepage action or an app Renew control; Homepage alone manages the 12-hour login session.
 
-## Optional Homepage activity telemetry (Issue #131 draft)
+## Optional Homepage activity telemetry (Issue #131, merged; verified identity added later)
 
 `internal/activity` owns a private-key-enabled, fail-open aggregate reporter and embedded tab heartbeat, with strict same-origin `POST /api/activity/ping`, ephemeral tab ID, bounded memory, and 2/5/15/60-minute rolling counts. A 60-second server-only POST to Homepage `/api/admin/activity/ingest` uses the `scrapergo` service name, timestamp, nonce and a private bearer supplied via `SCRAPERGO_ACTIVITY_URL` and `HOMEPAGE_ACTIVITY_KEY_SCRAPERGO` environment variables. The collector URL is HTTPS or loopback-only HTTP with redirects disabled. The payload omits article URLs, user identities and identifiers, token values and publisher content. The optional telemetry client does not fetch publisher articles and cannot trigger a restart.
 
-`internal/app` wires the reporter at process startup and wraps existing dynamic API requests to measure in-flight work; the UI homepage, photo and browser ping are not counted as extraction work. Existing `internal/httpapi`, reader, fetcher, image delivery, classification and diagnostics implementations remain unchanged. `internal/ui` preserves the current inline script CSP and appends the optional heartbeat only when the server has a valid reporter. If telemetry is unconfigured or unavailable, normal app functionality continues. The current `anonymous` field represents anonymous **or server-unverified** browser tabs, not a trustworthy signed-in versus signed-out split.
+`internal/app` wires the reporter at process startup and wraps existing dynamic API requests to measure in-flight work; the UI homepage, photo and browser ping are not counted as extraction work. Existing `internal/httpapi`, reader, fetcher, image delivery, classification and diagnostics implementations remain unchanged. `internal/ui` preserves the current inline script CSP and appends the optional heartbeat only when the server has a valid reporter. If telemetry is unconfigured or unavailable, normal app functionality continues. Homepage-verified named/guest sessions are distinguished from anonymous tabs by server-side identity checks; invalid bearer returns 401 and verification outage 503.
 
 For isolated Mac acceptance, `internal/app` accepts `SCRAPERGO_ACTIVITY_TEST_LISTEN=127.0.0.1:8088` (or matching `[::1]:port`) only when it exactly matches the selected port. An invalid or non-loopback override fails startup. With the override absent, the original production `:<port>` bind semantics remain unchanged. This is not a public deployment configuration and should not be set in production launchers.
