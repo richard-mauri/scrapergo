@@ -1,6 +1,6 @@
 # ScraperGo — app-specific development and validation
 
-Read [AGENTS.md](AGENTS.md) and the full [generated suite policy](docs/suite-development-policy.md). Homepage owns the shared workflow, six-item handoff, FINISH, and branch cleanup. The following are ScraperGo-specific extraction gates, tests, builds and Safari acceptance.
+Read [AGENTS.md](AGENTS.md) and [Homepage's authoritative suite development policy](https://github.com/richard-mauri/homepage/blob/main/SUITE_DEVELOPMENT_POLICY.md). Homepage owns the shared workflow, six-item handoff, FINISH, and branch cleanup. The following are ScraperGo-specific extraction gates, tests, builds and Safari acceptance.
 
 ## General-purpose fix acceptance gate
 
