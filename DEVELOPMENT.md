@@ -12,6 +12,8 @@ Stay on the existing Issue branch and draft PR for revisions; do not spin up add
 
 ## Automated and local checks
 
+For UI changes, the embedded Homepage `shared/ui` Go module owns ordinary button geometry, colors, borders, hover, keyboard focus and disabled states. ScraperGo's reader template explicitly applies `ui-button` to the Read article and toolbar controls. `reader.css` must not retain legacy button appearance declarations; its semantic token aliases and print/layout rules remain local. The `internal/ui/suite_buttons_test.go` regression checks this integration. Test both light/dark themes and narrow Safari layouts without changing extraction behavior.
+
 GitHub Actions workflow [Go CI](.github/workflows/go-ci.yml) runs on PRs targeting `main`: a non-blocking gofmt debt report, `go test -count=1 ./...` and `go build ./...` (Go version from `go.mod`). Inspect the run and outcome on **this PR's latest commit**. Confirm the intended diff is documentation-only when applicable.
 
 For **code or runtime PRs**, supply the following complete copy-and-pasteable block to the owner with its *real branch name*, not the placeholder. **Documentation-only PRs** instead require rendered Markdown, link, path and command verification; normal PR CI can run, but local Mac build/restart/Safari acceptance is unnecessary:

@@ -6,6 +6,8 @@
 
 ScraperGo is a Go web-based clean article reader. Give it an article URL to extract readable text, headline, byline, inline links and editorial images into a simplified browser reading view. It distinguishes articles from many homepages/indexes, resolves supported Google News links, retains usable public previews where access policy permits, and offers image metadata, image delivery, classification and thumbnail APIs. Publisher restrictions and extraction limits remain in force; ScraperGo does not bypass paywalls.
 
+The reader's action buttons use the Homepage-owned suite UI component bundled locally through a pinned Go module dependency. ScraperGo does not request styles from a running Homepage service.
+
 ## Requirements and running
 
 Build from source with Go compatible with [go.mod](go.mod) (use the version specified in the file) and Git:
