@@ -5,6 +5,8 @@ package ui
 import (
  "embed"
  "strings"
+
+ suiteui "github.com/richard-mauri/homepage/shared/ui"
 )
 
 //go:embed templates/index.html static/reader.css static/reader.js
@@ -22,7 +24,7 @@ func mustRead(path string) string {
 
 // Template returns the static HTML skeleton, without a compiled version label.
 func Template() string {
- page := strings.Replace(templateHTML,"__READER_CSS__",readerCSS,1)
+ page := strings.Replace(templateHTML,"__READER_CSS__",readerCSS+"\n"+string(suiteui.ButtonCSS),1)
  return strings.Replace(page,"__READER_JS__",readerJS,1)
 }
 
