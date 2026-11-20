@@ -62,7 +62,7 @@ func TestScraperGoSharedBannerPreservesAccountDOM(t *testing.T) {
  for _,want:=range []string{`suite-banner__portrait-caption">The Mauris`, `class="suite-type-title">ScraperGo`} {
   if !strings.Contains(page,want) {t.Errorf("missing refined banner %q",want)}
  }
- for _,want:=range []string{"width:min(1180px,calc(100vw - 96px))","width:min(720px,calc(100vw - 48px))","width:calc(100vw - 36px)","margin-inline:auto","border:0"} {
+ for _,want:=range []string{"width:min(1180px,calc(100vw - 96px))","width:min(720px,calc(100vw - 48px))","width:calc(100vw - 36px)","margin:24px auto 0","border:0"} {
   if !strings.Contains(page,want) {t.Errorf("shared banner must own its gutters: %q",want)}
  }
  if !strings.Contains(Template(),"__SUITE_BANNER__\n<main class=\"shell\">") {t.Fatal("shared banner must mount outside ScraperGo shell")}
