@@ -22,6 +22,8 @@ jobs:
       - name: Report formatting debt (non-blocking)
         run: |
           git ls-files '*.go' | xargs gofmt -l
+      - name: Diagnose shared backdrop module checksum
+        run: go mod download -json github.com/richard-mauri/homepage/shared/ui@v0.0.0-20261120162421-224fd7ac2f05
       - name: Run tests
         run: go test -count=1 ./...
       - name: Build
