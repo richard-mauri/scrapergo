@@ -43,4 +43,10 @@ func TestScraperGoSharedBannerPreservesAccountDOM(t *testing.T) {
   if !strings.Contains(page,required) {t.Errorf("missing inline account state: %s",required)}
  }
  if strings.Count(page,`id="suite-auth-status"`)!=1 {t.Fatal("account status must have exactly one DOM element")}
+ for _,obsolete:=range []string{"Build Build", "Local preferences", "border:1px solid var(--suite-line);border-radius:var(--suite-radius)"} {
+  if strings.Contains(page,obsolete) {t.Errorf("obsolete shared banner presentation %q",obsolete)}
+ }
+ for _,want:=range []string{`suite-banner__portrait-caption`, `THE <strong>MAURIS</strong>`, `border-bottom:1px solid var(--suite-line)`} {
+  if !strings.Contains(page,want) {t.Errorf("missing refined banner %q",want)}
+ }
 }
