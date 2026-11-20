@@ -209,7 +209,7 @@ func TestSilentRecoveryDoesNotNavigateOrLeakParentCredential(t *testing.T) {
   "hadHandoff=!!bearer",
   "Session expired — Sign in again",
   "Unable to verify sign-in",
-  "Signed in as ",
+  "SuiteBannerStatus.signedIn(identity.user)",
  } {
   if !strings.Contains(script,required){t.Errorf("missing silent recovery invariant %q",required)}
  }
