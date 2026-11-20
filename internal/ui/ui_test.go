@@ -46,7 +46,10 @@ func TestScraperGoSharedBannerPreservesAccountDOM(t *testing.T) {
  for _,obsolete:=range []string{"Build Build", "Local preferences", "border:1px solid var(--suite-line);border-radius:var(--suite-radius)"} {
   if strings.Contains(page,obsolete) {t.Errorf("obsolete shared banner presentation %q",obsolete)}
  }
- for _,want:=range []string{`suite-banner__portrait-caption`, `THE <strong>MAURIS</strong>`, `border-bottom:1px solid var(--suite-line)`} {
+ for _,want:=range []string{`suite-banner__portrait-caption">The Mauris`, `class="suite-type-title">ScraperGo`} {
   if !strings.Contains(page,want) {t.Errorf("missing refined banner %q",want)}
+ }
+ for _,obsolete:=range []string{"PERSONAL PORTAL", `suite-banner__family`, "border-bottom:1px solid var(--suite-line)","border-top:1px solid var(--suite-line)"} {
+  if strings.Contains(page,obsolete) {t.Errorf("unwanted legacy banner decoration %q",obsolete)}
  }
 }
