@@ -51,5 +51,5 @@ func Render(version, build string) string {
 func RenderWithActivity(version,build,browserScript string) string {
  page:=Render(version,build)
  if browserScript=="" {return page}
- return strings.Replace(page,"</body>","<script>"+browserScript+"</script></body>",1)
+ return strings.Replace(page,"</body>","<script>"+string(banner.ScriptJS())+"\n"+browserScript+"</script></body>",1)
 }
