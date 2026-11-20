@@ -25,6 +25,8 @@ github.com/richard-mauri/homepage/shared/ui v0.0.0-20261120155045-9bca6aa45d47 h
 github.com/richard-mauri/homepage/shared/ui v0.0.0-20261120155045-9bca6aa45d47/go.mod h1:8o5LPN0ziOWOzyyuMYbJ+CaO6hED6uIkmwfwdITSX3o=
 github.com/richard-mauri/homepage/shared/ui v0.0.0-20261120162421-224fd7ac2f05 h1:7hcDaOnRNgM327/GNMpUqDjqRs1jQ1i3C1bLLaHLN+k=
 github.com/richard-mauri/homepage/shared/ui v0.0.0-20261120162421-224fd7ac2f05/go.mod h1:8o5LPN0ziOWOzyyuMYbJ+CaO6hED6uIkmwfwdITSX3o=
+github.com/richard-mauri/homepage/shared/ui v0.0.0-20261120164006-ee3fd0da8e9f h1:SHkvXywJmxmdc+kSb1IB5xCZIuJQJxGGYwyOB5UdNP0=
+github.com/richard-mauri/homepage/shared/ui v0.0.0-20261120164006-ee3fd0da8e9f/go.mod h1:8o5LPN0ziOWOzyyuMYbJ+CaO6hED6uIkmwfwdITSX3o=
 github.com/sergi/go-diff v1.4.0 h1:n/SP9D5ad1fORl+llWyN+D6qoUETXNZARKjyY2/KVCw=
 github.com/sergi/go-diff v1.4.0/go.mod h1:A0bzQcvG0E7Rwjx0REVgAGH58e96+X0MeOfepqsbeW4=
 github.com/stretchr/testify v1.10.0 h1:Xv5erBjTwe/5IxqUQTdXv5kgmIvbHo3QQyRwhJsOfJA=
