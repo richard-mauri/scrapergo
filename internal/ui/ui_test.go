@@ -36,6 +36,12 @@ func TestSharedAmbientBackgroundIsOptInAndPrintSafe(t *testing.T) {
  }
 }
 
+func TestBannerGeometryIsShared(t *testing.T) {
+ page:=Render("0.2.85","test")
+ if !strings.Contains(page,"margin:24px auto 0") {t.Fatal("shared banner must own window-top spacing")}
+ if strings.Contains(readerCSS,".suite-banner{") {t.Fatal("reader CSS must not override banner geometry")}
+}
+
 func TestScraperGoSharedBannerPreservesAccountDOM(t *testing.T) {
  page:=Render("0.2.85","test")
  for _,required:=range []string{
