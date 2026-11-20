@@ -3,10 +3,12 @@
 package ui
 
 import (
+ "bytes"
  "embed"
  "strings"
 
  suiteui "github.com/richard-mauri/homepage/shared/ui"
+ "github.com/richard-mauri/homepage/shared/ui/banner"
 )
 
 //go:embed templates/index.html static/reader.css static/reader.js
@@ -24,7 +26,7 @@ func mustRead(path string) string {
 
 // Template returns the static HTML skeleton, without a compiled version label.
 func Template() string {
- page := strings.Replace(templateHTML,"__READER_CSS__",readerCSS+"\n"+string(suiteui.ButtonCSS),1)
+ page := strings.Replace(templateHTML,"__READER_CSS__",readerCSS+"\n"+string(suiteui.ButtonCSS)+"\n"+string(banner.CSS(suiteui.DesignCSS)),1)
  return strings.Replace(page,"__READER_JS__",readerJS,1)
 }
 
@@ -32,7 +34,15 @@ func Template() string {
 // Policy while sourcing each presentation concern from its own asset file.
 func Render(version, build string) string {
  page := Template()
- return strings.Replace(page,"__APP_VERSION__","v"+version+" · "+build,1)
+ var header bytes.Buffer
+ err:=banner.Render(&header,banner.Config{
+  AppName:"ScraperGo",Version:version,Build:build,
+  Description:"Public articles, without the page clutter.",
+  HomeURL:"https://home.themauris.org/",TannerURL:"/tanner.jpg",
+  AccountState:banner.BrowserOnly,
+ })
+ if err!=nil {panic(err)} // fixed local configuration, checked by tests
+ return strings.Replace(page,"__SUITE_BANNER__",header.String(),1)
 }
 
 // RenderWithActivity adds an anonymous, same-origin heartbeat only when the

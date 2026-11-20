@@ -8,6 +8,8 @@ ScraperGo is a Go web-based clean article reader. Give it an article URL to extr
 
 The reader's action buttons use the Homepage-owned suite UI component bundled locally through a pinned Go module dependency. ScraperGo does not request styles from a running Homepage service.
 
+The shared-banner integration candidate also uses the Homepage-owned module for its masthead and chrome typography, preserving the existing reader, account-status script, same-tab return link and local Tanner photo. The module is compiled into ScraperGo rather than loaded from Homepage at runtime.
+
 ## Requirements and running
 
 Build from source with Go compatible with [go.mod](go.mod) (use the version specified in the file) and Git:

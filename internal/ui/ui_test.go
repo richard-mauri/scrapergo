@@ -8,15 +8,16 @@ import (
 func TestRenderInjectsVersionAndEmbeddedAssets(t *testing.T) {
  page:=Render("0.2.85","Architecture PR #46")
  for _,required:=range []string{
-  "ScraperGo · v0.2.85 · Architecture PR #46",
+  "<div class=\"suite-type-title\">ScraperGo</div>",
+  "v0.2.85", "Build Architecture PR #46",
   "<style>","<script>","id=\"form\"",
  } {
   if !strings.Contains(page,required) {t.Errorf("render missing %q",required)}
  }
- for _,placeholder:=range []string{"__READER_CSS__","__READER_JS__","__APP_VERSION__"} {
+ for _,placeholder:=range []string{"__READER_CSS__","__READER_JS__","__SUITE_BANNER__"} {
   if strings.Contains(page,placeholder) {t.Errorf("unexpanded placeholder %s",placeholder)}
  }
- if !strings.Contains(Template(),"__APP_VERSION__") {t.Fatal("template must not hard-code version")}
+ if !strings.Contains(Template(),"__SUITE_BANNER__") {t.Fatal("template must retain shared-banner slot")}
 }
 
 func TestEmbeddedAssetsRetainInlineCSPContract(t *testing.T) {
@@ -28,16 +29,18 @@ func TestEmbeddedAssetsRetainInlineCSPContract(t *testing.T) {
  }
 }
 
-func TestScraperGoAccountStatusInlineWithHomepageLink(t *testing.T) {
+func TestScraperGoSharedBannerPreservesAccountDOM(t *testing.T) {
  page:=Render("0.2.85","test")
  for _,required:=range []string{
-  `<div class="suite-auth-line"><a class="suite-home-link"`,
-  `<span id="suite-auth-status" class="suite-auth-status" role="status" aria-live="polite">`,
-  "Guest — not signed in",
-  ".suite-auth-line{display:flex",
-  ".suite-auth-status{color:var(--accent);font:700",
+  `<header class="suite-ui suite-banner"`,
+  `id="suite-auth-status"`,
+  `class="suite-banner__account-label suite-auth-status"`,
+  `aria-live="polite"`,
+  "Browser-only mode",
+  `src="/tanner.jpg"`,
+  `.suite-banner__bottom`,
  } {
   if !strings.Contains(page,required) {t.Errorf("missing inline account state: %s",required)}
  }
- if strings.Contains(page,`<p id="suite-auth-status"`) {t.Fatal("account status must not occupy a separate paragraph")}
+ if strings.Count(page,`id="suite-auth-status"`)!=1 {t.Fatal("account status must have exactly one DOM element")}
 }
