@@ -29,6 +29,13 @@ func TestEmbeddedAssetsRetainInlineCSPContract(t *testing.T) {
  }
 }
 
+func TestSharedAmbientBackgroundIsOptInAndPrintSafe(t *testing.T) {
+ page:=Render("0.2.85","test")
+ for _,want:=range []string{`<body class="suite-ambient-background">`, `.suite-ambient-background {`, `radial-gradient(`, `background-image: none`} {
+  if !strings.Contains(page,want) {t.Errorf("missing shared ambient background contract: %s",want)}
+ }
+}
+
 func TestScraperGoSharedBannerPreservesAccountDOM(t *testing.T) {
  page:=Render("0.2.85","test")
  for _,required:=range []string{
