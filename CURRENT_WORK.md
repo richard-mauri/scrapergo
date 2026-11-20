@@ -1,5 +1,7 @@
 # Current work — ScraperGo
 
+**Banner correction:** The pinned shared UI module `cb65b3badb0b` enforces 16px horizontal gutters in its own banner CSS with no decorative border; ScraperGo retains its surrounding page shell. Owner Mac/Safari verification is pending.
+
 **Active:** [ScraperGo Issue #143](https://github.com/richard-mauri/scrapergo/issues/143), branch `ui/143-shared-banner`, [draft PR #144](https://github.com/richard-mauri/scrapergo/pull/144) from verified merged `main` `6b59a1ee6ed8c40f02bec0587eab2bf9dad86572`. Homepage foundation Issue #54 / draft PR #55 stays open for iteration. No ScraperGo release or deployment is authorized.
 
 **Implementation candidate:** Replace only ScraperGo's old masthead with the shared Go banner renderer, including its local Tanner image, immutable Homepage return link and browser account-status DOM element. Bundle shared typography and the exact Homepage two-element blurred teal ambient backdrop into the existing inline stylesheet, keeping normal buttons unchanged and print output free of decoration. The candidate is re-pinned to Homepage module commit `ee3fd0da8e9f` from still-open PR #55, with "The Mauris" beneath Tanner and no banner separators. Extraction, SSRF, activity/auth protocols, reader/print output, Safari extension, listener, and tunnel remain unchanged.
