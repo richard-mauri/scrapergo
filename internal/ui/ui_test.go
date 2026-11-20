@@ -56,6 +56,9 @@ func TestScraperGoSharedBannerPreservesAccountDOM(t *testing.T) {
  for _,want:=range []string{`suite-banner__portrait-caption">The Mauris`, `class="suite-type-title">ScraperGo`} {
   if !strings.Contains(page,want) {t.Errorf("missing refined banner %q",want)}
  }
+ for _,want:=range []string{"width:calc(100% - 32px)","margin-inline:auto","border:0"} {
+  if !strings.Contains(page,want) {t.Errorf("shared banner must own its gutters: %q",want)}
+ }
  for _,obsolete:=range []string{"PERSONAL PORTAL", `suite-banner__family`, "border-bottom:1px solid var(--suite-line)","border-top:1px solid var(--suite-line)"} {
   if strings.Contains(page,obsolete) {t.Errorf("unwanted legacy banner decoration %q",obsolete)}
  }
