@@ -31,7 +31,7 @@ func TestEmbeddedAssetsRetainInlineCSPContract(t *testing.T) {
 
 func TestSharedAmbientBackgroundIsOptInAndPrintSafe(t *testing.T) {
  page:=Render("0.2.85","test")
- for _,want:=range []string{`<body class="suite-ambient-background">`, `.suite-ambient-background {`, `radial-gradient(`, `background-image: none`} {
+ for _,want:=range []string{`class="suite-ambient suite-ambient-one"`, `class="suite-ambient suite-ambient-two"`, `.suite-ambient-one {`, `blur(70px)`, `display: none !important`} {
   if !strings.Contains(page,want) {t.Errorf("missing shared ambient background contract: %s",want)}
  }
 }
