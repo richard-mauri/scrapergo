@@ -5,7 +5,7 @@ go 1.27.2
 require (
 	codeberg.org/readeck/go-readability/v2 v2.1.2
 	github.com/giraffesyo/pdf v0.8.0
-	github.com/richard-mauri/homepage/shared/ui v0.0.0-20261120155045-9bca6aa45d47
+	github.com/richard-mauri/homepage/shared/ui v0.0.0-20261120162421-224fd7ac2f05
 )
 
 require (
