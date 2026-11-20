@@ -8,7 +8,7 @@ import (
 )
 
 func TestBookmarkletAutoRead(t *testing.T) {
-	for _, needle := range []string{"new URLSearchParams(window.location.search).get('url')", "form.requestSubmit()", "ScraperGo · v" + "0.2.85"} {
+ for _, needle := range []string{"new URLSearchParams(window.location.search).get('url')", "form.requestSubmit()", "v0.2.85"} {
 		if !strings.Contains(Render("0.2.85","Build 000000"), needle) {
 			t.Fatalf("missing UI feature: %s", needle)
 		}

@@ -115,7 +115,7 @@
         identity=await identityResult();
       }
       if(identity.state==='signed-in' && typeof identity.user==='string' && identity.user){
-        statusElement.textContent='Signed in as '+identity.user;
+    SuiteBannerStatus.signedIn(identity.user);
         setVerified(true);
       }else{
         statusElement.textContent='Unable to verify sign-in';
