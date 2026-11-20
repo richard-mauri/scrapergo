@@ -1,6 +1,6 @@
 # Current work — ScraperGo
 
-**Banner correction:** The pinned shared UI module `cb65b3badb0b` enforces 16px horizontal gutters in its own banner CSS with no decorative border; ScraperGo retains its surrounding page shell. Owner Mac/Safari verification is pending.
+**Banner correction:** Shared UI module `80deb3b13f6a` owns viewport-based horizontal banner widths and responsive gutters; ScraperGo mounts the banner outside its reader shell, without decorative border. Owner Mac/Safari verification is pending.
 
 **Active:** [ScraperGo Issue #143](https://github.com/richard-mauri/scrapergo/issues/143), branch `ui/143-shared-banner`, [draft PR #144](https://github.com/richard-mauri/scrapergo/pull/144) from verified merged `main` `6b59a1ee6ed8c40f02bec0587eab2bf9dad86572`. Homepage foundation Issue #54 / draft PR #55 stays open for iteration. No ScraperGo release or deployment is authorized.
 
