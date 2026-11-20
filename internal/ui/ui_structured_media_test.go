@@ -15,7 +15,7 @@ func TestSingleMediaRenderPath(t *testing.T) {
 }
 func TestNewsGoPaletteAndReaderMargins(t *testing.T) {
  page:=Render("0.2.85","Build 000000")
- for _,tok:=range []string{"--bg:light-dark(#f5f5f0,#0e141a)","--accent:light-dark(#126877,#69c6d3)","max-width:1200px","@media print"}{
+ for _,tok:=range []string{"--bg:light-dark(#f5f5f0,#0e141a)","--accent:light-dark(#126877,#69c6d3)",".suite-banner,.suite-content{box-sizing:border-box;width:","@media print"}{
   if !strings.Contains(page,tok){t.Errorf("approved visual design missing %q",tok)}
  }
 }
