@@ -12,6 +12,8 @@ Stay on the existing Issue branch and draft PR for revisions; do not spin up add
 
 ## Automated and local checks
 
+`./devbuild.sh` already runs `go test ./...`, the extraction benchmark smoke check, and both macOS builds. Do not run standalone `go test` or `go build` first unless diagnosing a specific failure.
+
 For UI changes, the embedded Homepage `shared/ui` Go module owns ordinary button geometry, colors, borders, hover, keyboard focus and disabled states. ScraperGo's reader template explicitly applies `ui-button` to the Read article and toolbar controls. `reader.css` must not retain legacy button appearance declarations; its semantic token aliases and print/layout rules remain local. The `internal/ui/suite_buttons_test.go` regression checks this integration. Test both light/dark themes and narrow Safari layouts without changing extraction behavior.
 
 GitHub Actions workflow [Go CI](.github/workflows/go-ci.yml) runs on PRs targeting `main`: a non-blocking gofmt debt report, `go test -count=1 ./...` and `go build ./...` (Go version from `go.mod`). Inspect the run and outcome on **this PR's latest commit**. Confirm the intended diff is documentation-only when applicable.
@@ -25,7 +27,6 @@ git status --short --branch
 git fetch origin
 git checkout ACTUAL-PR-BRANCH
 git pull --ff-only origin ACTUAL-PR-BRANCH
-go test -count=1 ./...
 ./devbuild.sh
 ./dist/scrapergo-darwin-arm64 --version
 ./scrapergo.sh
