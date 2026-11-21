@@ -19,6 +19,11 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
+      - name: Validate private service-auth launcher import
+        run: |
+          bash -n scrapergo.sh
+          grep -F 'source "$SERVICE_AUTH_ENV"' scrapergo.sh
+          grep -F 'SERVICE_AUTH_ENV="/Users/richardmauri/projects/homepage/private/service-auth.env"' scrapergo.sh
       - name: Report formatting debt (non-blocking)
         run: |
           git ls-files '*.go' | xargs gofmt -l
