@@ -22,7 +22,7 @@ func TestRenderInjectsVersionAndEmbeddedAssets(t *testing.T) {
 
 func TestEmbeddedAssetsRetainInlineCSPContract(t *testing.T) {
  page:=Render("0.2.85","test")
- if strings.Count(page,"<script>")!=1 || strings.Count(page,"</script>")!=1 {t.Fatal("script injection changed")}
+ if strings.Count(page,"<script>")!=3 || strings.Count(page,"</script>")!=3 {t.Fatal("script injection changed")}
  if strings.Count(page,"<style>")!=1 || strings.Count(page,"</style>")!=1 {t.Fatal("style injection changed")}
  if strings.Contains(page,"<script src=") || strings.Contains(page,"<link rel=\"stylesheet\"") {
   t.Fatal("inline CSP contract changed")
@@ -49,7 +49,7 @@ func TestScraperGoSharedBannerPreservesAccountDOM(t *testing.T) {
   `id="suite-auth-status"`,
   `class="suite-banner__account-label suite-auth-status"`,
   `aria-live="polite"`,
-  "Browser-only mode",
+  "Homepage sign-in required",
   `src="/tanner.jpg"`,
   `.suite-banner__bottom`,
  } {
