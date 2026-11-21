@@ -24,6 +24,15 @@ fi
 source "$ACTIVITY_ENV"
 # END SUITE ACTIVITY ENV
 
+# Shared private NewsGo-to-ScraperGo classification credential. Never commit it.
+SERVICE_AUTH_ENV="/Users/richardmauri/projects/homepage/private/service-auth.env"
+if [[ ! -r "$SERVICE_AUTH_ENV" ]]; then
+    echo "Missing readable service authentication configuration: $SERVICE_AUTH_ENV" >&2
+    exit 1
+fi
+# shellcheck disable=SC1090
+source "$SERVICE_AUTH_ENV"
+
 for file in "$APP" "$TOKEN" "$CLOUDFLARED"; do
     if [[ ! -f "$file" ]]; then
         echo "Missing required file: $file" >&2
