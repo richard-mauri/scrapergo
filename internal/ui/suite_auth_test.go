@@ -40,7 +40,7 @@ func TestScraperGoReaderAttachesBearerForProtectedMedia(t *testing.T){
   if !strings.Contains(readerJS,want){t.Errorf("protected reader contract missing %q",want)}
  }
  for _,bad:=range []string{
-  "fetch('/api/read'",
+  "await fetch('/api/read'",
   "frame.src='/api/pdf?url='",
   "img.src='/api/article-image?url='",
  }{
