@@ -2,6 +2,7 @@ package activity
 
 import (
  "context"
+ readerui "clean-article-reader/internal/ui"
  "encoding/json"
  "net/http"
  "net/http/httptest"
@@ -136,22 +137,24 @@ func TestRevokedAndMalformedScraperHandoffsAreRejected(t *testing.T) {
 }
 
 func TestBrowserHandoffPreservesReaderAndRemovesTokenFragment(t *testing.T) {
- script:=BrowserScript()
+ html:=readerui.Render("test","Build 000001")
  for _,required:=range []string{
   "new URLSearchParams(location.hash.slice(1))",
   "hash.get('suite_token')",
   "hash.get('suite_mode')==='local'",
-  "sessionStorage.removeItem(handoffKey)",
+  "sessionStorage.removeItem(tokenKey)",
   "history.replaceState(null,'',location.pathname+location.search)",
-  "headers.Authorization='Bearer '+bearer",
-  "fetch('/api/activity/ping'",
-  "response.status!==401",
-  "setVerified(false,true)",
- } {
-  if !strings.Contains(script,required){t.Errorf("missing ScraperGo handoff invariant: %s",required)}
+  "const rejectedLocal=parsed.get('suite_mode')==='local'",
+  "window.scrapergoSuiteAuth",
+  "Authorization:'Bearer '+bearer",
+ }{
+  if !strings.Contains(html,required){t.Errorf("always-on handoff invariant missing %q",required)}
  }
- if strings.Contains(script,"?suite_token=") || strings.Contains(script,"/api/session/renew") {
-  t.Fatal("browser handoff cannot use token query strings or renew Homepage login")
+ if strings.Contains(html,"?suite_token=")||strings.Contains(html,"/api/session/renew"){
+  t.Fatal("browser must not expose child bearer in URL query or renew parent session")
+ }
+ if !strings.Contains(BrowserScript(),"auth.fetch('/api/activity/ping'"){
+  t.Fatal("optional telemetry must use already verified bearer")
  }
 }
 
@@ -201,86 +204,80 @@ func TestScraperGoIdentityStatusGuestSignedInAndUnavailable(t *testing.T) {
  if code,_:=check(valid);code!=503{t.Fatalf("outage status %d",code)}
 }
 
-func TestSilentRecoveryDoesNotNavigateOrLeakParentCredential(t *testing.T) {
- script:=BrowserScript()
+func TestSilentRecoveryDoesNotNavigateOrLeakParentCredential(t *testing.T){
+ script:=readerui.Render("test","Build 000001")
  for _,required:=range []string{
-  "https://home.themauris.org/api/handoff/scrapergo-recover",
+  "https://home.themauris.org",
+  "/api/handoff/scrapergo-recover",
   "method:'POST',mode:'cors',credentials:'include'",
-  "hadHandoff=!!bearer",
-  "Session expired — Sign in again",
-  "Unable to verify sign-in",
-  "SuiteBannerStatus.signedIn(identity.user)",
- } {
-  if !strings.Contains(script,required){t.Errorf("missing silent recovery invariant %q",required)}
+  "window.scrapergoSuiteAuth",
+  "setAccess(false)",
+  "setAccess(true)",
+ }{
+  if !strings.Contains(script,required){t.Errorf("silent recovery invariant missing %q",required)}
  }
- if strings.Contains(script,"location.assign(")||strings.Contains(script,"location.replace(")||
-  strings.Contains(script,"window.location=")||strings.Contains(script,"/api/session/renew") {
-  t.Fatal("silent recovery must not navigate or renew Homepage parent login")
+ for _,bad:=range []string{"location.assign(","location.replace(","window.location=","/api/session/renew"}{
+  if strings.Contains(script,bad){t.Errorf("recovery must not silently navigate or renew Homepage parent: %q",bad)}
  }
 }
 
-func TestDirectScraperGoVisitProbesExistingHomepageSession(t *testing.T) {
- script:=BrowserScript()
- for _,fragment:=range []string{
-  "let localOnly=false",
-  "localOnly=true",
-  "if(localOnly) {statusElement.textContent='Sign-in required';setVerified(false,true);return;}",
-  "let identity=bearer?await identityResult():{state:'guest'}",
-  "const recovery=await recoverHandoff()",
-  "hadHandoff?'Session expired — Sign in again':'Sign-in required'",
-  "hadHandoff=true",
- } {
-  if !strings.Contains(script,fragment){t.Errorf("missing direct-login invariant: %q",fragment)}
- }
- if strings.Contains(script,"location.assign(")||strings.Contains(script,"location.replace(") {
-  t.Fatal("direct login probe must never navigate")
+func TestDirectScraperGoVisitRejectsLocalModeAndRecoversValidParent(t *testing.T){
+ script:=readerui.Render("test","Build 000001")
+ for _,required:=range []string{
+  "const rejectedLocal=parsed.get('suite_mode')==='local'",
+  "if(acceptHandoff()||!rejectedLocal)void checkIdentity()",
+  "async function recover()",
+  "async function checkIdentity()",
+  "if(!tokenPattern.test(bearer)&&!(await recover()))",
+  "const profile=await response.json()",
+  "['user','admin','guest'].includes(profile.role)",
+ }{
+  if !strings.Contains(script,required){t.Errorf("direct visit contract missing %q",required)}
  }
 }
 
-func TestSignedOutReaderExplainsHomepageGuestAccessWithoutNavigation(t *testing.T) {
- script:=BrowserScript()
+func TestSignedOutReaderExplainsHomepageGuestAccessWithoutNavigation(t *testing.T){
+ script:=readerui.Render("test","Build 000001")
  for _,fragment:=range []string{
-  "Suite sign-in required",
-  "temporary authenticated guest session valid for one hour",
-  "Guest sessions do not save or restore server settings",
-  "homepageLink.href='https://home.themauris.org/'",
-  "signInDialog.showModal()",
-  "readerURL.disabled=!verified",
-  "readerButton.disabled=!verified",
-  "setVerified(true)",
- } {
-  if !strings.Contains(script,fragment){t.Errorf("missing guest access invariant: %q",fragment)}
+  "Homepage sign-in required",
+  "authenticated Guest session",
+  "link.href=homepage+'/'",
+  "dialog.addEventListener('cancel',e=>e.preventDefault())",
+  "if(input)input.disabled=!ok",
+  "if(read)read.disabled=!ok",
+  "if(ok)",
+ }{
+  if !strings.Contains(script,fragment){t.Errorf("sign-in prompt contract missing %q",fragment)}
  }
- if strings.Contains(script,"location.assign(")||strings.Contains(script,"location.replace(") {
+ if strings.Contains(script,"location.assign(")||strings.Contains(script,"location.replace("){
   t.Fatal("sign-in prompt must not navigate automatically")
  }
 }
 
-func TestFirstBrowserPresenceWaitsForIdentityVerification(t *testing.T) {
- s:=BrowserScript()
+func TestFirstBrowserPresenceWaitsForIdentityVerification(t *testing.T){
+ script:=BrowserScript()
  for _,required:=range []string{
   "let initialIdentityChecked=false",
-  "if (!initialIdentityChecked || document.hidden)return",
-  "void updateIdentityStatus().finally(()=>{initialIdentityChecked=true;send()})",
+  "if(!initialIdentityChecked||document.hidden||!auth.isVerified())return",
+  "void auth.whenReady().then(()=>{initialIdentityChecked=true;send()})",
   "setInterval(send,60000)",
-  "if (now-sentAt<25000)return",
- } {
-  if !strings.Contains(s,required){t.Errorf("missing first-heartbeat invariant %q",required)}
+  "if(now-sentAt<25000)return",
+ }{
+  if !strings.Contains(script,required){t.Errorf("heartbeat invariant missing %q",required)}
  }
- if strings.Index(s,"void updateIdentityStatus().finally(")<strings.Index(s,"function send()") {
-  t.Fatal("initial identity check sends heartbeat before send function is ready")
- }
- if strings.Contains(s,"  void updateIdentityStatus();") {
-  t.Fatal("identity recovery may race an eager anonymous ping")
+ if strings.Index(script,"void auth.whenReady().then(")<strings.Index(script,"function send()"){
+  t.Fatal("heartbeat must not initialize before send")
  }
 }
 
-func TestSignInDialogRemainsOpenUntilIdentityVerified(t *testing.T) {
- script:=BrowserScript()
+func TestSignInDialogRemainsOpenUntilIdentityVerified(t *testing.T){
+ script:=readerui.Render("test","Build 000001")
  for _,snippet:=range []string{
-  "signInDialog.addEventListener('cancel',event=>event.preventDefault())",
-  "dialogActions.append(homepageLink)",
-  "if(verified && signInDialog.open)signInDialog.close()",
- } {if !strings.Contains(script,snippet) {t.Errorf("missing sign-in dialog contract: %s",snippet)}}
- if strings.Contains(script,"closeDialog.textContent='Close'") {t.Fatal("sign-in dialog still offers Close bypass")}
+  "dialog.addEventListener('cancel',e=>e.preventDefault())",
+  "if(dialog.open)dialog.close()",
+  "if(!dialog.open&&typeof dialog.showModal==='function')dialog.showModal()",
+ }{
+  if !strings.Contains(script,snippet){t.Errorf("sign-in dialog contract missing %q",snippet)}
+ }
+ if strings.Contains(script,"closeDialog.textContent='Close'"){t.Fatal("sign-in dialog offers an unauthenticated Close bypass")}
 }
