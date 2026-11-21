@@ -23,7 +23,7 @@
  actions.append(link);dialog.append(info,actions);
  dialog.addEventListener('cancel',e=>e.preventDefault());
  document.body.append(dialog);
- function setAccess(ok){
+ function setAccess(ok,showDialog=false){
   verified=ok;
   document.documentElement.classList.toggle('suite-auth-ready',ok);
   if(input)input.disabled=!ok;
@@ -32,12 +32,12 @@
   if(ok){
    if(dialog.open)dialog.close();
    for(const resolve of pendingReady.splice(0))resolve();
-  }else if(!dialog.open&&typeof dialog.showModal==='function')dialog.showModal();
+  }else if(showDialog&&!dialog.open&&typeof dialog.showModal==='function')dialog.showModal();
  }
  function clearBearer(){
   bearer='';verifiedUser='';
   try{sessionStorage.removeItem(tokenKey)}catch(_){}
-  setAccess(false);
+  setAccess(false,true);
  }
  function acceptHandoff(){
   try{
@@ -49,7 +49,7 @@
     bearer=delivered;sessionStorage.setItem(tokenKey,bearer);
    }else{bearer=sessionStorage.getItem(tokenKey)||''}
   }catch(_){bearer=''}
-  if(!tokenPattern.test(bearer)){clearBearer();return false}
+  if(!tokenPattern.test(bearer)){bearer='';return false}
   return true;
  }
  async function recover(){
