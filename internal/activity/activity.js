@@ -1,164 +1,37 @@
-// ScraperGo browser presence, no personal tokens or article URLs are transmitted.
-// A random per-tab identifier is ephemeral and origin-scoped.
+// Optional aggregate activity reporting only. Homepage authentication is
+// mandatory and handled independently by the embedded suite_auth.js bootstrap.
 (() => {
-  let id='';
-  const key='scrapergo-activity-tab-v1';
-  try {
-    id=sessionStorage.getItem(key)||'';
-    if (!/^[a-f0-9]{32}$/.test(id)) {
-      id=Array.from(crypto.getRandomValues(new Uint8Array(16)),b=>b.toString(16).padStart(2,'0')).join('');
-      sessionStorage.setItem(key,id);
-    }
-  } catch (_) {
-    id=Array.from(crypto.getRandomValues(new Uint8Array(16)),b=>b.toString(16).padStart(2,'0')).join('');
+ 'use strict';
+ const auth=window.scrapergoSuiteAuth;
+ if(!auth)return;
+ const key='scrapergo-activity-tab-v1';
+ let id='';
+ try{
+  id=sessionStorage.getItem(key)||'';
+  if(!/^[a-f0-9]{32}$/.test(id)){
+   id=Array.from(crypto.getRandomValues(new Uint8Array(16)),b=>b.toString(16).padStart(2,'0')).join('');
+   sessionStorage.setItem(key,id);
   }
-  // Accept a Homepage-issued child handoff without changing public reader access.
-  // Fragments are removed before any article/network request.
-  const handoffKey='scrapergo-suite-handoff-v1';
-  let bearer='';
-  let localOnly=false;
-  const localKey='scrapergo-suite-local-v1';
-  try {
-    localOnly=sessionStorage.getItem(localKey)==='1';
-    const hash=new URLSearchParams(location.hash.slice(1));
-    if(hash.has('suite_mode') && hash.get('suite_mode')==='local') {
-      localOnly=true;
-      sessionStorage.setItem(localKey,'1');
-      sessionStorage.removeItem(handoffKey);
-    } else if(hash.has('suite_token')) {
-      localOnly=false;
-      sessionStorage.removeItem(localKey);
-      const token=hash.get('suite_token')||'';
-      if(/^[a-f0-9]{64}$/.test(token))sessionStorage.setItem(handoffKey,token);
-    }
-    if(hash.has('suite_mode')||hash.has('suite_token'))
-      history.replaceState(null,'',location.pathname+location.search);
-    bearer=sessionStorage.getItem(handoffKey)||'';
-    if(!/^[a-f0-9]{64}$/.test(bearer))bearer='';
-  }catch(_){bearer=''}
-  const statusElement=document.getElementById('suite-auth-status');
-  let statusPending=false;
-  const readerForm=document.getElementById('form');
-  const readerURL=document.getElementById('url');
-  const readerButton=document.getElementById('read');
-  const signInDialog=document.createElement('dialog');
-  signInDialog.className='suite-signin-dialog';
-  signInDialog.setAttribute('aria-labelledby','suite-signin-title');
-  const dialogTitle=document.createElement('h2');dialogTitle.id='suite-signin-title';dialogTitle.textContent='Suite sign-in required';
-  const dialogInfo=document.createElement('p');
-  dialogInfo.textContent='Visit Homepage to sign in with your personal token or obtain a temporary authenticated guest session valid for one hour. Guest sessions do not save or restore server settings.';
-  const dialogActions=document.createElement('div');dialogActions.className='suite-signin-actions';
-  const homepageLink=document.createElement('a');homepageLink.href='https://home.themauris.org/';homepageLink.target='_blank';homepageLink.rel='noopener noreferrer';homepageLink.textContent='Go to Homepage';
-  // Invalid identity cannot dismiss this prompt; verified Homepage identity closes it.
-  signInDialog.addEventListener('cancel',event=>event.preventDefault());
-  dialogActions.append(homepageLink);signInDialog.append(dialogTitle,dialogInfo,dialogActions);
-  document.body.append(signInDialog);
-  function setVerified(verified,explain=false) {
-    if(readerURL)readerURL.disabled=!verified;
-    if(readerButton)readerButton.disabled=!verified;
-    if(readerForm)readerForm.setAttribute('aria-disabled',String(!verified));
-    if(verified && signInDialog.open)signInDialog.close();
-    if(!verified && explain && !signInDialog.open)signInDialog.showModal();
-  }
-  setVerified(false);
-
-  // Direct navigation also recognizes an existing Homepage login silently.
-  // An explicit suite_mode=local remains a deliberate guest launch.
-  let hadHandoff=!!bearer;
-
-  const homepageRecoverURL='https://home.themauris.org/api/handoff/scrapergo-recover';
-  async function recoverHandoff() {
-    const response=await fetch(homepageRecoverURL,{
-      method:'POST',mode:'cors',credentials:'include',cache:'no-store'
-    });
-    if(response.status===401 || response.status===403)return 'expired';
-    if(!response.ok)return 'unavailable';
-    const data=await response.json();
-    if(!/^[a-f0-9]{64}$/.test(data.token)||!Number.isFinite(Date.parse(data.expiresAt)))
-      return 'unavailable';
-    bearer=data.token;
-    try{sessionStorage.setItem(handoffKey,bearer)}catch(_){}
-    return 'recovered';
-  }
-  async function identityResult() {
-    const response=await fetch('/api/activity/identity',{
-      method:'GET',cache:'no-store',credentials:'same-origin',
-      headers:{Authorization:'Bearer '+bearer}
-    });
-    if(!response.ok)return {state:'unavailable'};
-    return response.json();
-  }
-  async function updateIdentityStatus() {
-    if(!statusElement || statusPending)return;
-    if(localOnly) {statusElement.textContent='Sign-in required';setVerified(false,true);return;}
-    statusPending=true;
-    try {
-      statusElement.textContent='Checking sign-in…';
-      let identity=bearer?await identityResult():{state:'guest'};
-      if(identity.state==='guest'){
-        // Never navigate: a same-site credentialed request to Homepage
-        // obtains a new, parent-bound child bearer if the login survives.
-        const recovery=await recoverHandoff();
-        if(recovery==='expired'){
-          bearer='';
-          try{sessionStorage.removeItem(handoffKey)}catch(_){}
-          statusElement.textContent=hadHandoff?'Session expired — Sign in again':'Sign-in required';
-          setVerified(false,true);
-          return;
-        }
-        if(recovery!=='recovered'){
-          statusElement.textContent='Unable to verify sign-in';
-          setVerified(false,false);
-          return;
-        }
-        hadHandoff=true;
-        identity=await identityResult();
-      }
-      if(identity.state==='signed-in' && typeof identity.user==='string' && identity.user){
-    SuiteBannerStatus.signedIn(identity.user);
-        setVerified(true);
-      }else{
-        statusElement.textContent='Unable to verify sign-in';
-        setVerified(false,false);
-      }
-    }catch(_){statusElement.textContent='Unable to verify sign-in';setVerified(false,false)}
-    finally{statusPending=false}
-  }
-  // Do not record an anonymous first ping while Homepage handoff recovery is
-  // still in progress. The first observation uses the verified bearer, if any.
-  let initialIdentityChecked=false;
-  setInterval(()=>{if(!document.hidden)void updateIdentityStatus()},60000);
-  document.addEventListener('visibilitychange',()=>{if(!document.hidden)void updateIdentityStatus()});
-  let interacted=false;
-  let sentAt=0;
-  function send() {
-    if (!initialIdentityChecked || document.hidden)return;
-    const now=Date.now();
-    if (now-sentAt<25000)return;
-    sentAt=now;
-    const body=JSON.stringify({id,visible:true,interacted});
-    interacted=false;
-    try {
-      const headers={'Content-Type':'application/json'};
-      if(bearer)headers.Authorization='Bearer '+bearer;
-      const pingBearer=bearer;
-      fetch('/api/activity/ping',{method:'POST',cache:'no-store',credentials:'same-origin',
-        headers,body,keepalive:true}).then(response=>{
-          // Only the current bearer can be invalidated by this reply.
-          if(response.status!==401 || !pingBearer || bearer!==pingBearer)return;
-          bearer='';
-          try{sessionStorage.removeItem(handoffKey)}catch(_){}
-          statusElement.textContent='Session expired or revoked — Sign in again';
-          setVerified(false,true);
-        }).catch(()=>{});
-    }catch(_){}
-  }
-  function mark() {interacted=true;send()}
-  document.addEventListener('pointerdown',mark,{passive:true});
-  document.addEventListener('keydown',mark,{passive:true});
-  document.addEventListener('visibilitychange',()=>{if(!document.hidden)send()});
-  window.addEventListener('pageshow',send);
-  window.addEventListener('focus',send);
-  void updateIdentityStatus().finally(()=>{initialIdentityChecked=true;send()});
-  setInterval(send,60000);
+ }catch(_){id=Array.from(crypto.getRandomValues(new Uint8Array(16)),b=>b.toString(16).padStart(2,'0')).join('')}
+ let initialIdentityChecked=false,interacted=false,sentAt=0;
+ function send(){
+  if(!initialIdentityChecked||document.hidden||!auth.isVerified())return;
+  const now=Date.now();
+  if(now-sentAt<25000)return;
+  sentAt=now;
+  const body=JSON.stringify({id,visible:true,interacted});
+  interacted=false;
+  try{
+   void auth.fetch('/api/activity/ping',{method:'POST',cache:'no-store',
+    headers:{'Content-Type':'application/json'},body,keepalive:true}).catch(()=>{});
+  }catch(_){}
+ }
+ function mark(){interacted=true;send()}
+ document.addEventListener('pointerdown',mark,{passive:true});
+ document.addEventListener('keydown',mark,{passive:true});
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden)send()});
+ window.addEventListener('pageshow',send);
+ window.addEventListener('focus',send);
+ void auth.whenReady().then(()=>{initialIdentityChecked=true;send()});
+ setInterval(send,60000);
 })();

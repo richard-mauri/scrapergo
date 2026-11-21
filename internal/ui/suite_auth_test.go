@@ -1,0 +1,66 @@
+package ui
+
+import (
+ "strings"
+ "testing"
+)
+
+func TestMandatorySuiteAuthAlwaysPresent(t *testing.T){
+ html:=Render("0.0.0","Build 000001")
+ for _,want:=range []string{
+  "suite-auth-ready",
+  "scrapergo-suite-handoff-v1",
+  "function setAccess(ok,showDialog=false)",
+  "setAccess(false,true)",
+  "else if(showDialog&&!dialog.open",
+  "async function checkIdentity()",
+  "scrapergoSuiteAuth",
+  "if(input)input.disabled=!ok",
+  "if(read)read.disabled=!ok",
+  "const rejectedLocal=parsed.get('suite_mode')==='local'",
+  "Homepage sign-in required",
+  "Go to Homepage",
+  "SuiteBannerStatus",
+ }{
+  if !strings.Contains(html,want){t.Errorf("mandatory browser bootstrap missing %q",want)}
+ }
+ if strings.Contains(html,"__SUITE_AUTH_JS__")||strings.Contains(html,"__SUITE_BANNER_SCRIPT__"){
+  t.Fatal("unresolved browser auth placeholder")
+ }
+ if strings.Contains(html,"browser-only mode") || strings.Contains(html,"Browser only"){
+  t.Fatal("anonymous browser identity must not be displayed as authorized access")
+ }
+}
+func TestScraperGoReaderAttachesBearerForProtectedMedia(t *testing.T){
+ for _,want:=range []string{
+  "window.scrapergoSuiteAuth.fetch('/api/read'",
+  "window.scrapergoSuiteAuth.isVerified()",
+  "protectedObjectURL('/api/pdf?url='",
+  "protectedObjectURL('/api/article-image?url='",
+  "window.scrapergoSuiteAuth.whenReady().then",
+  "void window.scrapergoSuiteAuth.whenReady().then(()=>renderBrowserArticle(article))",
+  "function renderBrowserArticle(a)",
+ }{
+  if !strings.Contains(readerJS,want){t.Errorf("protected reader contract missing %q",want)}
+ }
+ for _,bad:=range []string{
+  "await fetch('/api/read'",
+  "frame.src='/api/pdf?url='",
+  "img.src='/api/article-image?url='",
+ }{
+  if strings.Contains(readerJS,bad){t.Errorf("unauthenticated resource path %q",bad)}
+ }
+}
+
+func TestSuiteAuthDoesNotShowDialogBeforeVerification(t *testing.T) {
+ script := string(suiteAuthJS)
+ if strings.Contains(script, "if(!tokenPattern.test(bearer)){clearBearer();return false}") {
+  t.Fatal("missing cached bearer must allow silent recovery before showing the sign-in dialog")
+ }
+ if !strings.Contains(script, "setAccess(false);\n // An explicit legacy local-mode handoff") {
+  t.Fatal("bootstrap must keep dialog hidden while verifying the initial handoff")
+ }
+ if !strings.Contains(script, "if(!response.ok){clearBearer();return}") {
+  t.Fatal("failed verification must explicitly show the persistent sign-in dialog")
+ }
+}

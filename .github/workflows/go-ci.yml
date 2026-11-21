@@ -19,9 +19,21 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
+      - name: Validate private service-auth launcher import
+        run: |
+          bash -n scrapergo.sh
+          grep -F 'source "$SERVICE_AUTH_ENV"' scrapergo.sh
+          grep -F 'SERVICE_AUTH_ENV="/Users/richardmauri/projects/homepage/private/service-auth.env"' scrapergo.sh
       - name: Report formatting debt (non-blocking)
         run: |
           git ls-files '*.go' | xargs gofmt -l
+      - name: Validate embedded suite browser scripts (CI only)
+        run: |
+          node --check internal/ui/static/suite_auth.js
+          node --check internal/ui/static/reader.js
+          node --check internal/activity/activity.js
+          node --check scripts/test-suite-auth.cjs
+          node scripts/test-suite-auth.cjs
       - name: Run tests
         run: go test -count=1 ./...
       - name: Build

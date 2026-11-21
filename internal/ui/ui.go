@@ -11,12 +11,13 @@ import (
  "github.com/richard-mauri/homepage/shared/ui/banner"
 )
 
-//go:embed templates/index.html static/reader.css static/reader.js
+//go:embed templates/index.html static/reader.css static/reader.js static/suite_auth.js
 var assets embed.FS
 
 var templateHTML = mustRead("templates/index.html")
 var readerCSS = mustRead("static/reader.css")
 var readerJS = mustRead("static/reader.js")
+var suiteAuthJS = mustRead("static/suite_auth.js")
 
 func mustRead(path string) string {
  data, err := assets.ReadFile(path)
@@ -27,6 +28,7 @@ func mustRead(path string) string {
 // Template returns the static HTML skeleton, without a compiled version label.
 func Template() string {
  page := strings.Replace(templateHTML,"__READER_CSS__",readerCSS+"\n"+string(suiteui.ButtonCSS)+"\n"+string(banner.CSS(suiteui.DesignCSS)),1)
+ page = strings.Replace(page,"__SUITE_AUTH_JS__",suiteAuthJS,1)
  return strings.Replace(page,"__READER_JS__",readerJS,1)
 }
 
@@ -39,10 +41,11 @@ func Render(version, build string) string {
   AppName:"ScraperGo",Version:version,Build:build,
   Description:"Public articles, without the page clutter.",
   HomeURL:"https://home.themauris.org/",TannerURL:"/tanner.jpg",
-  AccountState:banner.BrowserOnly,
+  AccountState:banner.Unavailable,
  })
  if err!=nil {panic(err)} // fixed local configuration, checked by tests
- return strings.Replace(page,"__SUITE_BANNER__",header.String(),1)
+ page = strings.Replace(page,"__SUITE_BANNER__",header.String(),1)
+ return strings.Replace(page,"__SUITE_BANNER_SCRIPT__",string(banner.ScriptJS()),1)
 }
 
 // RenderWithActivity adds an anonymous, same-origin heartbeat only when the
@@ -51,5 +54,5 @@ func Render(version, build string) string {
 func RenderWithActivity(version,build,browserScript string) string {
  page:=Render(version,build)
  if browserScript=="" {return page}
- return strings.Replace(page,"</body>","<script>"+string(banner.ScriptJS())+"\n"+browserScript+"</script></body>",1)
+ return strings.Replace(page,"</body>","<script>"+browserScript+"</script></body>",1)
 }

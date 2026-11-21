@@ -65,7 +65,7 @@ func Router(h Handlers, config Config) http.Handler {
  mux.HandleFunc("/",func(w http.ResponseWriter,r *http.Request) {
   if r.URL.Path!="/" {http.NotFound(w,r);return}
   w.Header().Set("Content-Type","text/html; charset=utf-8")
-  w.Header().Set("Content-Security-Policy","default-src 'self'; connect-src 'self' https://home.themauris.org; img-src 'self' https: data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; base-uri 'none'; object-src 'none'; frame-src 'self'")
+  w.Header().Set("Content-Security-Policy","default-src 'self'; connect-src 'self' https://home.themauris.org; img-src 'self' https: data: blob:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; base-uri 'none'; object-src 'none'; frame-src 'self' blob:")
   if config.Activity!=nil {fmt.Fprint(w,ui.RenderWithActivity(config.Version,config.Build,activity.BrowserScript()))} else {fmt.Fprint(w,ui.Render(config.Version,config.Build))}
  })
  if config.Activity==nil {return mux}
@@ -104,7 +104,7 @@ func Run(config Config, handlers Handlers) error {
  }
  addr,addrErr:=testListenAddress(config.Port)
  if addrErr!=nil {return addrErr}
- server:=&http.Server{Addr:addr,Handler:Router(handlers,config),ReadHeaderTimeout:5*time.Second}
+ server:=&http.Server{Addr:addr,Handler:NewSuiteGate().Protect(Router(handlers,config)),ReadHeaderTimeout:5*time.Second}
  log.Printf("ScraperGo v%s · %s listening on http://localhost:%s",config.Version,config.Build,config.Port)
  if err:=server.ListenAndServe();err!=nil {
   if errors.Is(err,syscall.EADDRINUSE) {
