@@ -32,7 +32,7 @@ func TestNewsGoServiceIdentityOnlyAuthorizesClassification(t *testing.T) {
  }
  check("GET","/api/classify",valid,"",401)
  check("POST","/api/classify","","",401)
- check("POST","/api/classify","Bearer "+key,"",401)
+ check("POST","/api/classify","Bearer "+key,"",503) // unconfigured Homepage verifier fails closed
  check("POST","/api/classify","Service "+strings.Repeat("e",64),"",401)
  check("POST","/api/classify","Service "+strings.Repeat("D",64),"",401)
  gate.NewsGoClassifyToken=""
