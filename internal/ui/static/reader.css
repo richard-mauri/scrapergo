@@ -41,3 +41,6 @@ input:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offs
 .suite-signin-actions{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
 .suite-signin-actions a{font:600 14px/1.4 system-ui,-apple-system,sans-serif;padding:10px 14px;border-radius:8px;border:1px solid #496771;background:#194d53;color:#eaf4f4;text-decoration:none;cursor:pointer}
 .suite-signin-actions a:hover{background:#28646b}
+
+/* Public handoff HTML must not expose interactive reading controls. */
+html:not(.suite-auth-ready) .suite-content{visibility:hidden}
