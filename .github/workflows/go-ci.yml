@@ -27,6 +27,8 @@ jobs:
           node --check internal/ui/static/suite_auth.js
           node --check internal/ui/static/reader.js
           node --check internal/activity/activity.js
+          node --check scripts/test-suite-auth.cjs
+          node scripts/test-suite-auth.cjs
       - name: Run tests
         run: go test -count=1 ./...
       - name: Build
