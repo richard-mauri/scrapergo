@@ -10,7 +10,9 @@ func TestMandatorySuiteAuthAlwaysPresent(t *testing.T){
  for _,want:=range []string{
   "suite-auth-ready",
   "scrapergo-suite-handoff-v1",
-  "function setAccess(ok)",
+  "function setAccess(ok,showDialog=false)",
+  "setAccess(false,true)",
+  "else if(showDialog&&!dialog.open",
   "async function checkIdentity()",
   "scrapergoSuiteAuth",
   "if(input)input.disabled=!ok",
@@ -47,5 +49,18 @@ func TestScraperGoReaderAttachesBearerForProtectedMedia(t *testing.T){
   "img.src='/api/article-image?url='",
  }{
   if strings.Contains(readerJS,bad){t.Errorf("unauthenticated resource path %q",bad)}
+ }
+}
+
+func TestSuiteAuthDoesNotShowDialogBeforeVerification(t *testing.T) {
+ script := string(suiteAuthJS)
+ if strings.Contains(script, "if(!tokenPattern.test(bearer)){clearBearer();return false}") {
+  t.Fatal("missing cached bearer must allow silent recovery before showing the sign-in dialog")
+ }
+ if !strings.Contains(script, "setAccess(false);\n // An explicit legacy local-mode handoff") {
+  t.Fatal("bootstrap must keep dialog hidden while verifying the initial handoff")
+ }
+ if !strings.Contains(script, "if(!response.ok){clearBearer();return}") {
+  t.Fatal("failed verification must explicitly show the persistent sign-in dialog")
  }
 }
