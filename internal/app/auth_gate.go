@@ -3,7 +3,6 @@ package app
 import (
  "context"
  "encoding/json"
- "errors"
  "io"
  "net/http"
  "regexp"
@@ -92,6 +91,3 @@ func (g *SuiteGate) Protect(next http.Handler)http.Handler{
  })
 }
 
-// Ensure errors.Is remains supported for custom verifiers introduced later.
-var _=errors.Is
-var _=io.Discard
