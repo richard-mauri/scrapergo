@@ -275,7 +275,8 @@ func TestSignInDialogRemainsOpenUntilIdentityVerified(t *testing.T){
  for _,snippet:=range []string{
   "dialog.addEventListener('cancel',e=>e.preventDefault())",
   "if(dialog.open)dialog.close()",
-  "if(!dialog.open&&typeof dialog.showModal==='function')dialog.showModal()",
+  "else if(showDialog&&!dialog.open&&typeof dialog.showModal==='function')dialog.showModal()",
+  "setAccess(false,true)",
  }{
   if !strings.Contains(script,snippet){t.Errorf("sign-in dialog contract missing %q",snippet)}
  }
