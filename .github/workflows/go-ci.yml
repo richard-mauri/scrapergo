@@ -22,6 +22,11 @@ jobs:
       - name: Report formatting debt (non-blocking)
         run: |
           git ls-files '*.go' | xargs gofmt -l
+      - name: Validate embedded suite browser scripts (CI only)
+        run: |
+          node --check internal/ui/static/suite_auth.js
+          node --check internal/ui/static/reader.js
+          node --check internal/activity/activity.js
       - name: Run tests
         run: go test -count=1 ./...
       - name: Build
