@@ -104,7 +104,7 @@ func Run(config Config, handlers Handlers) error {
  }
  addr,addrErr:=testListenAddress(config.Port)
  if addrErr!=nil {return addrErr}
- server:=&http.Server{Addr:addr,Handler:Router(handlers,config),ReadHeaderTimeout:5*time.Second}
+ server:=&http.Server{Addr:addr,Handler:NewSuiteGate().Protect(Router(handlers,config)),ReadHeaderTimeout:5*time.Second}
  log.Printf("ScraperGo v%s · %s listening on http://localhost:%s",config.Version,config.Build,config.Port)
  if err:=server.ListenAndServe();err!=nil {
   if errors.Is(err,syscall.EADDRINUSE) {
