@@ -36,6 +36,8 @@ func TestScraperGoReaderAttachesBearerForProtectedMedia(t *testing.T){
   "protectedObjectURL('/api/pdf?url='",
   "protectedObjectURL('/api/article-image?url='",
   "window.scrapergoSuiteAuth.whenReady().then",
+  "void window.scrapergoSuiteAuth.whenReady().then(()=>renderBrowserArticle(article))",
+  "function renderBrowserArticle(a)",
  }{
   if !strings.Contains(readerJS,want){t.Errorf("protected reader contract missing %q",want)}
  }
