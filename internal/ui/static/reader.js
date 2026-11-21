@@ -83,16 +83,26 @@ if(isIdentity){
 }
 const logo=data.blocks[bi+1];const heading=(b.text||'').replace(/^\s*\d+[.)]\s*/, '').trim();const label=(logo?.text||'').trim();const normalizeLabel=s=>s.toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();const headingKey=normalizeLabel(heading),logoKey=normalizeLabel(label);const identifyingImage=logo?.kind==='img'&&headingKey.length>=4&&logoKey.length>=4&&(headingKey===logoKey||headingKey.includes(logoKey)||logoKey.includes(headingKey));const metadata=[];if(identifyingImage){for(let off=bi+2;off<Math.min(data.blocks.length,bi+5);off++){const x=data.blocks[off];if(!x||x.kind!=='p'||!(x.text||'').trim()||x.text.length>150||!(/^\s*[^\n:]{2,45}:/.test(x.text)||x.text.split('\n').every(line=>/^\s*[^:]{2,45}:/.test(line))))break;metadata.push(x)}}if(/^h[234]$/.test(b.kind)&&identifyingImage&&metadata.length>=1){const group=document.createElement('div');group.className='compact-entry';const pic=document.createElement('img');pic.src=logo.url;pic.alt=logo.text||heading;pic.loading='eager';pic.referrerPolicy='no-referrer';removeFailedImage(pic,logo.url,data);group.appendChild(pic);const info=document.createElement('div');info.className='compact-info';putLinked('h3',b,info);for(const m of metadata)putLinked('p',m,info);group.appendChild(info);$('content').appendChild(group);bi+=1+metadata.length;continue}if(b.kind==='img'&&b.gallery){const members=[];let j=bi;while(j<data.blocks.length&&data.blocks[j].kind==='img'&&data.blocks[j].gallery===b.gallery){members.push(data.blocks[j]);j++}if(members.length>1){const group=document.createElement('div');group.className='source-gallery';for(const item of members){const fig=document.createElement('figure');const im=document.createElement('img');im.src=item.url;im.alt=item.text||'Gallery photograph';im.loading='eager';im.referrerPolicy='no-referrer';removeFailedImage(im,item.url,data);fig.appendChild(im);if(editorialCaption(item.text,data.title))put('figcaption',item.text,fig);group.appendChild(fig)}$('content').appendChild(group);bi=j-1;continue;}}if(b.kind==='img'&&/^https?:\/\//.test(b.url||'')){const fig=document.createElement('figure');if(b.role==='lead')fig.className='lead-photo';else if(b.role==='author')fig.className='author-photo';const im=document.createElement('img');im.src=b.url;im.alt=b.text||'Article image';im.loading='eager';im.referrerPolicy='no-referrer';removeFailedImage(im,b.url,data);fig.appendChild(im);if(editorialCaption(b.text,data.title))put('figcaption',b.text,fig);if(b.role!=='lead'&&b.role!=='author'&&b.text&&data.blocks.some((x,j)=>x===b&&j>0&&/^h[234]$/.test(data.blocks[j-1].kind))){fig.className='compact-mark'}$('content').appendChild(fig);continue;}const tag=/^h[234]$/.test(b.kind)?'h3':b.kind==='blockquote'?'blockquote':'p';putLinked(tag,b,$('content'))}}const link=$('source');link.href=data.url;link.textContent=data.url;$('paper').style.display='block';$('status').textContent=data.accessNote?'Publicly available article preview extracted.':'Article extracted successfully.'}catch(err){$('status').className='status error';$('status').textContent=err.message; if(err.kind==='page_index'){$('status').className='status';$('status').textContent=err.message;try{const original=new URL(err.originalUrl||$('url').value);if(['http:','https:'].includes(original.protocol)){$('original').href=original.href;$('original').textContent='Open original website ↗';$('fallback').style.display='block'}}catch(_){}return;}if(['paywall','registration','restricted'].includes(err.kind)) { const titles={paywall:'Paid Subscription Required',registration:'Free Registration Required',restricted:'Access Restricted'}; $('paytitle').textContent=titles[err.kind]; $('paymessage').textContent=err.message; $('paydiagnostic').textContent=[err.publisher?'Publisher: '+err.publisher:'',err.evidence?'Detection: '+err.evidence:''].filter(Boolean).join(' · '); $('paynotice').style.display='block'; $('status').textContent=''; return; } try{const original=new URL($('url').value);if(original.protocol==='http:'||original.protocol==='https:'){$('original').href=original.href;$('fallback').style.display='block'}}catch(_){}}finally{$('read').disabled=!window.scrapergoSuiteAuth.isVerified()}};
 
-// Browser-assisted reading: extension passes ONLY visible article paragraphs. No raw HTML.
-window.addEventListener('message',ev=>{
- if(!window.scrapergoSuiteAuth.isVerified()||ev.source!==window||ev.origin!==location.origin||!ev.data||ev.data.type!=='SCRAPERGO_BROWSER_ARTICLE')return;
- const a=ev.data.article;
+// Browser-assisted reading: the extension passes ONLY visible article
+// paragraphs, never raw HTML. Hold a valid same-window message in memory
+// until Homepage verification completes; do not show it anonymously.
+function renderBrowserArticle(a){
+ if(!window.scrapergoSuiteAuth.isVerified())return;
  if(!a||!Array.isArray(a.blocks)||a.blocks.length<2||typeof a.url!=='string')return;
  try{const u=new URL(a.url);if(!['https:','http:'].includes(u.protocol))return;}catch(_){return;}
  current=a;$('url').value=a.url;$('paper').style.display='block';$('paynotice').style.display='none';$('fallback').style.display='none';$('status').className='status';$('status').textContent='Article read from visible Safari page.';
  $('site').textContent=a.site||new URL(a.url).hostname;$('title').textContent=a.title||'Article';$('meta').textContent=a.wordCount+' words · Safari';$('content').replaceChildren();
  for(const b of a.blocks){if(b.kind==='table'){renderTable(b,$('content'));continue}put(/^h[234]$/.test(b.kind)?'h3':'p',b.text,$('content'))}
  $('source').href=a.url;$('source').textContent=a.url;
+}
+window.addEventListener('message',ev=>{
+ if(ev.source!==window||ev.origin!==location.origin||!ev.data||ev.data.type!=='SCRAPERGO_BROWSER_ARTICLE')return;
+ const article=ev.data.article;
+ if(!window.scrapergoSuiteAuth.isVerified()){
+  void window.scrapergoSuiteAuth.whenReady().then(()=>renderBrowserArticle(article));
+  return;
+ }
+ renderBrowserArticle(article);
 });
 
 // Safari bookmarklet supplies ?url=...; keep manual entry available.
