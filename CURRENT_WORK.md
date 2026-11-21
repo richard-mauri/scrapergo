@@ -10,6 +10,8 @@
 
 **Documentation:** Read current full merged Homepage `SUITE_DEVELOPMENT_POLICY.md` v1.1.0 plus ScraperGo AGENTS/README/ARCHITECTURE/DEVELOPMENT/CURRENT_WORK. Updated README, ARCHITECTURE, DEVELOPMENT, CURRENT_WORK; AGENTS and shared policy unchanged. Previous CURRENT_WORK banner handoff was stale relative to merged PR #144.
 
+**Owner-observed dialog regression (PR #146 follow-up):** Initial ScraperGo `setAccess(false)` opened a modal before the Homepage handoff completed, then successful verification immediately closed it, causing a useless flash. The existing auth candidate now keeps the modal hidden during initial bearer verification and silent parent recovery; only a rejected/expired/unavailable identity opens a persistent sign-in modal. Server-side API controls and Homepage shared module remain unchanged. Added Go assertions and a CI-only Node VM behavioral test for valid handoff, pending verification, recovery, outage and missing sign-in; no new Mac dependencies. Safari testing is still required.
+
 **Verification:** Require exact-head GitHub Go CI across Go tests, builds, Readability structural experiments and offline diagnostic smoke plus JavaScript syntax. Owner Mac `./devbuild.sh`, Safari personal/Guest/direct/private, article media, extension, NewsGo classification and tunnel/live behavior remain **unverified**.
 
 **Mac handoff:** `cd ~/projects/scrapergo`; `git status --short --branch` (stop if dirty); `git fetch origin`; `git checkout auth/145-verified-suite-access`; `git pull --ff-only origin auth/145-verified-suite-access`; `./devbuild.sh`; `./dist/scrapergo-darwin-arm64 --version`. **Do not** run `./scrapergo.sh` without separately explicit restart approval.
