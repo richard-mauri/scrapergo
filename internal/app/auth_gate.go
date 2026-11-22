@@ -24,17 +24,14 @@ var suiteBearerPattern=regexp.MustCompile(`^Bearer [a-f0-9]{64}$`)
 type SuiteGate struct {
  ProfileURL string
  Client *http.Client
- // Dedicated server-only token grants only POST /api/classify, never user/API access.
+ // One server-only credential grants only explicitly allowed NewsGo API operations.
  NewsGoClassifyToken string
- // Distinct machine credential; permits only GET /api/thumbnail.
- NewsGoThumbnailToken string
 }
 
 func NewSuiteGate() *SuiteGate {
  return &SuiteGate{
   ProfileURL:scrapergoProfileEndpoint,
   NewsGoClassifyToken:os.Getenv("SUITE_NEWSGO_SCRAPERGO_CLASSIFY_TOKEN"),
-  NewsGoThumbnailToken:os.Getenv("SUITE_NEWSGO_SCRAPERGO_THUMBNAIL_TOKEN"),
   Client:&http.Client{
    Timeout:4*time.Second,
    CheckRedirect:func(*http.Request,[]*http.Request)error{return http.ErrUseLastResponse},
@@ -87,14 +84,14 @@ func (g *SuiteGate) authorizedNewsGoClassification(r *http.Request) bool {
  return subtle.ConstantTimeCompare([]byte(candidate),[]byte(token))==1
 }
 
-// The separate thumbnail machine identity never authorizes classification,
-// reader, image delivery, PDF, identity, diagnostics, activity or future APIs.
+// The same server-only NewsGo identity authorizes the explicitly allowlisted
+// thumbnail GET; no other media, reader, PDF, admin, identity, or future APIs.
 func (g *SuiteGate) authorizedNewsGoThumbnail(r *http.Request) bool {
  if g==nil || r.Method!=http.MethodGet || r.URL.Path!="/api/thumbnail" || r.Header.Get("Origin")!="" {
   return false
  }
- token:=g.NewsGoThumbnailToken
- if !serviceClassifyTokenPattern.MatchString(token) || token==g.NewsGoClassifyToken {return false}
+ token:=g.NewsGoClassifyToken
+ if !serviceClassifyTokenPattern.MatchString(token) {return false}
  provided:=r.Header.Get("Authorization")
  if !strings.HasPrefix(provided,"Service ") || len(provided)!=len("Service ")+64 {return false}
  candidate:=strings.TrimPrefix(provided,"Service ")
@@ -123,8 +120,8 @@ func (g *SuiteGate) Protect(next http.Handler)http.Handler{
   })
  }))
  return http.HandlerFunc(func(w http.ResponseWriter,r *http.Request){
-  // Narrow machine identities: NewsGo classification POST and separately
-  // credentialed thumbnail GET only. Other APIs require Homepage identity.
+  // One machine identity with explicit POST /api/classify and GET /api/thumbnail
+  // permissions. All other APIs require Homepage identity.
   if g.authorizedNewsGoClassification(r) || g.authorizedNewsGoThumbnail(r) {
    w.Header().Set("Cache-Control","no-store")
    next.ServeHTTP(w,r)
