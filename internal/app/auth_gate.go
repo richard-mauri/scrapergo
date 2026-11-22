@@ -24,7 +24,7 @@ var suiteBearerPattern=regexp.MustCompile(`^Bearer [a-f0-9]{64}$`)
 type SuiteGate struct {
  ProfileURL string
  Client *http.Client
- // Dedicated server-only token grants only POST /api/classify, never user/API access.
+ // One server-only credential grants only explicitly allowed NewsGo API operations.
  NewsGoClassifyToken string
 }
 
@@ -84,6 +84,21 @@ func (g *SuiteGate) authorizedNewsGoClassification(r *http.Request) bool {
  return subtle.ConstantTimeCompare([]byte(candidate),[]byte(token))==1
 }
 
+// The same server-only NewsGo identity authorizes the explicitly allowlisted
+// thumbnail GET; no other media, reader, PDF, admin, identity, or future APIs.
+func (g *SuiteGate) authorizedNewsGoThumbnail(r *http.Request) bool {
+ if g==nil || r.Method!=http.MethodGet || r.URL.Path!="/api/thumbnail" || r.Header.Get("Origin")!="" {
+  return false
+ }
+ token:=g.NewsGoClassifyToken
+ if !serviceClassifyTokenPattern.MatchString(token) {return false}
+ provided:=r.Header.Get("Authorization")
+ if !strings.HasPrefix(provided,"Service ") || len(provided)!=len("Service ")+64 {return false}
+ candidate:=strings.TrimPrefix(provided,"Service ")
+ if !serviceClassifyTokenPattern.MatchString(candidate) {return false}
+ return subtle.ConstantTimeCompare([]byte(candidate),[]byte(token))==1
+}
+
 var serviceClassifyTokenPattern=regexp.MustCompile(`^[a-f0-9]{64}$`)
 
 func (g *SuiteGate) Protect(next http.Handler)http.Handler{
@@ -105,9 +120,9 @@ func (g *SuiteGate) Protect(next http.Handler)http.Handler{
   })
  }))
  return http.HandlerFunc(func(w http.ResponseWriter,r *http.Request){
-  // Narrow machine identity: only NewsGo's classification POST. No identity
-  // endpoint, media, diagnostics or other APIs share this exception.
-  if g.authorizedNewsGoClassification(r) {
+  // One machine identity with explicit POST /api/classify and GET /api/thumbnail
+  // permissions. All other APIs require Homepage identity.
+  if g.authorizedNewsGoClassification(r) || g.authorizedNewsGoThumbnail(r) {
    w.Header().Set("Cache-Control","no-store")
    next.ServeHTTP(w,r)
    return
