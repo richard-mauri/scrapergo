@@ -123,8 +123,8 @@ func (g *SuiteGate) Protect(next http.Handler)http.Handler{
   })
  }))
  return http.HandlerFunc(func(w http.ResponseWriter,r *http.Request){
-  // Narrow machine identity: only NewsGo's classification POST. No identity
-  // endpoint, media, diagnostics or other APIs share this exception.
+  // Narrow machine identities: NewsGo classification POST and separately
+  // credentialed thumbnail GET only. Other APIs require Homepage identity.
   if g.authorizedNewsGoClassification(r) || g.authorizedNewsGoThumbnail(r) {
    w.Header().Set("Cache-Control","no-store")
    next.ServeHTTP(w,r)
