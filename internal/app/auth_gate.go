@@ -26,12 +26,15 @@ type SuiteGate struct {
  Client *http.Client
  // Dedicated server-only token grants only POST /api/classify, never user/API access.
  NewsGoClassifyToken string
+ // Distinct machine credential; permits only GET /api/thumbnail.
+ NewsGoThumbnailToken string
 }
 
 func NewSuiteGate() *SuiteGate {
  return &SuiteGate{
   ProfileURL:scrapergoProfileEndpoint,
   NewsGoClassifyToken:os.Getenv("SUITE_NEWSGO_SCRAPERGO_CLASSIFY_TOKEN"),
+  NewsGoThumbnailToken:os.Getenv("SUITE_NEWSGO_SCRAPERGO_THUMBNAIL_TOKEN"),
   Client:&http.Client{
    Timeout:4*time.Second,
    CheckRedirect:func(*http.Request,[]*http.Request)error{return http.ErrUseLastResponse},
@@ -84,7 +87,114 @@ func (g *SuiteGate) authorizedNewsGoClassification(r *http.Request) bool {
  return subtle.ConstantTimeCompare([]byte(candidate),[]byte(token))==1
 }
 
-var serviceClassifyTokenPattern=regexp.MustCompile(`^[a-f0-9]{64}$`)
+// NewsGo's thumbnail token is independent of its classification token and
+// grants no reader, identity, diagnostics, media, or unknown API permissions.
+func (g *SuiteGate) authorizedNewsGoThumbnail(r *http.Request) bool {
+ if g==nil || r.Method!=http.MethodGet || r.URL.Path!="/api/thumbnail" || r.Header.Get("Origin")!="" {
+  return false
+ }
+ token:=g.NewsGoThumbnailToken
+ if !serviceClassifyTokenPattern.MatchString(token) ||
+    token==g.NewsGoClassifyToken {
+  return false
+ }
+ provided:=r.Header.Get("Authorization")
+ if !strings.HasPrefix(provided,"Service ") || len(provided)!=len("Service ")+64 {return false}
+ candidate:=strings.TrimPrefix(provided,"Service ")
+ if !serviceClassifyTokenPattern.MatchString(candidate) {return false}
+ return subtle.ConstantTimeCompare([]byte(candidate),[]byte(token))==1
+}
+
+var serviceClassifyTokenPattern=regexp.MustCompile(`^[a-f0-9]{64}package app
+
+import (
+ "context"
+ "crypto/subtle"
+ "os"
+ "encoding/json"
+ "io"
+ "net/http"
+ "regexp"
+ "strings"
+ "time"
+
+ suiteauth "github.com/richard-mauri/homepage/shared/auth"
+)
+
+const scrapergoProfileEndpoint="https://home.themauris.org/api/session/profile"
+const scrapergoOrigin="https://scrapergo.themauris.org"
+var suiteBearerPattern=regexp.MustCompile(`^Bearer [a-f0-9]{64}$`)
+
+// SuiteGate is ScraperGo's mandatory independent per-request identity check.
+// The browser may bootstrap public static HTML, but extraction APIs never trust
+// browser-supplied role labels, optional activity telemetry or local-mode flags.
+type SuiteGate struct {
+ ProfileURL string
+ Client *http.Client
+ // Dedicated server-only token grants only POST /api/classify, never user/API access.
+ NewsGoClassifyToken string
+ // Distinct machine credential; permits only GET /api/thumbnail.
+ NewsGoThumbnailToken string
+}
+
+func NewSuiteGate() *SuiteGate {
+ return &SuiteGate{
+  ProfileURL:scrapergoProfileEndpoint,
+  NewsGoClassifyToken:os.Getenv("SUITE_NEWSGO_SCRAPERGO_CLASSIFY_TOKEN"),
+  NewsGoThumbnailToken:os.Getenv("SUITE_NEWSGO_SCRAPERGO_THUMBNAIL_TOKEN"),
+  Client:&http.Client{
+   Timeout:4*time.Second,
+   CheckRedirect:func(*http.Request,[]*http.Request)error{return http.ErrUseLastResponse},
+  },
+ }
+}
+
+func (g *SuiteGate) verify(ctx context.Context,r *http.Request)(suiteauth.Identity,error) {
+ authorization:=r.Header.Get("Authorization")
+ if !suiteBearerPattern.MatchString(authorization){return suiteauth.Identity{},nil}
+ if g==nil||g.ProfileURL==""||g.Client==nil{return suiteauth.Identity{},suiteauth.ErrVerificationUnavailable}
+ req,err:=http.NewRequestWithContext(ctx,http.MethodGet,g.ProfileURL,nil)
+ if err!=nil{return suiteauth.Identity{},err}
+ req.Header.Set("Authorization",authorization)
+ req.Header.Set("Origin",scrapergoOrigin)
+ req.Header.Set("Accept","application/json")
+ response,err:=g.Client.Do(req)
+ if err!=nil{return suiteauth.Identity{},err}
+ defer response.Body.Close()
+ if response.StatusCode==http.StatusUnauthorized||response.StatusCode==http.StatusForbidden{return suiteauth.Identity{},nil}
+ if response.StatusCode!=http.StatusOK{return suiteauth.Identity{},suiteauth.ErrVerificationUnavailable}
+ var profile struct{
+  User string `json:"user"`
+  Role suiteauth.Role `json:"role"`
+  ExpiresAt string `json:"expiresAt"`
+ }
+ decoder:=json.NewDecoder(io.LimitReader(response.Body,8192))
+ if err:=decoder.Decode(&profile);err!=nil{return suiteauth.Identity{},err}
+ expiry,err:=time.Parse(time.RFC3339,profile.ExpiresAt)
+ if err!=nil||!time.Now().Before(expiry){return suiteauth.Identity{},nil}
+ identity:=suiteauth.Identity{User:strings.TrimSpace(profile.User),Role:profile.Role,Verified:true}
+ if !suiteauth.Allowed(identity,suiteauth.UseApplication){return suiteauth.Identity{},nil}
+ return identity,nil
+}
+
+// Protect wraps the production router. Every /api/* path, including image/PDF,
+// classification, diagnostics, presence and future routes is authenticated.
+// GET /api/suite/identity supplies an authenticated identity to the bootstrap
+// without a second unguarded session authority.
+func (g *SuiteGate) authorizedNewsGoClassification(r *http.Request) bool {
+ if g==nil || r.Method!=http.MethodPost || r.URL.Path!="/api/classify" || r.Header.Get("Origin")!="" {
+  return false
+ }
+ token:=g.NewsGoClassifyToken
+ if !serviceClassifyTokenPattern.MatchString(token) {return false}
+ provided:=r.Header.Get("Authorization")
+ if !strings.HasPrefix(provided,"Service ") || len(provided)!=len("Service ")+64 {return false}
+ candidate:=strings.TrimPrefix(provided,"Service ")
+ if !serviceClassifyTokenPattern.MatchString(candidate) {return false}
+ return subtle.ConstantTimeCompare([]byte(candidate),[]byte(token))==1
+}
+
+)
 
 func (g *SuiteGate) Protect(next http.Handler)http.Handler{
  app:=suiteauth.Guard(g.verify,suiteauth.UseApplication,next)
@@ -107,7 +217,7 @@ func (g *SuiteGate) Protect(next http.Handler)http.Handler{
  return http.HandlerFunc(func(w http.ResponseWriter,r *http.Request){
   // Narrow machine identity: only NewsGo's classification POST. No identity
   // endpoint, media, diagnostics or other APIs share this exception.
-  if g.authorizedNewsGoClassification(r) {
+  if g.authorizedNewsGoClassification(r) || g.authorizedNewsGoThumbnail(r) {
    w.Header().Set("Cache-Control","no-store")
    next.ServeHTTP(w,r)
    return
