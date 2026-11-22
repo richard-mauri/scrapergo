@@ -21,7 +21,7 @@ go test -count=1 ./...
 go run . --port 8083
 ```
 
-The default port without `--port` or `PORT` is 8080; the command-line flag overrides `PORT`. For a local macOS build use `./devbuild.sh` to create Intel and Apple Silicon binaries under `dist/` and checksums. The repository's `./scrapergo.sh` is **machine-specific**: it launches an Intel build at localhost:8083 plus a separately configured Cloudflare tunnel. It expects private local paths/tunnel credentials and is not a universal installation script. `./devbuild.sh --release` publishes a release; do not use it for normal builds.
+The default port without `--port` or `PORT` is 8080; the command-line flag overrides `PORT`. For a local macOS build use `./devbuild.sh` to create Intel and Apple Silicon binaries under `dist/` and checksums. The repository's `./scrapergo.sh` is **machine-specific**: it launches the Apple Silicon ARM64 build at localhost:8083 plus a separately configured Cloudflare tunnel. It expects private local paths/tunnel credentials and is not a universal installation script. `./devbuild.sh --release` publishes a release; do not use it for normal builds.
 
 Open http://localhost:8083/ after starting on that port; use the page to submit an article URL. For a Safari right-click link workflow, see [Safari extension setup](safari-extension/README.md). The temporary extension can target local or an independently reachable trusted HTTPS instance and reuses the reader tab.
 
